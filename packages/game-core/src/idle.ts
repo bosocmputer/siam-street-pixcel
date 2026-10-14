@@ -255,7 +255,10 @@ export function claim(
 
     const atFrontier = cleared < district.stageCount && eff === frontier && target === frontier;
     if (atFrontier) {
-      const need = Math.max(1, killsForStage(eff, cfg, district.killMult) - st.farm.frontierKills);
+      const need = Math.max(
+        1,
+        killsForStage(eff, cfg, district.killMult) - (st.frontierKills[district.id] ?? 0),
+      );
       const timeNeeded = Math.max(0, (need - st.farm.killCarry) / ev.kps);
       if (timeNeeded <= remaining) {
         applyKills(eff, need);
@@ -263,7 +266,7 @@ export function claim(
         st.progress[district.id] = eff;
         report.stagesCleared.push(eff);
         st.farm.stage = Math.min(eff + 1, district.stageCount);
-        st.farm.frontierKills = 0;
+        st.frontierKills[district.id] = 0;
         st.farm.killCarry = 0;
         continue;
       }
@@ -271,7 +274,7 @@ export function claim(
     const total = remaining * ev.kps + st.farm.killCarry;
     const kills = Math.floor(total);
     st.farm.killCarry = total - kills;
-    if (atFrontier) st.farm.frontierKills += kills;
+    if (atFrontier) st.frontierKills[district.id] = (st.frontierKills[district.id] ?? 0) + kills;
     applyKills(eff, kills);
     remaining = 0;
   }
@@ -299,7 +302,7 @@ export function setFarmTarget(
     return { ok: false, reason: 'badStage' };
   const next = structuredClone(state);
   if (next.farm.districtId !== districtId) {
-    next.farm = { districtId, stage, frontierKills: 0, killCarry: 0 };
+    next.farm = { districtId, stage, killCarry: 0 }; // partial stage progress is kept per district
   } else {
     next.farm.stage = stage;
   }

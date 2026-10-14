@@ -54,8 +54,9 @@ describe('weekly rules', () => {
     expect(options).toContain(tallyVotes({}, options, 'w', cfg));
   });
 
-  it('rejects unknown rule ids', () => {
+  it('rejects unknown rule ids and empty option lists', () => {
     expect(() => tallyVotes({}, ['nope'], 'w', cfg)).toThrow();
+    expect(() => tallyVotes({}, [], 'w', cfg)).toThrow();
   });
 });
 

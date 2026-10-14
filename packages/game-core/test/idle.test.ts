@@ -122,7 +122,7 @@ describe('claim: rewards', () => {
     const cleared = state.progress.wiang ?? 0;
     expect(report.stagesCleared).toEqual(Array.from({ length: cleared }, (_, i) => i + 1));
     expect(state.farm.stage).toBeLessThanOrEqual(Math.min(cleared + 1, 30));
-    expect(state.farm.frontierKills).toBeGreaterThanOrEqual(0);
+    expect(state.frontierKills.wiang ?? 0).toBeGreaterThanOrEqual(0);
     expect(state.farm.killCarry).toBeGreaterThanOrEqual(0);
     expect(state.farm.killCarry).toBeLessThan(1);
   });
@@ -216,6 +216,29 @@ describe('claim: boss contribution', () => {
   });
 });
 
+describe('partial stage progress', () => {
+  it('is kept per district when you switch away and back', () => {
+    let s = fresh();
+    s.progress.wiang = 2;
+    s.frontierKills.wiang = 40;
+    const toPing = setFarmTarget(s, 'ping', 1, cfg);
+    if (!toPing.ok) throw new Error('switch');
+    s = toPing.state;
+    expect(s.frontierKills.wiang).toBe(40);
+    const back = setFarmTarget(s, 'wiang', 3, cfg);
+    expect(back.ok && back.state.frontierKills.wiang).toBe(40);
+  });
+
+  it('is saved when a claim ends mid-stage and used by the next claim', () => {
+    const first = must(claim(fresh(), 2 * H, 's1', cfg));
+    const mid = first.state.frontierKills.wiang ?? 0;
+    const need = killsForStage((first.state.progress.wiang ?? 0) + 1, cfg, 1);
+    expect(mid).toBeLessThan(need);
+    const second = must(claim(first.state, 4 * H, 's2', cfg));
+    expect(second.report.kills).toBeGreaterThan(0);
+  });
+});
+
 describe('setFarmTarget', () => {
   it('lets you pick any stage up to the frontier and nothing beyond', () => {
     const s = fresh();
@@ -249,7 +272,6 @@ describe('claim: invariants over random players and times (property-based)', () 
       s.farm = {
         districtId: district,
         stage: Math.min(stage, cleared + 1),
-        frontierKills: 0,
         killCarry: 0,
       };
       s.progress[district] = cleared;

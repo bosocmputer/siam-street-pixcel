@@ -66,17 +66,29 @@ describe('Thai names for every piece of game content', () => {
   });
 
   it('keeps the friendly tone from the GDD: no formal endings or rude words', () => {
-    const banned = ['ครับ', 'ค่ะ', 'คะ', 'ท่าน', 'มึง', 'กู'];
+    // Thai has no spaces, so avoid naive substring checks ("ท่าน้ำ" contains "ท่าน")
+    const banned: [string, RegExp][] = [
+      ['ครับ', /ครับ/],
+      ['ค่ะ', /ค่ะ/],
+      ['ท่าน', /ท่าน(?!้)/],
+      ['มึง', /มึง/],
+      ['กู', /(^|[\s,.!?])กู($|[\s,.!?])/],
+    ];
     const bad: string[] = [];
     const walk = (node: unknown, path: string) => {
       if (typeof node === 'string') {
-        for (const w of banned) if (node.includes(w)) bad.push(`${path}: ${w}`);
+        for (const [word, re] of banned) if (re.test(node)) bad.push(`${path}: ${word}`);
       } else if (node && typeof node === 'object') {
         for (const [k, v] of Object.entries(node)) walk(v, `${path}.${k}`);
       }
     };
     walk(th, 'th');
     expect(bad).toEqual([]);
+  });
+
+  it('the tone check does not flag ordinary words', () => {
+    expect(/ท่าน(?!้)/.test('กบท่าน้ำ')).toBe(false);
+    expect(/ท่าน(?!้)/.test('ท่านได้รับของ')).toBe(true);
   });
 
   it('names stay short enough for buttons and list rows', () => {

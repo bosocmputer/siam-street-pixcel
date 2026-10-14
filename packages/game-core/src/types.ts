@@ -276,7 +276,8 @@ export interface PlayerState {
   bestiary: Record<string, number>; // monster id -> times absorbed
   presets: (Loadout | null)[];
   autoSalvageBelow: Rarity | null; // salvage drops strictly below this rarity
-  farm: { districtId: string; stage: number; frontierKills: number; killCarry: number };
+  farm: { districtId: string; stage: number; killCarry: number };
+  frontierKills: Record<string, number>; // kills already made towards the next stage, per district
   progress: Record<string, number>; // district id -> highest cleared stage
   lastClaimAt: number; // server seconds
   counters: { item: number };

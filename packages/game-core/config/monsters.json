@@ -6,7 +6,7 @@
     "hp": 28,
     "atk": 4,
     "atkSpeed": 0.8,
-    "exp": 6.198,
+    "exp": 7.0,
     "coins": 2.0,
     "coreChance": 0.06,
     "skillId": "brick_smash"
@@ -18,7 +18,7 @@
     "hp": 36,
     "atk": 3,
     "atkSpeed": 0.7,
-    "exp": 6.198,
+    "exp": 7.0,
     "coins": 2.0,
     "coreChance": 0.06,
     "skillId": "clay_armor"
@@ -30,7 +30,7 @@
     "hp": 20,
     "atk": 5,
     "atkSpeed": 1.2,
-    "exp": 6.198,
+    "exp": 7.0,
     "coins": 2.0,
     "coreChance": 0.06,
     "skillId": "wall_gnaw"
@@ -42,7 +42,7 @@
     "hp": 30,
     "atk": 4,
     "atkSpeed": 0.8,
-    "exp": 6.198,
+    "exp": 7.0,
     "coins": 2.0,
     "coreChance": 0.06,
     "skillId": "root_bind"
@@ -54,7 +54,7 @@
     "hp": 22,
     "atk": 5,
     "atkSpeed": 1.1,
-    "exp": 6.198,
+    "exp": 7.0,
     "coins": 2.0,
     "coreChance": 0.06,
     "skillId": "weave_slash"
@@ -66,7 +66,7 @@
     "hp": 32,
     "atk": 4,
     "atkSpeed": 0.9,
-    "exp": 6.198,
+    "exp": 7.0,
     "coins": 2.0,
     "coreChance": 0.06,
     "skillId": "tongue_drain"
@@ -78,7 +78,7 @@
     "hp": 26,
     "atk": 5,
     "atkSpeed": 0.9,
-    "exp": 6.198,
+    "exp": 7.0,
     "coins": 2.0,
     "coreChance": 0.06,
     "skillId": "skewer_fire"
@@ -90,7 +90,7 @@
     "hp": 30,
     "atk": 5,
     "atkSpeed": 1.0,
-    "exp": 6.198,
+    "exp": 7.0,
     "coins": 2.0,
     "coreChance": 0.06,
     "skillId": "tuk_charge"
@@ -102,7 +102,7 @@
     "hp": 20,
     "atk": 6,
     "atkSpeed": 1.2,
-    "exp": 6.198,
+    "exp": 7.0,
     "coins": 2.0,
     "coreChance": 0.06,
     "skillId": "spark_dust"
@@ -114,7 +114,7 @@
     "hp": 24,
     "atk": 4,
     "atkSpeed": 1.0,
-    "exp": 6.198,
+    "exp": 7.0,
     "coins": 2.0,
     "coreChance": 0.06,
     "skillId": "caffeine_rush"
@@ -126,7 +126,7 @@
     "hp": 30,
     "atk": 4,
     "atkSpeed": 0.9,
-    "exp": 6.198,
+    "exp": 7.0,
     "coins": 2.0,
     "coreChance": 0.06,
     "skillId": "fan_spin"
@@ -138,7 +138,7 @@
     "hp": 20,
     "atk": 5,
     "atkSpeed": 1.3,
-    "exp": 6.198,
+    "exp": 7.0,
     "coins": 2.0,
     "coreChance": 0.06,
     "skillId": "peck_burst"

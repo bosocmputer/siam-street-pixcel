@@ -3,10 +3,10 @@
   "statPointsPerLevel": 3,
   "startingStatPoints": 3,
   "exp": {
-    "base": 58.6699,
-    "exponent": 1.9065,
+    "base": 53,
+    "exponent": 1.86,
     "earlyLevels": 10,
-    "earlyMult": 0.0258
+    "earlyMult": 0.026
   },
   "stats": {
     "hpBase": 50,
@@ -35,22 +35,22 @@
     "maxDamagePerKillFraction": 0.6,
     "resistCap": 0.6,
     "maxHealFraction": 0.6,
-    "hpStep": 0.506,
-    "hpPower": 1.7382,
-    "atkStep": 0.3602,
-    "atkPower": 1.1
+    "hpStep": 0.42,
+    "hpPower": 2.07,
+    "atkStep": 0.36,
+    "atkPower": 1.07
   },
   "idle": {
     "capSeconds": 36000,
-    "respawnSeconds": 4.9953,
-    "killsPerStage": 174.0055,
+    "respawnSeconds": 6.4,
+    "killsPerStage": 235,
     "minClaimIntervalSeconds": 30,
     "welcomeBackAfterSeconds": 259200,
     "welcomeBackMaxBonusSeconds": 57600,
     "killsPerStageGrowth": 1.12
   },
   "rewards": {
-    "expGrowth": 1.007,
+    "expGrowth": 1.013,
     "coinGrowth": 1.03,
     "itemDropChance": 0.004,
     "jellyPerKill": 0.6,
