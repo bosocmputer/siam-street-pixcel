@@ -1,0 +1,2270 @@
+<title>แบบหน้าจอ สไลม์คุมย่าน</title>
+<meta name="claude:viewport-fit-sides" content="cover" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  rel="stylesheet"
+  href="https://fonts.googleapis.com/css2?family=Mitr:wght@400;500;600&family=Sarabun:wght@400;500;600;700&family=Pixelify+Sans:wght@500;700&display=swap"
+/>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #12102a;
+    --bg2: #1b1838;
+    --panel: #251f4a;
+    --panel2: #302a5c;
+    --line: #0b0a1c;
+    --edge: #4a4280;
+    --text: #f6f0e4;
+    --muted: #aaa4c9;
+    --amber: #ffb84d;
+    --amber-d: #b86f10;
+    --amber-l: #ffd98a;
+    --chili: #ef5a50;
+    --jade: #5fe0b0;
+    --jade-d: #2d9c79;
+    --sky: #5aa9e6;
+    --fire: #ff8a3d;
+    --wind: #cdeaf5;
+    --earth: #c9825a;
+    --common: #9aa3c7;
+    --good: #5fe0a0;
+    --rare: #5aa9ff;
+    --legend: #ffb84d;
+    --font-th: 'Sarabun', 'Noto Sans Thai', system-ui, sans-serif;
+    --font-hd: 'Mitr', 'Sarabun', system-ui, sans-serif;
+    --font-px: 'Pixelify Sans', 'Mitr', monospace;
+  }
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-th);
+    font-size: 16px;
+    line-height: 1.6;
+    padding-block: 24px 64px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  .wrap {
+    max-width: 1080px;
+    margin: 0 auto;
+  }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-hd);
+    font-weight: 500;
+    line-height: 1.25;
+    text-wrap: balance;
+    margin: 0;
+  }
+  h1 {
+    font-size: clamp(28px, 6vw, 44px);
+  }
+  h2 {
+    font-size: clamp(22px, 4.5vw, 30px);
+    color: var(--amber);
+  }
+  h3 {
+    font-size: 18px;
+  }
+  p {
+    margin: 0;
+  }
+  .lead {
+    font-size: 18px;
+    color: var(--muted);
+    max-width: 62ch;
+  }
+  section {
+    margin-top: 56px;
+  }
+  .tag {
+    display: inline-block;
+    font-family: var(--font-px);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--amber);
+    border: 2px solid var(--amber);
+    padding: 1px 8px;
+    margin-bottom: 12px;
+  }
+  .stack {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .ask {
+    margin-top: 20px;
+    background: var(--panel);
+    border: 2px solid var(--edge);
+    padding: 16px 18px;
+    max-width: 70ch;
+  }
+  .ask ol {
+    margin: 8px 0 0;
+    padding-left: 22px;
+  }
+  .ask li {
+    margin: 4px 0;
+  }
+
+  /* ---------- phone frames ---------- */
+  .fw {
+    position: relative;
+    flex: none;
+  }
+  .phone {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 390px;
+    height: 844px;
+    transform-origin: 0 0;
+    overflow: hidden;
+    background: var(--bg);
+    border: 0;
+    border-radius: 28px;
+    box-shadow:
+      0 0 0 6px #05040f,
+      0 0 0 8px #3a3470;
+    font-family: var(--font-th);
+    color: var(--text);
+    line-height: 1.35;
+    user-select: none;
+  }
+  .row {
+    display: flex;
+    gap: 28px;
+    overflow-x: auto;
+    padding: 12px 10px 18px;
+    scroll-snap-type: x proximity;
+  }
+  .row > figure {
+    scroll-snap-align: start;
+  }
+  figure {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex: none;
+  }
+  figcaption {
+    font-size: 14px;
+    color: var(--muted);
+  }
+  figcaption b {
+    display: block;
+    color: var(--text);
+    font-family: var(--font-hd);
+    font-weight: 500;
+    font-size: 16px;
+  }
+  .cols2 {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 28px;
+    align-items: flex-start;
+  }
+  .notes {
+    flex: 1 1 280px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .notes ul {
+    margin: 0;
+    padding-left: 20px;
+  }
+  .notes li {
+    margin: 6px 0;
+  }
+  .bad {
+    color: #ff9c94;
+  }
+  .good {
+    color: var(--good);
+  }
+
+  /* ---------- in-game UI kit ---------- */
+  img.px {
+    image-rendering: pixelated;
+    display: block;
+  }
+  .scr {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+  }
+  .pnl {
+    background: var(--panel);
+    margin: 4px;
+    box-shadow:
+      0 -4px 0 0 var(--line),
+      0 4px 0 0 var(--line),
+      -4px 0 0 0 var(--line),
+      4px 0 0 0 var(--line),
+      inset 0 3px 0 0 rgba(255, 255, 255, 0.06);
+  }
+  .btn {
+    font-family: var(--font-hd);
+    font-weight: 500;
+    border: 0;
+    cursor: pointer;
+    color: var(--text);
+    background: var(--panel2);
+    margin: 4px;
+    min-height: 48px;
+    padding: 0 16px;
+    font-size: 16px;
+    box-shadow:
+      0 -4px 0 0 var(--line),
+      0 4px 0 0 var(--line),
+      -4px 0 0 0 var(--line),
+      4px 0 0 0 var(--line),
+      inset 0 -6px 0 0 rgba(0, 0, 0, 0.28),
+      inset 0 3px 0 0 rgba(255, 255, 255, 0.14);
+  }
+  .btn.pri {
+    background: var(--amber);
+    color: #2b1700;
+    font-size: 20px;
+    min-height: 60px;
+    box-shadow:
+      0 -4px 0 0 #5a3000,
+      0 4px 0 0 #5a3000,
+      -4px 0 0 0 #5a3000,
+      4px 0 0 0 #5a3000,
+      inset 0 -8px 0 0 var(--amber-d),
+      inset 0 4px 0 0 var(--amber-l);
+  }
+  .btn.pri.glow {
+    animation: glow 1.6s ease-in-out infinite;
+  }
+  @keyframes glow {
+    50% {
+      filter: brightness(1.12) drop-shadow(0 0 10px rgba(255, 184, 77, 0.7));
+    }
+  }
+  .btn.dim {
+    background: #3b3667;
+    color: #8c86b3;
+    box-shadow:
+      0 -4px 0 0 var(--line),
+      0 4px 0 0 var(--line),
+      -4px 0 0 0 var(--line),
+      4px 0 0 0 var(--line),
+      inset 0 -6px 0 0 rgba(0, 0, 0, 0.25);
+  }
+  .btn.sm {
+    min-height: 40px;
+    font-size: 14px;
+    padding: 0 12px;
+  }
+  .chip {
+    font-family: var(--font-th);
+    font-weight: 600;
+    font-size: 13px;
+    background: var(--bg2);
+    color: var(--text);
+    padding: 2px 10px;
+    margin: 3px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow:
+      0 -3px 0 0 var(--edge),
+      0 3px 0 0 var(--edge),
+      -3px 0 0 0 var(--edge),
+      3px 0 0 0 var(--edge);
+  }
+  .chip.hot {
+    background: var(--amber);
+    color: #2b1700;
+    box-shadow:
+      0 -3px 0 0 #5a3000,
+      0 3px 0 0 #5a3000,
+      -3px 0 0 0 #5a3000,
+      3px 0 0 0 #5a3000;
+  }
+  .muted {
+    color: var(--muted);
+  }
+  .num {
+    font-family: var(--font-px);
+    font-weight: 700;
+  }
+  .bar {
+    height: 12px;
+    background: #0e0c24;
+    box-shadow: 0 0 0 3px var(--line);
+    position: relative;
+    overflow: hidden;
+  }
+  .bar > i {
+    position: absolute;
+    inset: 0 auto 0 0;
+    background: linear-gradient(var(--jade) 0 45%, var(--jade-d) 45%);
+  }
+  .bar.amber > i {
+    background: linear-gradient(var(--amber-l) 0 45%, var(--amber) 45%);
+  }
+  .bar.red > i {
+    background: linear-gradient(#ff8c84 0 45%, var(--chili) 45%);
+  }
+  .sb {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 14px 8px;
+    height: 68px;
+    flex: none;
+  }
+  .sb .who {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+  .sb .face {
+    width: 40px;
+    height: 40px;
+    background: var(--panel);
+    box-shadow: 0 0 0 3px var(--line);
+  }
+  .sb .who-t {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.15;
+  }
+  .sb .who-t b {
+    font-family: var(--font-hd);
+    font-weight: 500;
+    font-size: 15px;
+  }
+  .sb .who-t span {
+    font-size: 12px;
+    color: var(--amber);
+    font-weight: 700;
+  }
+  .sb .xp {
+    flex: 1;
+    min-width: 0;
+  }
+  .sb .cur {
+    font-family: var(--font-px);
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--amber-l);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--panel);
+    padding: 3px 10px;
+    box-shadow:
+      0 -3px 0 0 var(--line),
+      0 3px 0 0 var(--line),
+      -3px 0 0 0 var(--line),
+      3px 0 0 0 var(--line);
+  }
+  .coin {
+    width: 14px;
+    height: 14px;
+    background: var(--amber);
+    box-shadow:
+      inset -3px -3px 0 var(--amber-d),
+      0 0 0 2px #5a3000;
+    border-radius: 50%;
+  }
+  .tabbar {
+    flex: none;
+    height: 78px;
+    background: #0d0b22;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    border-top: 4px solid var(--line);
+    padding-bottom: 14px;
+  }
+  .tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 600;
+    position: relative;
+    cursor: pointer;
+    background: none;
+    border: 0;
+    font-family: var(--font-th);
+  }
+  .tab img {
+    width: 30px;
+    height: 30px;
+  }
+  .tab.on {
+    color: var(--amber);
+    background: linear-gradient(#251f4a, #0d0b22);
+  }
+  .tab.on::before {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: 14px;
+    right: 14px;
+    height: 4px;
+    background: var(--amber);
+  }
+  .dot {
+    position: absolute;
+    top: 8px;
+    right: calc(50% - 22px);
+    width: 12px;
+    height: 12px;
+    background: var(--chili);
+    box-shadow: 0 0 0 3px #0d0b22;
+  }
+  .body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 0 12px;
+    overflow: hidden;
+  }
+  .stage {
+    position: relative;
+    flex: none;
+    margin: 0 4px;
+    box-shadow:
+      0 -4px 0 0 var(--line),
+      0 4px 0 0 var(--line),
+      -4px 0 0 0 var(--line),
+      4px 0 0 0 var(--line);
+    overflow: hidden;
+  }
+  .stage > img.bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .stage .abs {
+    position: absolute;
+  }
+  .stage .zone {
+    left: 8px;
+    top: 8px;
+  }
+  .float {
+    position: absolute;
+    font-family: var(--font-px);
+    font-weight: 700;
+    text-shadow:
+      2px 2px 0 #000,
+      -2px -2px 0 #000,
+      2px -2px 0 #000,
+      -2px 2px 0 #000;
+    color: #fff;
+  }
+  .float.crit {
+    color: var(--amber);
+  }
+  .hp {
+    width: 96px;
+  }
+  .skillrow {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 8px;
+    display: flex;
+    justify-content: center;
+    gap: 14px;
+  }
+  .sk {
+    width: 48px;
+    height: 48px;
+    position: relative;
+    background: rgba(13, 11, 34, 0.82);
+    box-shadow:
+      0 0 0 3px var(--line),
+      0 0 0 5px var(--edge);
+    display: grid;
+    place-items: center;
+  }
+  .sk.on {
+    box-shadow:
+      0 0 0 3px var(--line),
+      0 0 0 5px var(--amber),
+      0 0 14px 2px rgba(255, 184, 77, 0.65);
+  }
+  .sk.empty {
+    opacity: 0.5;
+    border: 2px dashed var(--edge);
+    box-shadow: none;
+  }
+  .sk .cd {
+    position: absolute;
+    inset: 0;
+    background: conic-gradient(rgba(5, 4, 15, 0.7) var(--p), transparent 0);
+  }
+  .sk img {
+    width: 34px;
+    height: 34px;
+    position: relative;
+  }
+  .track {
+    padding: 4px 8px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .track .top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 14px;
+  }
+  .pips {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .pip {
+    flex: 1;
+    height: 10px;
+    background: #0e0c24;
+    box-shadow: 0 0 0 2px var(--line);
+  }
+  .pip.done {
+    background: var(--jade);
+  }
+  .pip.now {
+    background: var(--amber);
+  }
+  .pip.ms {
+    flex: none;
+    width: 22px;
+    height: 22px;
+    background: none;
+    box-shadow: none;
+  }
+  .idle {
+    display: grid;
+    grid-template-columns: 76px 1fr;
+    gap: 6px 12px;
+    padding: 12px 14px 8px;
+    align-items: center;
+  }
+  .idle img {
+    width: 76px;
+    height: 76px;
+  }
+  .idle h3 {
+    font-size: 17px;
+  }
+  .idle .sub {
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .idle .btn {
+    grid-column: 1 / -1;
+    margin: 6px 6px 6px;
+  }
+  .nudge {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    font-size: 14px;
+    font-weight: 600;
+    background: var(--bg2);
+    margin: 4px 10px;
+    box-shadow:
+      0 -3px 0 0 var(--amber),
+      0 3px 0 0 var(--amber),
+      -3px 0 0 0 var(--amber),
+      3px 0 0 0 var(--amber);
+  }
+  .nudge b {
+    color: var(--amber);
+    font-family: var(--font-hd);
+    font-weight: 500;
+    margin-left: auto;
+    white-space: nowrap;
+  }
+  .ttl {
+    font-family: var(--font-hd);
+    font-weight: 500;
+    font-size: 22px;
+    padding: 14px 16px 4px;
+  }
+  .sec {
+    font-family: var(--font-hd);
+    font-weight: 500;
+    font-size: 15px;
+    color: var(--amber);
+    padding: 12px 14px 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .sec small {
+    font-family: var(--font-th);
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .slot {
+    width: 60px;
+    height: 60px;
+    background: #0e0c24;
+    box-shadow:
+      0 0 0 3px var(--line),
+      0 0 0 5px var(--edge);
+    display: grid;
+    place-items: center;
+    position: relative;
+    margin: 6px;
+  }
+  .slot img {
+    width: 44px;
+    height: 44px;
+  }
+  .slot.empty::after {
+    content: '+';
+    font-family: var(--font-px);
+    font-size: 26px;
+    color: var(--edge);
+  }
+  .slot .lb {
+    position: absolute;
+    bottom: -22px;
+    left: -10px;
+    right: -10px;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+  }
+  .slot.r-good {
+    box-shadow:
+      0 0 0 3px var(--line),
+      0 0 0 5px var(--good);
+  }
+  .slot.r-rare {
+    box-shadow:
+      0 0 0 3px var(--line),
+      0 0 0 5px var(--rare);
+  }
+  .slot.r-common {
+    box-shadow:
+      0 0 0 3px var(--line),
+      0 0 0 5px var(--common);
+  }
+  .slot.r-legend {
+    box-shadow:
+      0 0 0 3px var(--line),
+      0 0 0 5px var(--legend),
+      0 0 16px 2px rgba(255, 184, 77, 0.6);
+  }
+  .stat {
+    display: grid;
+    grid-template-columns: 28px 64px 1fr 44px;
+    gap: 10px;
+    align-items: center;
+    padding: 6px 12px;
+  }
+  .stat b {
+    font-family: var(--font-hd);
+    font-weight: 500;
+    font-size: 15px;
+  }
+  .plus {
+    width: 40px;
+    height: 40px;
+    background: var(--amber);
+    color: #2b1700;
+    font-family: var(--font-px);
+    font-weight: 700;
+    font-size: 26px;
+    line-height: 40px;
+    text-align: center;
+    box-shadow:
+      0 0 0 3px #5a3000,
+      inset 0 -5px 0 var(--amber-d);
+  }
+  .plus.off {
+    background: #3b3667;
+    color: #6e68a0;
+    box-shadow:
+      0 0 0 3px var(--line),
+      inset 0 -5px 0 rgba(0, 0, 0, 0.25);
+  }
+  .grid4 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    padding: 10px 14px;
+  }
+  .tile {
+    aspect-ratio: 1;
+    background: #0e0c24;
+    display: grid;
+    place-items: center;
+    position: relative;
+  }
+  .tile img {
+    width: 70%;
+    height: 70%;
+  }
+  .tile.r-common {
+    box-shadow:
+      0 0 0 3px var(--line),
+      0 0 0 5px var(--common);
+  }
+  .tile.r-good {
+    box-shadow:
+      0 0 0 3px var(--line),
+      0 0 0 5px var(--good);
+  }
+  .tile.r-rare {
+    box-shadow:
+      0 0 0 3px var(--line),
+      0 0 0 5px var(--rare);
+  }
+  .tile.r-legend {
+    box-shadow:
+      0 0 0 3px var(--line),
+      0 0 0 5px var(--legend),
+      0 0 14px 2px rgba(255, 184, 77, 0.55);
+  }
+  .tile.sel {
+    outline: 3px solid var(--amber);
+    outline-offset: 5px;
+  }
+  .tile .eq {
+    position: absolute;
+    right: -4px;
+    top: -4px;
+    background: var(--amber);
+    color: #2b1700;
+    font-size: 11px;
+    font-weight: 800;
+    padding: 0 5px;
+  }
+  .tile .up {
+    position: absolute;
+    left: 3px;
+    bottom: 1px;
+    color: var(--good);
+    font-size: 12px;
+    font-weight: 800;
+  }
+  .seg {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    margin: 4px 12px;
+    background: #0e0c24;
+    box-shadow: 0 0 0 3px var(--line);
+  }
+  .seg span {
+    text-align: center;
+    padding: 8px 0;
+    font-family: var(--font-hd);
+    font-weight: 500;
+    font-size: 15px;
+    color: var(--muted);
+  }
+  .seg span.on {
+    background: var(--amber);
+    color: #2b1700;
+  }
+  .sheet {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--panel);
+    border-top: 4px solid var(--line);
+    padding: 16px 12px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    box-shadow: 0 -4px 0 0 var(--edge);
+  }
+  .dim-bg {
+    position: absolute;
+    inset: 0;
+    background: rgba(5, 4, 15, 0.72);
+  }
+  .center-modal {
+    position: absolute;
+    left: 20px;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  .loot {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    padding: 8px 10px;
+  }
+  .lootc {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .lootc .tile {
+    width: 84px;
+  }
+  .lootc.gold .tile {
+    box-shadow:
+      0 0 0 3px var(--line),
+      0 0 0 5px var(--legend),
+      0 0 22px 4px rgba(255, 184, 77, 0.7);
+  }
+  .line {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 14px;
+    font-size: 15px;
+    border-top: 2px dashed #3a3470;
+  }
+  .line b {
+    font-family: var(--font-px);
+    color: var(--amber-l);
+  }
+  .field {
+    background: #0e0c24;
+    box-shadow:
+      0 0 0 3px var(--line),
+      0 0 0 5px var(--edge);
+    padding: 10px 14px;
+    font-family: var(--font-hd);
+    font-size: 20px;
+    margin: 8px 8px;
+  }
+  .swatches {
+    display: flex;
+    gap: 12px;
+    padding: 6px 12px;
+    justify-content: center;
+  }
+  .sw {
+    width: 34px;
+    height: 34px;
+    border-radius: 50% 50% 46% 46%;
+    box-shadow:
+      0 0 0 3px var(--line),
+      inset -4px -5px 0 rgba(0, 0, 0, 0.22),
+      inset 4px 4px 0 rgba(255, 255, 255, 0.4);
+  }
+  .sw.on {
+    outline: 4px solid var(--amber);
+    outline-offset: 3px;
+  }
+  .eyes {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    padding: 6px 16px;
+  }
+  .eyec {
+    background: #0e0c24;
+    box-shadow:
+      0 0 0 3px var(--line),
+      0 0 0 5px var(--edge);
+    display: grid;
+    place-items: center;
+    padding: 4px;
+  }
+  .eyec.on {
+    box-shadow:
+      0 0 0 3px var(--line),
+      0 0 0 5px var(--amber);
+    background: var(--panel);
+  }
+  .eyec img {
+    width: 100%;
+  }
+  .center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .bigtxt {
+    font-family: var(--font-hd);
+    font-weight: 500;
+    font-size: 30px;
+    text-shadow: 3px 3px 0 #000;
+  }
+  .sparkle {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: var(--amber-l);
+    box-shadow: 0 0 8px var(--amber);
+  }
+  .mapwrap {
+    position: relative;
+    margin: 0 4px;
+    height: 330px;
+    flex: none;
+    box-shadow:
+      0 -4px 0 0 var(--line),
+      0 4px 0 0 var(--line),
+      -4px 0 0 0 var(--line),
+      4px 0 0 0 var(--line);
+    overflow: hidden;
+  }
+  .pin {
+    position: absolute;
+    transform: translate(-50%, -100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .pin .lbl {
+    font-family: var(--font-hd);
+    font-size: 13px;
+    background: var(--bg);
+    padding: 1px 8px;
+    box-shadow:
+      0 0 0 2px var(--line),
+      0 0 0 4px var(--edge);
+    white-space: nowrap;
+  }
+  .pin.sel .lbl {
+    background: var(--amber);
+    color: #2b1700;
+    box-shadow:
+      0 0 0 2px #5a3000,
+      0 0 0 4px #5a3000;
+  }
+  .pin .gem {
+    width: 22px;
+    height: 22px;
+    transform: rotate(45deg);
+    margin: 6px 0 2px;
+    box-shadow: 0 0 0 3px var(--line);
+  }
+  .stg {
+    display: flex;
+    gap: 6px;
+    padding: 4px 12px;
+    flex-wrap: wrap;
+  }
+  .stg span {
+    width: 40px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    background: #0e0c24;
+    font-family: var(--font-px);
+    font-weight: 700;
+    font-size: 15px;
+    box-shadow: 0 0 0 2px var(--line);
+  }
+  .stg span.done {
+    background: var(--jade-d);
+  }
+  .stg span.now {
+    background: var(--amber);
+    color: #2b1700;
+  }
+  .evc {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 8px 8px;
+    text-align: center;
+    font-size: 13px;
+  }
+  .evc ul {
+    margin: 0;
+    padding-left: 14px;
+    text-align: left;
+  }
+
+  /* ---------- explainer widgets ---------- */
+  .swatchrow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .swc {
+    width: 92px;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.3;
+  }
+  .swc i {
+    display: block;
+    height: 52px;
+    margin-bottom: 4px;
+    box-shadow: 0 0 0 2px #3a3470;
+  }
+  .swc b {
+    color: var(--text);
+    display: block;
+    font-size: 13px;
+  }
+  .card {
+    background: var(--panel);
+    border: 2px solid var(--edge);
+    padding: 16px;
+    min-width: 0;
+  }
+  .grid3 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px;
+  }
+  .journey {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+  }
+  .journey .card h3 {
+    color: var(--amber);
+    margin-bottom: 4px;
+  }
+  .journey .t {
+    font-family: var(--font-px);
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .journey ol {
+    margin: 10px 0 0;
+    padding-left: 20px;
+  }
+  .journey li {
+    margin: 5px 0;
+  }
+  .compare {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 28px;
+    align-items: flex-start;
+  }
+  .compare > figure > img {
+    display: block;
+    width: 292px;
+    max-width: 100%;
+    box-shadow: 0 0 0 4px #3a3470;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 14px;
+  }
+  th,
+  td {
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid #3a3470;
+    vertical-align: top;
+  }
+  th {
+    color: var(--amber);
+    font-family: var(--font-hd);
+    font-weight: 500;
+  }
+  .tablewrap {
+    overflow-x: auto;
+  }
+  code {
+    font-family: var(--font-px);
+    font-size: 13px;
+    background: var(--bg2);
+    padding: 1px 6px;
+  }
+  .specimen {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px 24px;
+    align-items: center;
+  }
+  .protowrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 28px;
+    align-items: flex-start;
+  }
+  .hint {
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .status {
+    display: inline-block;
+    background: var(--chili);
+    color: #fff;
+    font-weight: 700;
+    font-size: 13px;
+    padding: 2px 10px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+</style>
+
+<div class="wrap">
+  <header class="stack">
+    <span class="tag">M2.5 · รอบที่ 1</span>
+    <h1>แบบหน้าจอ สไลม์คุมย่าน <span class="status">รออนุมัติ</span></h1>
+    <p class="lead">
+      นี่คือภาพจำลองหน้าจอ <b>ก่อนเขียนโค้ดจริง</b> ใช้ขนาดมือถือ 390×844 ภาพสไลม์ มอน และฉากเป็นของวาดชั่วคราว
+      จะถูกแทนด้วย pixel art จาก PixelLab เมื่อต่อได้ ตัวเลขในภาพเป็นตัวอย่าง
+    </p>
+    <div class="ask">
+      <b>อยากให้คุณตัดสินแค่ 5 เรื่อง</b> (ตอบสั้น ๆ ก็พอ ผมแก้ได้ถูกที่สุดตอนนี้)
+      <ol>
+        <li>บรรยากาศ <b>ตลาดกลางคืนเชียงใหม่ (ม่วงเข้ม + แสงโคมสีส้ม)</b> ใช่ไหม หรืออยากได้อารมณ์อื่น</li>
+        <li>หน้าฟาร์มที่เห็นสไลม์ใหญ่ครึ่งจอ ดูเป็นเกมขึ้นไหม</li>
+        <li>ปุ่มส้มใหญ่ <b>"เก็บของออโต้"</b> ตัวเดียวต่อหน้า ชัดพอไหม</li>
+        <li>หน้าแผนที่แบบภาพแทนรายการ อยากได้ทิศทางนี้ไหม (ของจริงมาจาก OSM ใน M3)</li>
+        <li>มีหน้าไหนที่รู้สึกว่า "ยังเหมือนแอปทั่วไป" บอกได้เลย</li>
+      </ol>
+    </div>
+  </header>
+
+  <section>
+    <span class="tag">ก่อน → หลัง</span>
+    <h2>หน้าฟาร์ม: ปัญหาของ M2 และสิ่งที่แก้</h2>
+    <div class="compare" style="margin-top: 18px">
+      <figure>
+        <img id="before" alt="หน้าฟาร์มของ M2" />
+        <figcaption><b class="bad">M2 (ของเดิม)</b>ภาพจากหน้าจอจริง</figcaption>
+      </figure>
+      <div id="cmp-new"></div>
+      <div class="notes" style="flex-basis: 320px">
+        <h3>ที่ผมเห็นว่าผิดใน M2</h3>
+        <ul>
+          <li>ฉากต่อสู้เป็นแถบเล็ก สไลม์ซึ่งเป็นพระเอกตัวนิดเดียว ไม่มีบรรยากาศ</li>
+          <li>ปุ่มรับของ "รอสักครู่ (29 วิ)" หน้าตาเหมือนปุ่มที่ใช้ไม่ได้ ทั้งที่เป็นปุ่มหลักของเกม</li>
+          <li>ข้อมูลเรียงเป็นแถบข้อความ ไม่มีลำดับสายตา อ่านแล้วต้องแปลเอง</li>
+          <li>กล่องคำแนะนำซ้อนหลายอัน ผู้เล่นไม่รู้ว่าควรทำอะไรก่อน</li>
+          <li>ทุกแผงหน้าตาเหมือนกัน ไม่มีอะไรบอกว่าอันไหนสำคัญ</li>
+        </ul>
+        <h3>ที่แก้ในแบบใหม่</h3>
+        <ul>
+          <li>ฉากต่อสู้ใหญ่ครึ่งจอ มองจากมุมสูงแบบเดียวกับที่ PixelLab ทำ (low top-down)</li>
+          <li>"ถุงของออโต้" แสดงเป็นรูปที่ค่อย ๆ เต็ม แทนแถบข้อความ ปุ่มส้มเป็นปุ่มเดียวที่ใหญ่ที่สุด</li>
+          <li>คำแนะนำเหลือ <b>ริบบิ้นเดียว</b> เรียงลำดับความสำคัญให้ และจุดแดงบนแท็บ</li>
+          <li>ขอบแบบพิกเซล (มุมแหว่ง) ทุกอย่าง ไม่ใช่กล่องมุมมน</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <span class="tag">ลองกดได้</span>
+    <h2>ต้นแบบกดดูได้</h2>
+    <div class="protowrap" style="margin-top: 18px">
+      <div class="fw" id="proto"></div>
+      <div class="notes">
+        <p>กดแท็บด้านล่างสลับหน้า และกดปุ่ม <b>"เก็บของออโต้"</b> บนหน้าฟาร์มเพื่อดูหน้าสรุป ลองกดช่องบนหน้าสไลม์/สกิลได้บางจุด</p>
+        <p class="hint">เป็นภาพจำลอง ไม่ใช่เกมจริง ตัวเลขทุกตัวเป็นตัวอย่าง ยังไม่ได้ลองบนมือถือจริง</p>
+        <h3>หลักการ 6 ข้อที่ทุกหน้าต้องผ่าน</h3>
+        <ul>
+          <li><b>พระเอกหนึ่งอย่างต่อหน้า</b> ฟาร์ม = สไลม์ในฉาก สไลม์ = ตัวสไลม์พร้อมของที่ใส่</li>
+          <li><b>ปุ่มหลักหนึ่งปุ่ม</b> สีส้มเท่านั้น ปุ่มอื่นเป็นรอง</li>
+          <li><b>ข้อความสั้น</b> ไม่เกิน 6 บรรทัดต่อหน้าจอ (ไม่นับรายการของ)</li>
+          <li><b>นิ้วโป้งถึง</b> ปุ่มที่ใช้บ่อยอยู่ครึ่งล่าง ไม่ต้องเอื้อมขึ้นบน</li>
+          <li><b>ของใหม่ต้อง "ดู" ได้ ไม่ใช่อ่าน</b> ได้ของ = เห็นไอคอนเด้ง ไม่ใช่ตัวเลขในตาราง</li>
+          <li><b>กดแล้วต้องมีผล</b> ทุกปุ่มมีการตอบสนอง (เด้ง/แสง/ตัวเลขลอย)</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <span class="tag">เส้นทางผู้เล่น</span>
+    <h2>นาทีแรก → ครั้งที่สอง → วันที่ 3</h2>
+    <div class="journey" style="margin-top: 18px">
+      <div class="card">
+        <span class="t">นาทีแรก · ~60 วินาที</span>
+        <h3>เห็นแล้วอยากเล่นต่อ</h3>
+        <ol>
+          <li>แตะไข่ → สไลม์ฟัก (แสงวาบ)</li>
+          <li>สร้างสไลม์ของเรา ชื่อ สี หน้าตา ตัวอย่างเปลี่ยนทันที</li>
+          <li>มอนตัวแรกมา กด "กลืนเลย!" ปุ่มเดียว</li>
+          <li>ส่วนงอกโผล่ที่ตัวสไลม์ (ช่วงที่ต้อง "ว้าว")</li>
+          <li>เข้าฟาร์ม เห็นสไลม์สู้เอง และถุงของออโต้เริ่มเต็ม</li>
+        </ol>
+      </div>
+      <div class="card">
+        <span class="t">กลับมาครั้งที่สอง · ~2 นาที · หายไป 2–3 ชม.</span>
+        <h3>มีของรอเสมอ</h3>
+        <ol>
+          <li>เปิดมา เห็นถุงเต็ม ปุ่มส้มกระพริบ "เก็บของออโต้"</li>
+          <li>หน้าสรุปแบบเปิดของ: ไอเทมเด้งทีละชิ้น มอนทองถ้าเจอ</li>
+          <li>ริบบิ้นบอกขั้นต่อไป เช่น "มีแก่น 3 ชิ้น → กลืน"</li>
+          <li>ไปหน้าสกิล กด "กลืนเลย!" แล้วใส่ของที่ได้</li>
+          <li>กลับฟาร์ม เห็นตัวสไลม์เปลี่ยนไป แล้วปิดแอป</li>
+        </ol>
+      </div>
+      <div class="card">
+        <span class="t">วันที่ 3 · ราวเวล 28 (ตามผลจำลอง)</span>
+        <h3>มีเรื่องให้วางแผน</h3>
+        <ol>
+          <li>เก็บของ 2–3 ครั้งต่อวัน แต่ละครั้งไม่เกิน 2 นาที</li>
+          <li>เลือกย่านเรา (ริบบิ้นเตือนที่เวล 3) และดูแรงก์ (หลัง M4–M5)</li>
+          <li>เปลี่ยนชุดสกิลให้ได้คอมโบ ลองตื่นพลังสกิลที่เต็ม</li>
+          <li>ดูบอสย่านประจำสัปดาห์ (หลัง M5)</li>
+          <li>ตั้งเป้าด่านถัดไปที่แผนที่ แล้วปิดแอป</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <span class="tag">นาทีแรก</span>
+    <h2>ฟักไข่ → สร้างสไลม์ → กลืนตัวแรก</h2>
+    <div class="row" id="row-first"></div>
+  </section>
+
+  <section>
+    <span class="tag">วนซ้ำทุกวัน</span>
+    <h2>หน้าฟาร์มในสถานะต่าง ๆ</h2>
+    <div class="row" id="row-farm"></div>
+  </section>
+
+  <section>
+    <span class="tag">จัดการตัวละคร</span>
+    <h2>สไลม์ · สกิล · กระเป๋า · แผนที่</h2>
+    <div class="row" id="row-manage"></div>
+  </section>
+
+  <section>
+    <span class="tag">ชุดออกแบบ</span>
+    <h2>สี ตัวอักษร ปุ่ม</h2>
+    <div class="grid3" style="margin-top: 18px">
+      <div class="card stack">
+        <h3>สี (ตลาดกลางคืน)</h3>
+        <div class="swatchrow" id="swatches"></div>
+        <p class="hint">
+          พื้นม่วงเข้มให้แสงโคมสีส้มเด่น สีส้มใช้กับ "สิ่งที่กดได้และสำคัญ" เท่านั้น สีเขียวหยกเป็นสีสไลม์ ธาตุมีสี 4 สีประจำ
+        </p>
+      </div>
+      <div class="card stack">
+        <h3>ตัวอักษร</h3>
+        <div class="specimen">
+          <div style="font-family: var(--font-hd); font-size: 28px">เก็บของออโต้</div>
+          <div style="font-family: var(--font-px); font-size: 28px; color: var(--amber-l)">12,480</div>
+          <div style="font-family: var(--font-th); font-size: 16px">เนื้อความอ่านง่ายบนจอเล็ก ขนาดต่ำสุด 14px</div>
+        </div>
+        <p class="hint">
+          <b>Mitr</b> หัวข้อและปุ่ม (หนา กลม เป็นมิตร ดูเป็นเกม) · <b>Sarabun</b> เนื้อความ (อ่านชัดตัวเล็ก) ·
+          <b>Pixelify Sans</b> เฉพาะตัวเลข/ตัวอักษรอังกฤษ (ไม่รองรับภาษาไทย)
+        </p>
+      </div>
+      <div class="card stack">
+        <h3>ปุ่มและส่วนประกอบ</h3>
+        <div class="specimen" id="kit"></div>
+        <p class="hint">ขอบมุมแหว่งแบบพิกเซลทุกชิ้น ปุ่มมีสันด้านล่าง กดแล้วจมลง 3 px</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <span class="tag">ความรู้สึกตอนเล่น</span>
+    <h2>สิ่งที่ทำให้ไม่เหมือนฟอร์ม</h2>
+    <div class="tablewrap" style="margin-top: 18px">
+      <table>
+        <thead>
+          <tr>
+            <th>จังหวะ</th>
+            <th>สิ่งที่เกิดบนจอ</th>
+            <th>ทำใน</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>สไลม์ตี/โดนตี</td>
+            <td>ตัวเด้ง ตัวเลขดาเมจลอยขึ้น (คริติคอลตัวใหญ่สีส้ม) มอนกะพริบขาว</td>
+            <td>2.5.4</td>
+          </tr>
+          <tr>
+            <td>มอนตาย</td>
+            <td>แก่นสกิลเด้งออกมาลอยเข้าหาสไลม์ (ถ้าดรอป) เหรียญกระดอน</td>
+            <td>2.5.4</td>
+          </tr>
+          <tr>
+            <td>กลืนแก่น</td>
+            <td>แก่นถูกดูด ตัวสไลม์ยืดแล้วหด ส่วนงอกโผล่พร้อมประกาย</td>
+            <td>2.5.4</td>
+          </tr>
+          <tr>
+            <td>เก็บของออโต้</td>
+            <td>ถุงสั่น เปิด ของเด้งออกมาทีละชิ้นเรียงตามความหายาก ชิ้นหายากมีแสง</td>
+            <td>2.5.4</td>
+          </tr>
+          <tr>
+            <td>เลเวลอัป / อัปร่าง</td>
+            <td>จอแฟลช ตัวเลขเวลนับขึ้น ปุ่มชวนไปแจกแต้ม / ร่างใหม่ค่อยเผย</td>
+            <td>2.5.4</td>
+          </tr>
+          <tr>
+            <td>กดปุ่ม</td>
+            <td>ปุ่มจมลง 3 px มีเสียงสั้น (ปิดได้) สั่นเบา ๆ บนมือถือ (ถ้ารองรับ)</td>
+            <td>2.5.4</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <span class="tag">ข้อจำกัดตามจริง</span>
+    <h2>ที่ยังไม่ใช่ของจริง</h2>
+    <div class="notes" style="margin-top: 14px; max-width: 70ch">
+      <ul>
+        <li>ภาพสไลม์ มอน ฉาก และไอคอนทั้งหมดวาดชั่วคราวด้วยโค้ดเพื่อทดสอบ layout ยังไม่ใช่ภาพจาก PixelLab</li>
+        <li>แผนที่เป็นภาพเลียนแบบรูปทรงคร่าว ๆ ตำแหน่งและขอบเขตย่านจริงมาจาก OSM ใน M3</li>
+        <li>ยังไม่ได้ทดสอบบนมือถือจริงและยังไม่ได้ทำเสียง</li>
+        <li>เกมจริงจะใช้ฉากมุม low top-down ตามมาตรฐานสไตล์ภาพที่วางไว้ ตัวสไลม์ในฉากอาจต่างจากภาพนี้</li>
+        <li>ตัวอย่างพูดถึงมอนและฉากที่เป็นของย่านในเวียง ไม่ใช้วัดหรือศาสนสถานเป็นสนามต่อสู้ตามกติกาโครงการ</li>
+      </ul>
+    </div>
+  </section>
+</div>
+
+<script>
+  /* ======================= pixel helpers ======================= */
+  const cache = {};
+  function mk(key, w, h, fn) {
+    if (cache[key]) return cache[key];
+    const c = document.createElement('canvas');
+    c.width = w;
+    c.height = h;
+    const g = c.getContext('2d');
+    g.imageSmoothingEnabled = false;
+    fn(g);
+    return (cache[key] = c.toDataURL());
+  }
+  const R = (g, col, x, y, w = 1, h = 1) => {
+    g.fillStyle = col;
+    g.fillRect(x, y, w, h);
+  };
+  function rng(seed) {
+    let a = seed >>> 0;
+    return () => {
+      a = (a + 0x6d2b79f5) >>> 0;
+      let t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  const COLORS = {
+    mint: ['#7ee0b0', '#4fb88a', '#1e5a46'],
+    sky: ['#8cc8f5', '#5a9ad0', '#1f4670'],
+    peach: ['#ffc29a', '#e0925f', '#6e3a1c'],
+    rose: ['#ff9ec0', '#e0679a', '#6e2447'],
+    lilac: ['#c4a6f0', '#9575cf', '#3f2a73'],
+    lemon: ['#f7e46b', '#d4b93a', '#66561a'],
+    coral: ['#ff7f7a', '#d9524e', '#6b1f1d'],
+    cloud: ['#eef2f5', '#b4c0c9', '#3d4a54'],
+  };
+
+  /* slime on a 48x48 grid, pixel-exact */
+  function slime(o = {}) {
+    const color = o.color || 'mint',
+      eyes = o.eyes || 0,
+      key = `slime:${color}:${eyes}:${o.hat || ''}:${o.sword ? 1 : 0}:${o.part ? 1 : 0}:${o.happy ? 1 : 0}:${o.tilt || 0}`;
+    return mk(key, 48, 48, (g) => {
+      const [body, shade, line] = COLORS[color];
+      const cx = 24,
+        cy = 33,
+        w = 17,
+        h = 14,
+        base = 40;
+      const inside = (x, y) =>
+        y <= cy ? ((x + 0.5 - cx) / w) ** 2 + ((y + 0.5 - cy) / h) ** 2 <= 1 : y <= base && Math.abs(x + 0.5 - cx) <= w - (y > base - 2 ? 1 : 0);
+      // ground shadow
+      for (let x = 8; x < 40; x++) if (((x - 24) / 16) ** 2 <= 1) R(g, 'rgba(0,0,0,0.28)', x, 41, 1, 3);
+      for (let y = 6; y <= base; y++)
+        for (let x = 4; x < 44; x++) {
+          if (!inside(x, y)) continue;
+          const edge = !inside(x - 1, y) || !inside(x + 1, y) || !inside(x, y - 1) || !inside(x, y + 1);
+          R(g, edge ? line : y >= 37 ? shade : x > 33 && y > 28 ? shade : body, x, y);
+        }
+      R(g, 'rgba(255,255,255,0.7)', 14, 22, 5, 2);
+      R(g, 'rgba(255,255,255,0.45)', 14, 24, 2, 3);
+      const dk = '#12201b';
+      const drawEyes = (ex) => {
+        if (eyes === 1) {
+          R(g, dk, ex, 28, 4, 6);
+          R(g, '#fff', ex, 28, 2, 2);
+          R(g, '#fff', ex + 2, 31, 1, 1);
+        } else if (eyes === 2) {
+          R(g, dk, ex, 31, 1, 2);
+          R(g, dk, ex + 1, 30, 2, 1);
+          R(g, dk, ex + 3, 31, 1, 2);
+        } else if (eyes === 3) {
+          R(g, dk, ex, 32, 4, 1);
+          R(g, line, ex, 33, 4, 1);
+        } else {
+          R(g, dk, ex + 1, 29, 3, 5);
+          R(g, '#fff', ex + 1, 29, 1, 2);
+        }
+      };
+      drawEyes(17);
+      drawEyes(28);
+      R(g, o.happy ? '#7a2b2b' : line, 22, 36, 4, o.happy ? 2 : 1);
+      R(g, 'rgba(255,120,120,0.45)', 14, 35, 3, 2);
+      R(g, 'rgba(255,120,120,0.45)', 31, 35, 3, 2);
+      if (o.part) {
+        // brick fist growing on the left side
+        R(g, '#4a2a1b', 3, 28, 9, 9);
+        R(g, '#c9825a', 4, 29, 7, 7);
+        R(g, '#e6a47f', 4, 29, 7, 2);
+        R(g, '#9a5d3d', 4, 34, 7, 2);
+        R(g, '#4a2a1b', 7, 29, 1, 7);
+      }
+      if (o.sword) {
+        R(g, '#3a2210', 40, 20, 5, 22);
+        R(g, '#c9a14a', 41, 21, 3, 17);
+        R(g, '#e8c978', 41, 21, 1, 17);
+        R(g, '#3a2210', 38, 36, 9, 3);
+        R(g, '#8a5a2a', 39, 37, 7, 1);
+      }
+      if (o.hat === 'ngob') {
+        // ngob: wide conical hat
+        const hl = '#4a3010';
+        for (let r = 0; r < 9; r++) {
+          const half = 3 + r * 2;
+          R(g, hl, 24 - half, 7 + r, half * 2, 1);
+          R(g, r % 3 === 0 ? '#e0b45a' : '#f0cc7a', 25 - half, 7 + r, half * 2 - 2, 1);
+        }
+        R(g, hl, 4, 16, 40, 2);
+        R(g, '#c1903a', 5, 16, 38, 1);
+        R(g, '#c0392b', 20, 18, 8, 1);
+      }
+    });
+  }
+  const FACE = (color = 'mint', eyes = 0) => {
+    return mk(`face:${color}:${eyes}`, 24, 24, (g) => {
+      const src = new Image();
+      src.src = slime({ color, eyes });
+      g.drawImage(src, 8, 14, 32, 28, 0, 1, 24, 22);
+    });
+  };
+
+  function monster(kind = 'imp', o = {}) {
+    return mk(`mon:${kind}:${o.gold ? 1 : 0}:${o.dark ? 1 : 0}`, 32, 32, (g) => {
+      const pal = o.gold
+        ? ['#ffe27a', '#e0a82e', '#6b4a0a']
+        : o.dark
+          ? ['#3d3a5e', '#2a2744', '#12101f']
+          : ['#c9825a', '#9a5d3d', '#3f2316'];
+      const [b, s, l] = pal;
+      R(g, 'rgba(0,0,0,0.3)', 7, 28, 18, 3);
+      R(g, l, 6, 8, 20, 21);
+      R(g, b, 7, 9, 18, 19);
+      R(g, s, 7, 24, 18, 4);
+      // brick lines
+      R(g, l, 7, 15, 18, 1);
+      R(g, l, 7, 21, 18, 1);
+      R(g, l, 14, 9, 1, 6);
+      R(g, l, 20, 15, 1, 6);
+      R(g, l, 11, 21, 1, 7);
+      // horns
+      R(g, l, 6, 4, 4, 5);
+      R(g, b, 7, 5, 2, 4);
+      R(g, l, 22, 4, 4, 5);
+      R(g, b, 23, 5, 2, 4);
+      if (!o.dark) {
+        // angry eyes
+        R(g, '#fff', 10, 17, 4, 3);
+        R(g, '#fff', 18, 17, 4, 3);
+        R(g, '#c0392b', 12, 18, 2, 2);
+        R(g, '#c0392b', 18, 18, 2, 2);
+        R(g, l, 9, 15, 5, 1);
+        R(g, l, 18, 15, 5, 1);
+        R(g, l, 13, 24, 6, 1);
+      } else {
+        R(g, '#6b6aa3', 12, 18, 3, 3);
+        R(g, '#6b6aa3', 18, 18, 3, 3);
+      }
+    });
+  }
+
+  /* 24px icons */
+  function icon(name, o = {}) {
+    const key = `ic:${name}:${o.c || ''}`;
+    return mk(key, 24, 24, (g) => {
+      const L = '#0b0a1c';
+      switch (name) {
+        case 'sword':
+          R(g, L, 15, 3, 5, 12);
+          R(g, '#c9a14a', 16, 4, 3, 10);
+          R(g, '#e8c978', 16, 4, 1, 10);
+          R(g, L, 10, 13, 11, 3);
+          R(g, '#8a5a2a', 11, 14, 9, 1);
+          R(g, L, 13, 15, 3, 8);
+          R(g, '#8a5a2a', 14, 16, 1, 6);
+          break;
+        case 'ngob': {
+          for (let r = 0; r < 8; r++) {
+            const half = 2 + r;
+            R(g, L, 12 - half, 5 + r, half * 2, 1);
+            R(g, r % 2 ? '#e0b45a' : '#f0cc7a', 13 - half, 5 + r, half * 2 - 2, 1);
+          }
+          R(g, L, 2, 13, 20, 2);
+          R(g, '#c1903a', 3, 13, 18, 1);
+          break;
+        }
+        case 'shield':
+          R(g, L, 4, 3, 16, 17);
+          R(g, '#5a9ad0', 5, 4, 14, 15);
+          R(g, '#8cc8f5', 5, 4, 14, 4);
+          R(g, L, 11, 5, 2, 12);
+          R(g, L, 7, 10, 10, 2);
+          R(g, L, 8, 19, 8, 2);
+          break;
+        case 'charm':
+          R(g, L, 8, 3, 8, 3);
+          R(g, L, 6, 5, 12, 14);
+          R(g, '#ff9ec0', 7, 6, 10, 12);
+          R(g, '#ffd0e0', 8, 7, 3, 3);
+          R(g, L, 10, 18, 4, 4);
+          break;
+        case 'brick':
+          R(g, L, 2, 6, 20, 14);
+          R(g, '#c9825a', 3, 7, 18, 12);
+          R(g, '#e6a47f', 3, 7, 18, 2);
+          R(g, L, 3, 13, 18, 1);
+          R(g, L, 11, 7, 1, 6);
+          R(g, L, 7, 13, 1, 6);
+          R(g, L, 16, 13, 1, 6);
+          break;
+        case 'core': {
+          const col = o.c || '#c9825a';
+          R(g, L, 8, 4, 8, 16);
+          R(g, L, 5, 7, 14, 10);
+          R(g, col, 9, 5, 6, 14);
+          R(g, col, 6, 8, 12, 8);
+          R(g, '#fff', 9, 7, 2, 3);
+          break;
+        }
+        case 'coin':
+          R(g, '#5a3000', 6, 4, 12, 16);
+          R(g, '#5a3000', 4, 6, 16, 12);
+          R(g, '#ffb84d', 6, 6, 12, 12);
+          R(g, '#ffd98a', 6, 6, 12, 3);
+          R(g, '#b86f10', 10, 8, 4, 8);
+          break;
+        case 'jelly':
+          R(g, '#1e5a46', 5, 10, 14, 10);
+          R(g, '#1e5a46', 7, 7, 10, 3);
+          R(g, '#7ee0b0', 6, 11, 12, 8);
+          R(g, '#7ee0b0', 8, 8, 8, 3);
+          R(g, '#fff', 8, 9, 3, 2);
+          break;
+        case 'exp':
+          R(g, '#5a3000', 10, 2, 4, 20);
+          R(g, '#5a3000', 2, 10, 20, 4);
+          R(g, '#5a3000', 6, 6, 12, 12);
+          R(g, '#5fe0b0', 11, 3, 2, 18);
+          R(g, '#5fe0b0', 3, 11, 18, 2);
+          R(g, '#5fe0b0', 7, 7, 10, 10);
+          break;
+        case 'str':
+          R(g, '#ef5a50', 3, 3, 18, 18);
+          R(g, L, 3, 3, 18, 2);
+          R(g, '#fff', 9, 8, 6, 8);
+          break;
+        case 'agi':
+          R(g, '#cdeaf5', 3, 3, 18, 18);
+          R(g, '#12101f', 6, 9, 12, 2);
+          R(g, '#12101f', 9, 13, 9, 2);
+          break;
+        case 'vit':
+          R(g, '#5fe0b0', 3, 3, 18, 18);
+          R(g, '#12101f', 10, 6, 4, 12);
+          R(g, '#12101f', 6, 10, 12, 4);
+          break;
+        case 'int':
+          R(g, '#c4a6f0', 3, 3, 18, 18);
+          R(g, '#12101f', 11, 5, 2, 14);
+          R(g, '#12101f', 5, 11, 14, 2);
+          break;
+        case 'mat': {
+          const col = o.c || '#c9825a';
+          R(g, L, 5, 5, 14, 14);
+          R(g, L, 7, 3, 10, 18);
+          R(g, col, 6, 6, 12, 12);
+          R(g, col, 8, 4, 8, 16);
+          R(g, '#fff', 8, 7, 3, 3);
+          break;
+        }
+        case 'lock':
+          R(g, '#6e68a0', 6, 10, 12, 10);
+          R(g, '#6e68a0', 8, 5, 8, 6);
+          R(g, '#12101f', 10, 5, 4, 4);
+          R(g, '#12101f', 11, 13, 2, 4);
+          break;
+      }
+    });
+  }
+  function tabIcon(name, on) {
+    const col = on ? '#ffb84d' : '#8c86b3',
+      dk = on ? '#5a3000' : '#0d0b22';
+    return mk(`tab2:${name}:${on}`, 16, 16, (g) => {
+      const disc = (cx, cy, rx, ry, c, top) => {
+        for (let y = 0; y < 16; y++)
+          for (let x = 0; x < 16; x++)
+            if (((x + 0.5 - cx) / rx) ** 2 + ((y + 0.5 - cy) / ry) ** 2 <= 1 && (!top || y <= cy)) R(g, c, x, y);
+      };
+      if (name === 'farm') {
+        // two crossed swords
+        for (let i = 0; i < 11; i++) {
+          R(g, col, 2 + i, 12 - i, 2, 2);
+          R(g, col, 12 - i, 12 - i, 2, 2);
+        }
+        R(g, col, 1, 11, 5, 2);
+        R(g, col, 10, 11, 5, 2);
+        R(g, dk, 7, 7, 2, 2);
+      } else if (name === 'slime') {
+        disc(8, 9, 6.5, 6, col, false);
+        for (let y = 11; y < 16; y++) for (let x = 0; x < 16; x++) if (y > 12) R(g, 'rgba(0,0,0,0)', x, y);
+        R(g, dk, 5, 8, 2, 3);
+        R(g, dk, 9, 8, 2, 3);
+        R(g, 'rgba(255,255,255,.5)', 4, 5, 2, 1);
+      } else if (name === 'skills') {
+        // four-point sparkle (astroid shape)
+        for (let y = 0; y < 16; y++)
+          for (let x = 0; x < 16; x++) {
+            const dx = Math.abs(x - 7.5),
+              dy = Math.abs(y - 7.5);
+            if (dx ** (2 / 3) + dy ** (2 / 3) <= 7.6 ** (2 / 3) * 0.95) R(g, col, x, y);
+          }
+        R(g, dk, 7, 7, 2, 2);
+      } else if (name === 'bag') {
+        R(g, col, 6, 1, 4, 2);
+        R(g, col, 4, 3, 8, 2);
+        disc(8, 10, 6, 5, col, false);
+        R(g, dk, 4, 5, 8, 1);
+        R(g, dk, 7, 5, 2, 4);
+        R(g, col, 4, 4, 8, 1);
+      } else {
+        disc(8, 6, 5, 5, col, false);
+        R(g, col, 5, 9, 6, 2);
+        R(g, col, 6, 11, 4, 2);
+        R(g, col, 7, 13, 2, 2);
+        disc(8, 6, 2, 2, dk, false);
+      }
+    });
+  }
+  const bag = (fill) =>
+    mk(`pouch:${fill}`, 32, 32, (g) => {
+      const L = '#0b0a1c';
+      R(g, 'rgba(0,0,0,0.3)', 5, 28, 22, 3);
+      R(g, L, 6, 10, 20, 19);
+      R(g, L, 8, 8, 16, 3);
+      R(g, '#9a6a3a', 7, 11, 18, 17);
+      R(g, '#c0904f', 7, 11, 18, 4);
+      R(g, '#7a4f26', 7, 24, 18, 4);
+      R(g, L, 12, 8, 8, 2);
+      R(g, '#e0463a', 11, 9, 10, 2);
+      R(g, '#e0463a', 9, 11, 2, 3);
+      R(g, '#e0463a', 21, 11, 2, 3);
+      for (let i = 0; i < 3; i++) R(g, L, 10 + i * 5, 17, 1, 9);
+      // contents peeking out scale with fill
+      if (fill >= 1) R(g, '#ffd98a', 11, 6, 4, 3);
+      if (fill >= 2) {
+        R(g, '#5fe0b0', 16, 5, 4, 4);
+        R(g, '#ffb84d', 20, 7, 3, 3);
+      }
+      if (fill >= 3) {
+        R(g, '#5aa9ff', 9, 4, 4, 4);
+        R(g, '#ffd98a', 14, 3, 5, 4);
+        R(g, '#ef5a50', 19, 4, 3, 3);
+      }
+      if (fill >= 2) {
+        R(g, 'rgba(255,217,138,0.9)', 5, 3, 1, 3);
+        R(g, 'rgba(255,217,138,0.9)', 26, 4, 1, 3);
+      }
+    });
+
+  /* scene background: low top-down night market street, 130x140 -> x3 */
+  function scene(variant = 'wiang', w = 130, h = 140, seed = 7) {
+    return mk(`scene:${variant}:${w}x${h}`, w, h, (g) => {
+      const r = rng(seed);
+      const sky = ['#0c0a22', '#14102f', '#1d1540', '#2b1a4d', '#47235a'];
+      const skyH = Math.round(h * 0.34);
+      for (let y = 0; y < skyH; y++) R(g, sky[Math.min(4, Math.floor((y / skyH) * 5))], 0, y, w, 1);
+      for (let i = 0; i < 26; i++) R(g, i % 4 ? '#6b64a8' : '#f6f0e4', Math.floor(r() * w), Math.floor(r() * skyH * 0.7), 1, 1);
+      // distant shophouse silhouettes
+      let x = 0;
+      while (x < w) {
+        const bw = 12 + Math.floor(r() * 12),
+          bh = 12 + Math.floor(r() * 14);
+        R(g, '#0a0820', x, skyH - bh, bw, bh + 2);
+        for (let wy = skyH - bh + 3; wy < skyH - 3; wy += 5)
+          for (let wx = x + 2; wx < x + bw - 2; wx += 4) if (r() > 0.45) R(g, r() > 0.5 ? '#ffb84d' : '#c9822a', wx, wy, 2, 2);
+        x += bw + 1;
+      }
+      // ground: brick pavement
+      for (let y = skyH; y < h; y++) {
+        const row = Math.floor((y - skyH) / 5);
+        R(g, '#2a1f33', 0, y, w, 1);
+        for (let px = (row % 2) * 6 - 6; px < w; px += 12) {
+          const shade = r();
+          const col = variant === 'ping' ? (shade > 0.5 ? '#2c3a5a' : '#34456a') : shade > 0.5 ? '#46304a' : '#523a52';
+          R(g, col, px + 1, y, 10, (y - skyH) % 5 === 4 ? 0 : 1);
+        }
+      }
+      for (let y = skyH; y < h; y += 5) R(g, '#201529', 0, y + 4, w, 1);
+      for (let px = 0; px < w; px++) if (r() > 0.97) R(g, '#6a4a64', px, skyH + 1 + Math.floor(r() * (h - skyH - 2)), 1, 1);
+      // market stalls along the back with striped awnings
+      const stalls = [10, 52, 94];
+      stalls.forEach((sx, i) => {
+        const y0 = skyH - 2,
+          sw = 30;
+        R(g, '#0a0820', sx, y0 - 2, sw, 16);
+        const c1 = ['#ef5a50', '#ffb84d', '#5fe0b0'][i % 3];
+        for (let k = 0; k < sw; k += 4) {
+          R(g, (k / 4) % 2 ? '#f6f0e4' : c1, sx + k, y0, 4, 6);
+          R(g, (k / 4) % 2 ? '#d9d2c3' : c1, sx + k, y0 + 6, 4, 1);
+        }
+        R(g, '#3a2418', sx + 2, y0 + 7, 3, 8);
+        R(g, '#3a2418', sx + sw - 5, y0 + 7, 3, 8);
+        R(g, '#6b4a2a', sx + 3, y0 + 10, sw - 6, 2);
+        R(g, '#ffd98a', sx + 8, y0 + 8, 2, 2);
+        R(g, '#5fe0b0', sx + 14, y0 + 8, 2, 2);
+        R(g, '#ef5a50', sx + 19, y0 + 8, 2, 2);
+      });
+      // string lights
+      for (let lx = 0; lx < w; lx++) {
+        const ly = 3 + Math.round(4 * Math.sin((lx / w) * Math.PI * 4));
+        R(g, '#1b1630', lx, ly, 1, 1);
+        if (lx % 7 === 0) {
+          const c = ['#ffd98a', '#ff8a3d', '#ffd98a', '#5fe0b0'][(lx / 7) % 4 | 0];
+          R(g, c, lx, ly + 1, 1, 2);
+          g.fillStyle = 'rgba(255,200,120,0.12)';
+          g.fillRect(lx - 3, ly - 1, 7, 7);
+        }
+      }
+      // lantern glows on the ground
+      [28, 72, 112].forEach((gx) => {
+        for (let k = 8; k > 0; k--) {
+          g.fillStyle = `rgba(255,170,70,${0.018 * (9 - k)})`;
+          g.beginPath();
+          g.ellipse(gx, skyH + 20, k * 4.5, k * 2.2, 0, 0, 7);
+          g.fill();
+        }
+      });
+      // hanging lanterns
+      [16, 60, 104].forEach((lx, i) => {
+        R(g, '#1b1630', lx + 2, 0, 1, 8 + (i % 2) * 3);
+        const ly = 8 + (i % 2) * 3;
+        R(g, '#5a1a0a', lx, ly, 5, 6);
+        R(g, '#ff7a3a', lx + 1, ly + 1, 3, 4);
+        R(g, '#ffd98a', lx + 2, ly + 2, 1, 2);
+        R(g, '#5a1a0a', lx + 1, ly + 6, 3, 1);
+      });
+    });
+  }
+
+  /* ======================= screen builders ======================= */
+  const img = (src, cls = 'px', st = '') => `<img class="${cls}" src="${src}" style="${st}" alt="" />`;
+  const sbar = (o = {}) => `
+    <div class="sb">
+      <div class="who">${img(FACE(o.color, o.eyes), 'face px')}
+        <div class="who-t"><b>${o.name || 'โมจิ'}</b><span>เวล ${o.lv || 12}</span></div></div>
+      <div class="xp"><div class="bar amber"><i style="width:${o.xp ?? 62}%"></i></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px" class="num">${o.xpt || '3,420 / 5,510'}</div></div>
+      <div class="cur">${img(icon('coin'), 'px', 'width:18px;height:18px')}${o.coins || '12.4K'}</div>
+    </div>`;
+  const tabs = (active, dots = {}) => {
+    const T = [
+      ['farm', 'ฟาร์ม'],
+      ['slime', 'สไลม์'],
+      ['skills', 'สกิล'],
+      ['bag', 'กระเป๋า'],
+      ['map', 'แผนที่'],
+    ];
+    return `<nav class="tabbar">${T.map(
+      ([k, n]) =>
+        `<button class="tab ${active === k ? 'on' : ''}" data-tab="${k}">${img(tabIcon(k, active === k), 'px')}<span>${n}</span>${dots[k] ? '<i class="dot"></i>' : ''}</button>`,
+    ).join('')}</nav>`;
+  };
+  const skillBtn = (icn, p, on) =>
+    `<div class="sk ${on ? 'on' : ''}">${img(icon(icn), 'px')}<div class="cd" style="--p:${p}%"></div></div>`;
+
+  function farm(state = 'normal') {
+    const full = state === 'full',
+      stuck = state === 'stuck',
+      cool = state === 'cool';
+    const fill = full ? 3 : cool ? 0 : 2;
+    return `<div class="scr">
+      ${sbar({})}
+      <div class="body">
+        <div class="stage" style="height:380px">
+          ${img(scene('wiang', 130, 140), 'bg px')}
+          <div class="abs zone"><span class="chip hot">ในเวียง · ด่าน 3</span></div>
+          <div class="abs" style="right:8px;top:8px"><span class="chip">${img(icon('brick'), 'px', 'width:18px;height:18px')} ออโต้ทำงานอยู่</span></div>
+          ${img(slime({ color: 'mint', sword: true, part: true }), 'px abs', 'left:6px;top:178px;width:192px;height:192px')}
+          ${stuck ? '' : `<div class="abs" style="right:26px;top:215px">
+              <div class="bar red hp" style="margin:0 auto 6px"><i style="width:${stuck ? 100 : 58}%"></i></div>
+              ${img(monster('imp'), 'px', 'width:128px;height:128px')}</div>`}
+          ${stuck ? `<div class="abs" style="right:20px;top:215px;width:170px">${img(monster('imp', { dark: true }), 'px', 'width:128px;height:128px;margin:0 auto')}<div class="chip" style="color:var(--chili)">หนักเกินไป</div></div>` : ''}
+          ${stuck ? '' : `<span class="float crit" style="left:190px;top:178px;font-size:30px">128!</span>
+          <span class="float" style="left:236px;top:150px;font-size:20px">64</span>
+          <span class="float" style="left:92px;top:196px;font-size:18px;color:#ff8c84">-12</span>`}
+          <div class="skillrow">${skillBtn('brick', 35, true)}<div class="sk empty"></div><div class="sk empty"></div></div>
+        </div>
+        <div class="track">
+          <div class="top"><b style="font-family:var(--font-hd);font-weight:500">${stuck ? 'ด่าน 3 ยังสู้ไม่ไหว · ไปฟาร์มด่านก่อนหน้า' : 'ด่านถัดไป'}</b><span class="num muted">${stuck ? 'แนะนำด่าน 2' : '168 / 270'}</span></div>
+          <div class="pips">
+            <span class="pip done"></span><span class="pip done"></span><span class="pip now"></span><span class="pip"></span>
+            <span class="pip ms">${img(icon('charm'), 'px', 'width:22px;height:22px')}</span>
+          </div>
+        </div>
+        <div class="pnl idle">
+          ${img(bag(fill), 'px')}
+          <div>
+            <h3>${cool ? 'เก็บไปแล้ว' : full ? 'ถุงเต็มแล้ว!' : 'ถุงของออโต้'}</h3>
+            <div class="sub">${cool ? 'รอบหน้าอีก 12 วิ' : full ? 'ของที่เกินเพดานจะลดเหลือ 30%' : 'สะสมไว้ 3 ชม. 20 นาที · เต็มในอีก 6 ชม. 40 นาที'}</div>
+          </div>
+          <button class="btn pri ${cool ? 'dim' : 'glow'}" style="${cool ? '' : ''}" data-act="claim">${cool ? 'พักแป๊บ (12 วิ)' : 'เก็บของออโต้'}</button>
+        </div>
+      </div>
+      ${state === 'normal' ? `<div class="nudge">${img(icon('core', { c: '#c9825a' }), 'px', 'width:24px;height:24px')}<span>มีแก่น 3 ชิ้นรอกลืน</span><b>ไปสกิล ▸</b></div>` : full ? `<div class="nudge">${img(icon('coin'), 'px', 'width:24px;height:24px')}<span>เก็บเลย ของกำลังจะล้นถุง</span><b>เก็บ ▸</b></div>` : stuck ? `<div class="nudge"><span>เลเวลยังไม่พอ ลองแจกแต้มหรือเปลี่ยนสกิล</span><b>ไปสไลม์ ▸</b></div>` : `<div style="height:12px"></div>`}
+      ${tabs('farm', { slime: state === 'normal', skills: state === 'normal' })}
+    </div>`;
+  }
+
+  function claim() {
+    return `<div class="scr">${farm('normal').replace(/^<div class="scr">/, '').replace(/<\/div>\s*$/, '')}
+      <div class="dim-bg"></div>
+      <div class="sheet" style="padding-bottom:32px">
+        <div class="center" style="gap:2px;padding:4px 0 6px">
+          <span class="muted" style="font-size:14px;font-weight:600">หายไป 3 ชม. 20 นาที</span>
+          <div class="bigtxt" style="font-size:26px">สไลม์ฟาร์มให้แล้ว!</div>
+        </div>
+        <div class="loot">
+          <div class="lootc gold"><div class="tile r-legend">${img(monster('imp', { gold: true }), 'px')}</div><span style="color:var(--legend)">เจอมอนทอง!</span></div>
+          <div class="lootc"><div class="tile r-rare">${img(icon('ngob'), 'px')}</div><span style="color:var(--rare)">หมวกงอบ</span><span class="muted" style="font-size:12px;margin-top:-6px">หายาก</span></div>
+          <div class="lootc"><div class="tile r-common">${img(icon('core', { c: '#c9825a' }), 'px')}</div><span>แก่นยักษ์อิฐ ×4</span></div>
+        </div>
+        <div class="line"><span>เอ็กซ์พี</span><b>+3,420</b></div>
+        <div class="line"><span>เหรียญ</span><b>+1,180</b></div>
+        <div class="line"><span>ผ่านด่านเพิ่ม</span><b>ด่าน 3 → 8</b></div>
+        <div class="line" style="font-size:13px;color:var(--muted)"><span>ย่อยของธรรมดาให้ 14 ชิ้น</span><b>เจลลี่ +32</b></div>
+        <button class="btn pri glow" data-act="close">เก็บเข้ากระเป๋า</button>
+      </div>
+    </div>`;
+  }
+
+  function levelup() {
+    return `<div class="scr">${farm('normal').replace(/^<div class="scr">/, '').replace(/<\/div>\s*$/, '')}
+      <div class="dim-bg"></div>
+      <div class="center-modal pnl center" style="padding:22px 16px 14px;gap:10px;background:var(--panel2)">
+        <span class="sparkle" style="left:14px;top:22px"></span><span class="sparkle" style="right:18px;top:40px"></span><span class="sparkle" style="left:40px;top:90px"></span>
+        <div class="bigtxt" style="color:var(--amber)">เวลอัป!</div>
+        <div class="num" style="font-size:54px;line-height:1">12 <span class="muted" style="font-size:28px">▸</span> <span style="color:var(--amber-l)">13</span></div>
+        ${img(slime({ color: 'mint', sword: true, part: true, happy: true }), 'px', 'width:120px;height:120px')}
+        <div class="pnl" style="padding:8px 18px;background:var(--bg2);font-weight:600">ได้แต้มสถานะ <span class="num" style="color:var(--amber-l)">+3</span></div>
+        <button class="btn pri" style="width:100%">แจกแต้มเลย</button>
+        <button class="btn sm">ไว้ก่อน</button>
+      </div></div>`;
+  }
+
+  function slimePage(o = {}) {
+    return `<div class="scr">
+      ${sbar({})}
+      <div class="body" style="gap:0">
+        <div class="stage" style="height:300px">
+          ${img(scene('wiang', 130, 100, 11), 'bg px')}
+          <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 70%,rgba(255,184,77,0.25),transparent 60%)"></div>
+          ${img(slime({ color: 'mint', sword: true, part: true, hat: 'ngob' }), 'px abs', 'left:105px;top:70px;width:180px;height:180px')}
+          <div class="abs" style="left:10px;top:48px"><div class="slot r-good">${img(icon('ngob'), 'px')}<span class="lb">หัว</span></div></div>
+          <div class="abs" style="left:10px;top:150px"><div class="slot empty"><span class="lb">ผิว</span></div></div>
+          <div class="abs" style="right:10px;top:48px"><div class="slot r-common">${img(icon('sword'), 'px')}<span class="lb">อาวุธ</span></div></div>
+          <div class="abs" style="right:10px;top:150px"><div class="slot r-rare">${img(icon('charm'), 'px')}<span class="lb">เครื่องราง</span></div></div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 8px 0">
+          <div><div class="ttl" style="padding:0">โมจิ</div><div class="muted" style="font-size:14px">สไลม์ใส · ธาตุดิน · เวล 12</div></div>
+          <span class="chip hot" style="font-size:14px">แต้มว่าง 3</span>
+        </div>
+        ${o.evolve ? `<div class="nudge" style="margin:10px 6px 4px;background:var(--panel2)">${img(slime({ color: 'mint' }), 'px', 'width:30px;height:30px')}<span>อัปร่างได้แล้ว เลือกร่างใหม่</span><b>ดูเลย ▸</b></div>` : ''}
+        <div class="pnl" style="margin-top:10px">
+          ${[
+            ['str', 'พลัง', 'ATK 48', 62],
+            ['agi', 'ว่องไว', 'ตีเร็ว 1.2/วิ', 30],
+            ['vit', 'ทนทาน', 'HP 410', 48],
+            ['int', 'ปัญญา', 'สกิลแรงขึ้น', 22],
+          ]
+            .map(
+              ([k, n, d, v]) => `<div class="stat">${img(icon(k), 'px')}<b>${n}</b>
+              <div><div class="bar amber"><i style="width:${v}%"></i></div><div style="font-size:12px;color:var(--muted);margin-top:4px">${d}</div></div>
+              <div class="plus">+</div></div>`,
+            )
+            .join('')}
+          <div style="display:flex;justify-content:flex-end;padding:0 12px 10px"><button class="btn sm">รีเซ็ตแต้ม (ฟรี)</button></div>
+        </div>
+      </div>
+      ${tabs('slime', { slime: true, skills: true })}
+    </div>`;
+  }
+
+  function evolve() {
+    return `<div class="scr" style="background:radial-gradient(ellipse at 50% 20%,#3a2a6a,var(--bg) 70%)">
+      <div class="center" style="padding:56px 16px 8px;gap:6px"><div class="bigtxt">เลือกร่างใหม่</div><div class="muted" style="font-size:15px">เลวล 10 แล้ว! ร่างตามธาตุที่กลืนมา</div></div>
+      <div style="display:flex;gap:6px;padding:10px 10px 0">
+        <div class="pnl evc" style="border-top:0;box-shadow:0 0 0 4px var(--amber),0 0 20px rgba(255,184,77,.4)">${img(slime({ color: 'peach' }), 'px', 'width:130px;height:130px')}
+          <h3>สไลม์อิฐ</h3><span class="chip" style="color:var(--earth)">ธาตุดิน</span>
+          <ul><li>ป้องกันสูง</li><li>สกิล: กำแพงอิฐ</li><li>ต้านธาตุน้ำ</li></ul></div>
+        <div class="pnl evc">${img(slime({ color: 'cloud', eyes: 1 }), 'px', 'width:130px;height:130px')}
+          <h3>สไลม์ปุยลม</h3><span class="chip" style="color:var(--wind)">ธาตุลม</span>
+          <ul><li>ตีเร็ว</li><li>สกิล: ลมหมุน</li><li>ต้านธาตุดิน</li></ul></div>
+      </div>
+      <div style="flex:1"></div>
+      <div style="padding:0 16px 8px;text-align:center" class="muted"><span style="font-size:13px">เลือกแล้วเปลี่ยนไม่ได้จนถึงเวล 30 · ของแต่งและชื่อยังอยู่ครบ</span></div>
+      <div style="padding:0 16px 34px" class="center"><button class="btn pri" style="width:100%">เลือกร่างนี้</button></div>
+    </div>`;
+  }
+
+  function skillsPage() {
+    const card = (icn, n, lv, tags, cd, locked) => `<div class="pnl" style="margin:6px;padding:10px;display:flex;flex-direction:column;gap:6px;${locked ? 'opacity:.55' : ''}">
+      <div style="display:flex;gap:10px;align-items:center"><div class="slot" style="margin:0;width:48px;height:48px">${img(icon(locked ? 'lock' : icn), 'px', 'width:32px;height:32px')}</div>
+      <div style="min-width:0"><b style="font-family:var(--font-hd);font-weight:500;font-size:15px">${locked ? '???' : n}</b><div class="muted" style="font-size:12px">${locked ? 'ยังไม่เจอมอนนี้' : tags}</div></div></div>
+      ${locked ? '' : `<div class="pips">${Array.from({ length: 10 }, (_, i) => `<span class="pip ${i < lv ? 'done' : ''}" style="height:8px"></span>`).join('')}</div><div class="muted" style="font-size:12px">เวล ${lv}/10 · ${cd}</div>`}
+    </div>`;
+    return `<div class="scr">
+      <div class="ttl" style="padding-top:34px">สกิล</div>
+      <div class="body" style="gap:4px">
+        <div class="pnl" style="padding:14px 8px 28px">
+          <div style="display:flex;justify-content:space-around;align-items:center">
+            <div class="center"><div class="slot r-common" style="width:66px;height:66px">${img(icon('brick'), 'px')}<span class="lb">ทุบอิฐ</span></div></div>
+            <div class="slot empty" style="width:66px;height:66px"><span class="lb">ว่าง</span></div>
+            <div class="slot empty" style="width:66px;height:66px"><span class="lb">ว่าง</span></div>
+            <div style="width:2px;height:50px;background:var(--edge)"></div>
+            <div class="slot empty" style="width:50px;height:50px"><span class="lb">ติดตัว</span></div>
+            <div class="slot empty" style="width:50px;height:50px"><span class="lb">ติดตัว</span></div>
+          </div>
+          <div class="muted" style="text-align:center;font-size:12px;margin-top:20px">ซ้าย: ใช้เอง 3 ช่อง (ออโต้) · ขวา: ติดตัว 2 ช่อง</div>
+        </div>
+        <div class="pnl" style="padding:12px;display:flex;align-items:center;gap:12px;background:var(--panel2)">
+          <div style="position:relative">${img(icon('core', { c: '#c9825a' }), 'px', 'width:44px;height:44px')}<span class="num" style="position:absolute;right:-6px;bottom:-4px;background:var(--amber);color:#2b1700;padding:0 6px;font-size:14px">3</span></div>
+          <div style="flex:1"><b style="font-family:var(--font-hd);font-weight:500">แก่นยักษ์อิฐ รอกลืน</b><div class="muted" style="font-size:12px">อีก 2 ชิ้นปลดสกิลใหม่</div></div>
+          <button class="btn pri" style="min-height:48px;font-size:17px;margin:4px">กลืน</button>
+        </div>
+        <div class="sec">สกิลที่มี <small>คอมโบ: ดิน ×2 ยังขาด 1</small></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;padding:0 2px">
+          ${card('brick', 'ทุบอิฐ', 1, 'ใช้เอง · ดิน', 'คูลดาวน์ 5 วิ')}
+          ${card('', '', 0, '', '', true)}
+        </div>
+      </div>
+      ${tabs('skills', { slime: true, skills: true })}
+    </div>`;
+  }
+
+  function bagPage() {
+    const items = [
+      ['sword', 'common', true],
+      ['ngob', 'good', false, true],
+      ['shield', 'rare', false],
+      ['charm', 'legend', false],
+      ['sword', 'good', false],
+      ['ngob', 'common', false],
+      ['charm', 'common', false],
+      ['shield', 'common', false],
+    ];
+    return `<div class="scr">
+      <div class="ttl" style="padding-top:34px;display:flex;justify-content:space-between;align-items:baseline">กระเป๋า <span class="muted num" style="font-size:15px">12 / 40</span></div>
+      <div class="seg"><span class="on">อุปกรณ์</span><span>วัตถุดิบ</span><span>ชุดสำเร็จ</span></div>
+      <div class="body" style="gap:0">
+        <div class="grid4">
+          ${items.map(([n, r, eq, up], i) => `<div class="tile r-${r} ${i === 1 ? 'sel' : ''}">${img(icon(n), 'px')}${eq ? '<span class="eq">ใส่อยู่</span>' : ''}${up ? '<span class="up">▲</span>' : ''}</div>`).join('')}
+          ${Array.from({ length: 4 }, () => '<div class="tile" style="opacity:.3;box-shadow:0 0 0 3px var(--line)"></div>').join('')}
+        </div>
+        <div class="pnl" style="padding:12px;margin-top:6px;display:flex;flex-direction:column;gap:4px">
+          <div style="display:flex;gap:12px;align-items:center">
+            <div class="slot r-good" style="margin:0">${img(icon('ngob'), 'px')}</div>
+            <div style="flex:1"><b style="font-family:var(--font-hd);font-weight:500;font-size:17px">งอบชาวสวน +0</b>
+              <div style="font-size:13px"><span style="color:var(--good);font-weight:700">ดี</span> · หัว</div></div>
+          </div>
+          <div style="display:flex;gap:16px;font-size:14px;margin:4px 0"><span>ป้องกัน <b class="num" style="color:var(--good)">+8 ▲</b></span><span>HP <b class="num" style="color:var(--good)">+40 ▲</b></span></div>
+          <div style="display:flex">
+            <button class="btn pri" style="flex:1;min-height:52px;font-size:18px">สวมเลย</button>
+            <button class="btn" style="min-height:52px">อัปเกรด<br /><small style="font-size:11px">60 เหรียญ</small></button>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 14px 0;font-size:13px;color:var(--muted)">
+          <span>ย่อยของอัตโนมัติ: ต่ำกว่า "ดี"</span><button class="btn sm">เปลี่ยน</button></div>
+      </div>
+      ${tabs('bag', { slime: true })}
+    </div>`;
+  }
+
+  function mapPage() {
+    const svg = `<svg viewBox="0 0 382 330" width="100%" height="100%" shape-rendering="crispEdges" style="display:block">
+      <rect width="382" height="330" fill="#1a2a3a"/>
+      <rect y="0" width="382" height="330" fill="#22304a"/>
+      ${Array.from({ length: 26 }, (_, i) => `<rect x="${(i * 53) % 370}" y="${(i * 37) % 320}" width="4" height="4" fill="#2a3a58"/>`).join('')}
+      <path d="M300 0 C 280 60, 330 110, 300 170 S 270 270, 310 330 L 340 330 C 310 270, 330 200, 336 170 S 320 60, 336 0 Z" fill="#3f78b8"/>
+      <path d="M312 0 C 296 60, 344 110, 316 170 S 288 270, 322 330" stroke="#8cc8f5" stroke-width="3" fill="none" stroke-dasharray="6 8"/>
+      <rect x="110" y="70" width="140" height="140" fill="#3a8a64" opacity=".25"/>
+      <rect x="110" y="70" width="140" height="140" fill="none" stroke="#6bc8d8" stroke-width="8"/>
+      <rect x="110" y="70" width="140" height="140" fill="none" stroke="#2c6a94" stroke-width="3"/>
+      <path d="M0 180 H110 M250 140 H300 M180 0 V70 M180 210 V330 M40 330 L150 210" stroke="#6b5a86" stroke-width="7" fill="none"/>
+      <path d="M0 180 H110 M250 140 H300 M180 0 V70 M180 210 V330 M40 330 L150 210" stroke="#8a78a8" stroke-width="3" fill="none"/>
+      <rect x="244" y="132" width="14" height="16" fill="#8a5a3a"/>
+      <rect x="40" y="40" width="70" height="70" fill="#4a3a6a" opacity=".5"/>
+      <rect x="205" y="120" width="40" height="40" fill="#5a3a30" opacity=".6"/>
+    </svg>`;
+    const pin = (x, y, n, colVar, sel, tag) => `<div class="pin ${sel ? 'sel' : ''}" style="left:${x}px;top:${y}px"><span class="lbl">${n}</span><div class="gem" style="background:var(${colVar})"></div>${tag ? `<span class="chip" style="font-size:11px">${tag}</span>` : ''}</div>`;
+    return `<div class="scr">
+      <div class="ttl" style="padding-top:34px;display:flex;justify-content:space-between;align-items:baseline">แผนที่ <span class="muted" style="font-size:12px;font-weight:400">(ตัวอย่างทิศทาง ไม่ใช่แผนที่จริง)</span></div>
+      <div class="body" style="gap:8px">
+        <div class="mapwrap">${svg}
+          ${pin(172, 150, 'ในเวียง', '--earth', true, 'ฟาร์มอยู่')}
+          ${pin(66, 100, 'นิมมาน', '--wind', false, 'เวล 60+')}
+          ${pin(262, 288, 'ริมปิง', '--sky', false, 'เวล 30+')}
+          ${pin(270, 86, 'ท่าแพ', '--fire', false, 'เวล 45+')}
+          <div class="chip" style="position:absolute;left:8px;bottom:8px;font-size:11px">แผนที่ © OpenStreetMap</div>
+        </div>
+        <div class="pnl" style="padding:12px;display:flex;flex-direction:column;gap:6px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <h3 style="font-size:20px">ในเวียง</h3><span><span class="chip hot">ย่านเรา</span><span class="chip" style="color:var(--earth)">ธาตุดิน</span></span></div>
+          <div class="muted" style="font-size:13px">ผ่านแล้ว 2 / 30 ด่าน</div>
+          <div class="stg"><span class="done">1</span><span class="done">2</span><span class="now">3</span><span>4</span><span>5</span><span class="">…</span></div>
+          <div style="display:flex;gap:10px;align-items:center;padding:4px 0">${img(monster('imp'), 'px', 'width:40px;height:40px')}${img(monster('imp', { dark: true }), 'px', 'width:40px;height:40px')}${img(monster('imp', { dark: true }), 'px', 'width:40px;height:40px')}<span class="muted" style="font-size:12px">สมุดมอน 1 / 3</span></div>
+          <button class="btn pri" style="font-size:18px">ฟาร์มที่นี่ ด่าน 3</button>
+        </div>
+      </div>
+      ${tabs('map', { map: false })}
+    </div>`;
+  }
+
+  function egg() {
+    return `<div class="scr" style="background:#0c0a22">
+      <div class="stage" style="position:absolute;inset:0;margin:0;box-shadow:none"> ${img(scene('wiang', 130, 281, 3), 'bg px')}
+        <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 55%,rgba(255,184,77,.35),transparent 55%)"></div></div>
+      <div class="center" style="position:absolute;top:84px;left:0;right:0"><div class="num" style="font-size:20px;color:var(--amber);letter-spacing:.2em">SLIME HOOD</div><div class="bigtxt" style="font-size:40px">สไลม์คุมย่าน</div></div>
+      <div style="position:absolute;left:0;right:0;top:300px" class="center">
+        <svg viewBox="0 0 80 100" width="170" height="210" shape-rendering="crispEdges">
+          <ellipse cx="40" cy="96" rx="30" ry="5" fill="rgba(0,0,0,.35)"/>
+          <path d="M40 4 C 14 4, 6 44, 6 64 C 6 84, 22 94, 40 94 C 58 94, 74 84, 74 64 C 74 44, 66 4, 40 4Z" fill="#0b0a1c"/>
+          <path d="M40 8 C 18 8, 10 46, 10 64 C 10 82, 24 90, 40 90 C 56 90, 70 82, 70 64 C 70 46, 62 8, 40 8Z" fill="#f2ead8"/>
+          <path d="M40 8 C 18 8, 10 46, 10 64 C 10 70, 12 74, 14 76 C 30 56, 58 80, 66 74 C 69 70, 70 66, 70 64 C 70 46, 62 8, 40 8Z" fill="#e6dcc4"/>
+          <path d="M26 20 L32 36 L26 44" stroke="#8fe8c0" stroke-width="3" fill="none"/>
+          <circle cx="30" cy="62" r="4" fill="#8fe8c0"/><circle cx="52" cy="50" r="3" fill="#8fe8c0"/><circle cx="46" cy="72" r="5" fill="#8fe8c0"/>
+          <path d="M16 40 L30 46 L40 38 L52 48 L64 40" stroke="#0b0a1c" stroke-width="3" fill="none"/>
+        </svg>
+      </div>
+      <span class="sparkle" style="left:90px;top:330px"></span><span class="sparkle" style="left:300px;top:370px"></span><span class="sparkle" style="left:250px;top:300px"></span><span class="sparkle" style="left:60px;top:440px"></span>
+      <div style="position:absolute;left:0;right:0;bottom:90px" class="center"><div class="bigtxt" style="font-size:26px;animation:glow 1.6s infinite">แตะไข่เลย!</div><div class="muted" style="font-size:14px;margin-top:6px">ใช้เวลาไม่ถึงนาที ไม่ต้องสมัคร</div></div>
+    </div>`;
+  }
+
+  function creator(o = {}) {
+    const color = o.color || 'rose',
+      eyes = o.eyes ?? 1;
+    const cols = Object.keys(COLORS);
+    return `<div class="scr" style="background:radial-gradient(ellipse at 50% 20%,#34285e,var(--bg) 65%)">
+      <div class="center" style="padding:48px 16px 0"><div class="bigtxt" style="font-size:28px">สร้างสไลม์ของคุณ</div></div>
+      <div class="center" style="position:relative;height:250px;justify-content:flex-end;padding-bottom:10px">
+        <div style="position:absolute;bottom:14px;width:210px;height:34px;background:var(--panel2);box-shadow:0 0 0 4px var(--line);border-radius:50%"></div>
+        <span class="sparkle" style="left:70px;top:40px"></span><span class="sparkle" style="right:80px;top:70px"></span><span class="sparkle" style="left:110px;top:150px"></span>
+        ${img(slime({ color, eyes, happy: true }), 'px', 'width:204px;height:204px;position:relative')}
+      </div>
+      <div class="center"><div style="font-family:var(--font-hd);font-size:24px">โมจิ</div></div>
+      <div style="display:flex;align-items:stretch"><div class="field" style="flex:1">โมจิ</div><button class="btn" style="align-self:center;min-height:50px">สุ่มชื่อ</button></div>
+      <div class="sec" style="padding-top:2px">สี</div>
+      <div class="swatches">${cols.map((c) => `<div class="sw ${c === color ? 'on' : ''}" style="background:${COLORS[c][0]}"></div>`).join('')}</div>
+      <div class="sec">หน้าตา</div>
+      <div class="eyes">${[0, 1, 2, 3].map((e) => `<div class="eyec ${e === eyes ? 'on' : ''}">${img(slime({ color, eyes: e }), 'px')}</div>`).join('')}</div>
+      <div style="flex:1"></div>
+      <div style="padding:0 16px 34px"><button class="btn pri" style="width:100%">ตัวนี้แหละ!</button></div>
+    </div>`;
+  }
+
+  function first(grew) {
+    return `<div class="scr" style="background:#0c0a22">
+      <div class="stage" style="position:absolute;inset:0;margin:0;box-shadow:none">${img(scene('wiang', 130, 281, 5), 'bg px')}</div>
+      <div class="center" style="position:absolute;top:60px;left:0;right:0;padding:0 20px">
+        <div class="bigtxt" style="font-size:${grew ? 34 : 28}px">${grew ? 'งอกแล้ว!' : 'มอนตัวแรกมาแล้ว'}</div>
+        <div class="muted" style="font-size:16px;margin-top:4px;text-shadow:2px 2px 0 #000;color:#e8e2f6">${grew ? 'ได้สกิล “ทุบอิฐ” ติดที่ตัวเลย' : 'สไลม์สู้เองได้ แค่กดกลืน'}</div>
+      </div>
+      ${img(slime({ color: 'rose', eyes: 1, part: !!grew, happy: !!grew }), 'px', `position:absolute;left:${grew ? 98 : 20}px;top:330px;width:${grew ? 200 : 170}px;height:${grew ? 200 : 170}px`)}
+      ${grew ? '<span class="sparkle" style="left:84px;top:380px"></span><span class="sparkle" style="left:110px;top:350px"></span><span class="sparkle" style="left:70px;top:420px"></span>' : img(monster('imp'), 'px', 'position:absolute;right:20px;top:320px;width:170px;height:170px')}
+      ${grew ? `<div class="pnl" style="position:absolute;left:40px;right:40px;top:560px;padding:10px;display:flex;gap:12px;align-items:center;background:var(--panel2)">${img(icon('brick'), 'px', 'width:40px;height:40px')}<div><b style="font-family:var(--font-hd);font-weight:500">ทุบอิฐ</b><div class="muted" style="font-size:12px">สกิลใช้เอง · ธาตุดิน</div></div></div>` : ''}
+      <div style="position:absolute;left:16px;right:16px;bottom:34px"><button class="btn pri glow" style="width:100%;min-height:68px;font-size:26px">${grew ? 'ไปฟาร์มกัน' : 'กลืนเลย!'}</button></div>
+    </div>`;
+  }
+
+  /* ======================= frame mounting ======================= */
+  const frames = [];
+  function frame(html, scale, interactive) {
+    const fw = document.createElement('div');
+    fw.className = 'fw';
+    fw.dataset.scale = scale;
+    const ph = document.createElement('div');
+    ph.className = 'phone';
+    ph.innerHTML = html;
+    fw.appendChild(ph);
+    frames.push({ fw, ph, scale });
+    return fw;
+  }
+  function fit() {
+    frames.forEach(({ fw, ph, scale }) => {
+      let s = scale;
+      if (scale === 'fit') {
+        const avail = Math.min(390, fw.parentElement ? fw.parentElement.clientWidth - 20 : 390);
+        s = Math.min(1, Math.max(0.5, avail / 390));
+      }
+      fw.style.width = 390 * s + 'px';
+      fw.style.height = 844 * s + 'px';
+      ph.style.transform = `scale(${s})`;
+    });
+  }
+  const fig = (html, title, note, scale = 0.72) => {
+    const f = document.createElement('figure');
+    f.appendChild(frame(html, scale));
+    const c = document.createElement('figcaption');
+    c.style.maxWidth = 390 * scale + 'px';
+    c.innerHTML = `<b>${title}</b>${note}`;
+    f.appendChild(c);
+    return f;
+  };
+  const put = (id, list) => {
+    const el = document.getElementById(id);
+    list.forEach((f) => el.appendChild(f));
+  };
+
+  put('row-first', [
+    fig(egg(), '1 · ฟักไข่', 'แตะครั้งเดียว ฉากกลางคืนมีแสงโคม ชื่อเกมอยู่บน ไม่มีเมนูอื่นรบกวน'),
+    fig(creator(), '2 · สร้างสไลม์', 'ตัวอย่างใหญ่กลางจอ เปลี่ยนสีหน้าตาเห็นทันที ปุ่มส้มอยู่โซนนิ้วโป้ง'),
+    fig(first(false), '3 · มอนตัวแรก', 'ทั้งจอมีแค่สองตัวกับปุ่มเดียว ไม่ต้องอ่านอะไร'),
+    fig(first(true), '4 · ส่วนงอกโผล่', 'ช่วงที่ต้อง "ว้าว" ตัวสไลม์เปลี่ยนจริงทันที ประกาย + การ์ดสกิลที่ได้'),
+  ]);
+  put('row-farm', [
+    fig(farm('normal'), 'ปกติ', 'สไลม์ใหญ่ครึ่งจอ ถุงของออโต้เติมให้เห็น ริบบิ้นเดียวบอกขั้นต่อไป'),
+    fig(farm('full'), 'ถุงเต็ม', 'ถุงล้น ปุ่มส้มกระพริบ ริบบิ้นเปลี่ยนเป็น "เก็บเลย" ไม่ลงโทษ แค่เตือนว่าของเกินเพดานจะลดเหลือ 30%'),
+    fig(farm('cool'), 'เพิ่งเก็บ', 'ปุ่มหรี่ลงชัดเจนว่ารอ ไม่ใช่ปุ่มพัง นับถอยหลังสั้น ๆ'),
+    fig(farm('stuck'), 'ด่านหนักเกิน', 'มอนหม่น ข้อความเป็นมิตร บอกทางออก (ไปด่านก่อน/แจกแต้ม) ไม่ใช่ตัวแดงน่ากลัว'),
+    fig(claim(), 'หน้าเก็บของออโต้', 'เปิดของเป็นจังหวะ ของหายาก/มอนทองใหญ่ ที่เหลือเป็นบรรทัดสั้น ๆ ปุ่มส้มเดียว'),
+    fig(levelup(), 'เลเวลอัป', 'ป๊อปอัปกลางจอ ตัวเลขใหญ่ ปุ่มชวนไปแจกแต้ม (ไม่บังคับ)'),
+  ]);
+  put('row-manage', [
+    fig(slimePage(), 'สไลม์', 'ตัวสไลม์ใหญ่ มีช่องของแต่งรอบตัวแบบตุ๊กตาแต่งตัว สถานะเป็นแท่งพร้อมปุ่ม +'),
+    fig(slimePage({ evolve: true }), 'สไลม์ (พร้อมอัปร่าง)', 'ริบบิ้นอัปร่างเด่นเมื่อถึงเวล 10 และ 30'),
+    fig(evolve(), 'เลือกร่างใหม่', 'จอเต็ม เห็นสองร่างเทียบกัน บอกผลเป็นสามข้อสั้น ๆ และบอกชัดว่าเปลี่ยนไม่ได้'),
+    fig(skillsPage(), 'สกิล', 'ช่องสกิลเป็นภาพ แก่นที่รอกลืนเป็นแถบเด่นพร้อมปุ่ม "กลืน" ช่องที่ยังไม่เจอเป็นเงา (ล่อให้ไปหา)'),
+    fig(bagPage(), 'กระเป๋า', 'ตารางไอคอนสีตามความหายาก ลูกศรเขียวบอกว่าดีกว่าของที่ใส่อยู่ แตะแล้วเห็นรายละเอียดด้านล่าง'),
+    fig(mapPage(), 'แผนที่', 'แผนที่แบบภาพแทนรายการ หมุดบอกว่าย่านไหนสู้ไหวไหม เลือกแล้วฟาร์ม/ตั้งเป็นย่านเรา'),
+  ]);
+
+  /* before / after */
+  (function () {
+    const holder = document.getElementById('cmp-new');
+    holder.appendChild(frame(farm('normal'), 0.72));
+    const c = document.createElement('figcaption');
+    c.style.marginTop = '12px';
+    c.innerHTML = '<b class="good">แบบใหม่</b>ภาพจำลอง';
+    holder.appendChild(c);
+  })();
+
+  /* interactive prototype */
+  (function () {
+    const holder = document.getElementById('proto');
+    const fw = frame('', 'fit');
+    const ph = fw.firstChild;
+    holder.appendChild(fw);
+    let page = 'farm',
+      overlay = null;
+    function render() {
+      const map = { farm: () => farm('normal'), slime: () => slimePage(), skills: skillsPage, bag: bagPage, map: mapPage };
+      let html = map[page]();
+      if (overlay === 'claim' && page === 'farm') html = claim();
+      ph.innerHTML = html;
+      ph.querySelectorAll('[data-tab]').forEach((b) =>
+        b.addEventListener('click', () => {
+          page = b.dataset.tab;
+          overlay = null;
+          render();
+        }),
+      );
+      ph.querySelectorAll('[data-act="claim"]').forEach((b) =>
+        b.addEventListener('click', () => {
+          overlay = 'claim';
+          render();
+        }),
+      );
+      ph.querySelectorAll('[data-act="close"]').forEach((b) =>
+        b.addEventListener('click', () => {
+          overlay = null;
+          render();
+        }),
+      );
+    }
+    render();
+  })();
+
+  /* before screenshot placeholder is injected by the build step */
+  document.getElementById('before').src = window.__BEFORE__ || '';
+
+  /* swatches + kit */
+  (function () {
+    const S = [
+      ['--bg', 'พื้นหลังกลางคืน'],
+      ['--panel', 'แผง'],
+      ['--panel2', 'แผงเด่น'],
+      ['--amber', 'แสงโคม (ปุ่มหลัก)'],
+      ['--jade', 'สไลม์'],
+      ['--chili', 'อันตราย/จุดแจ้งเตือน'],
+      ['--sky', 'น้ำ'],
+      ['--fire', 'ไฟ'],
+      ['--wind', 'ลม'],
+      ['--earth', 'ดิน'],
+      ['--rare', 'หายาก'],
+      ['--text', 'ตัวอักษร'],
+    ];
+    document.getElementById('swatches').innerHTML = S.map(
+      ([v, n]) => `<div class="swc"><i style="background:var(${v})"></i><b>${n}</b>${getComputedStyle(document.documentElement).getPropertyValue(v).trim()}</div>`,
+    ).join('');
+    document.getElementById('kit').innerHTML = `
+      <div class="phone-kit" style="display:flex;flex-wrap:wrap;gap:14px;align-items:center">
+        <button class="btn pri" style="font-family:var(--font-hd)">ปุ่มหลัก</button>
+        <button class="btn">ปุ่มรอง</button>
+        <button class="btn sm">ปุ่มเล็ก</button>
+        <button class="btn dim">ปิดใช้งาน</button>
+        <span class="chip hot">แต้มว่าง 3</span><span class="chip">ธาตุดิน</span>
+        <div class="bar amber" style="width:120px"><i style="width:60%"></i></div>
+        <div class="slot r-rare" style="margin:6px">${img(icon('sword'), 'px')}</div>
+        <div class="plus">+</div>
+      </div>`;
+  })();
+
+  window.addEventListener('resize', fit);
+  fit();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+</script>
