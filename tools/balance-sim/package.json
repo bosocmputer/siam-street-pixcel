@@ -1,0 +1,16 @@
+{
+  "name": "balance-sim",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "sim": "tsx src/run.ts"
+  },
+  "dependencies": {
+    "@slimehood/game-core": "workspace:*"
+  },
+  "devDependencies": {
+    "tsx": "4.19.2"
+  }
+}

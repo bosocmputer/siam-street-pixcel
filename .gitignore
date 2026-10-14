@@ -1,0 +1,9 @@
+node_modules
+dist
+coverage
+*.tsbuildinfo
+.env
+.env.*
+tools/asset-pipeline/raw/
+playwright-report
+test-results
