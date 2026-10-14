@@ -79,7 +79,7 @@ v4 เป็น **idle แบบไม่ต้องออนไลน์พร
 ### 4.2 การคำนวณของออโต้ (claim)
 
 ```
-elapsed = min(server_now - last_claim_at, cap_seconds)   // cap ค่าเริ่มต้น 8 ชม.
+elapsed = min(server_now - last_claim_at, cap_seconds)   // cap ค่าเริ่มต้น 10 ชม.
 power   = computePower(loadout)                         // จาก game-core
 rate    = killsPerSecond(power, district, stage, ruleModifiers)
 kills   = floor(elapsed * rate)

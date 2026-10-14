@@ -1,0 +1,94 @@
+[
+  {
+    "id": "wiang",
+    "element": "earth",
+    "stageCount": 30,
+    "monsters": [
+      {
+        "id": "brick_imp",
+        "weight": 1
+      },
+      {
+        "id": "clay_pot",
+        "weight": 1
+      },
+      {
+        "id": "wall_rat",
+        "weight": 1
+      }
+    ],
+    "material": "old_brick",
+    "bossId": "boss_wall",
+    "stageOffset": 0,
+    "killMult": 1
+  },
+  {
+    "id": "ping",
+    "element": "water",
+    "stageCount": 30,
+    "monsters": [
+      {
+        "id": "hyacinth_walker",
+        "weight": 1
+      },
+      {
+        "id": "wicker_fish",
+        "weight": 1
+      },
+      {
+        "id": "pier_frog",
+        "weight": 1
+      }
+    ],
+    "material": "water_scale",
+    "bossId": "boss_hyacinth",
+    "stageOffset": 30,
+    "killMult": 1.6
+  },
+  {
+    "id": "thapae",
+    "element": "fire",
+    "stageCount": 30,
+    "monsters": [
+      {
+        "id": "meatball_flame",
+        "weight": 1
+      },
+      {
+        "id": "tuktuk_mini",
+        "weight": 1
+      },
+      {
+        "id": "fire_moth",
+        "weight": 1
+      }
+    ],
+    "material": "spark",
+    "bossId": "boss_market",
+    "stageOffset": 60,
+    "killMult": 2.4
+  },
+  {
+    "id": "nimman",
+    "element": "wind",
+    "stageCount": 30,
+    "monsters": [
+      {
+        "id": "coffee_cup",
+        "weight": 1
+      },
+      {
+        "id": "fan_goof",
+        "weight": 1
+      },
+      {
+        "id": "sparrow_spin",
+        "weight": 1
+      }
+    ],
+    "material": "wind_feather",
+    "bossId": "boss_caffeine",
+    "stageOffset": 90,
+    "killMult": 3.4
+  }
+]

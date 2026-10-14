@@ -1,0 +1,307 @@
+[
+  {
+    "id": "ngob",
+    "slot": "head",
+    "minStage": 1,
+    "bonus": {
+      "vit": 1,
+      "hp": 10
+    },
+    "material": "old_brick"
+  },
+  {
+    "id": "pakama_wrap",
+    "slot": "head",
+    "minStage": 3,
+    "bonus": {
+      "agi": 1,
+      "atk": 1
+    },
+    "material": "old_brick"
+  },
+  {
+    "id": "win_helmet",
+    "slot": "head",
+    "minStage": 6,
+    "bonus": {
+      "vit": 2,
+      "def": 2
+    },
+    "material": "spark"
+  },
+  {
+    "id": "beanie",
+    "slot": "head",
+    "minStage": 9,
+    "bonus": {
+      "int": 2,
+      "hp": 10
+    },
+    "material": "wind_feather"
+  },
+  {
+    "id": "cat_headband",
+    "slot": "head",
+    "minStage": 12,
+    "bonus": {
+      "agi": 2,
+      "atk": 2
+    },
+    "material": "wind_feather"
+  },
+  {
+    "id": "paper_boat_hat",
+    "slot": "head",
+    "minStage": 15,
+    "bonus": {
+      "int": 2,
+      "agi": 1,
+      "hp": 15
+    },
+    "material": "water_scale"
+  },
+  {
+    "id": "chili_crown",
+    "slot": "head",
+    "minStage": 18,
+    "bonus": {
+      "str": 2,
+      "atk": 3
+    },
+    "material": "spark"
+  },
+  {
+    "id": "coffee_cap",
+    "slot": "head",
+    "minStage": 21,
+    "bonus": {
+      "agi": 3,
+      "int": 1
+    },
+    "material": "wind_feather"
+  },
+  {
+    "id": "lantern_crown",
+    "slot": "head",
+    "minStage": 24,
+    "bonus": {
+      "vit": 3,
+      "hp": 30,
+      "def": 2
+    },
+    "material": "old_brick"
+  },
+  {
+    "id": "flower_wreath",
+    "slot": "head",
+    "minStage": 27,
+    "bonus": {
+      "int": 3,
+      "str": 2,
+      "hp": 20
+    },
+    "material": "water_scale"
+  },
+  {
+    "id": "paddle_sword",
+    "slot": "weapon",
+    "minStage": 1,
+    "bonus": {
+      "atk": 6
+    },
+    "material": "old_brick",
+    "style": "sword"
+  },
+  {
+    "id": "ladle_staff",
+    "slot": "weapon",
+    "minStage": 1,
+    "bonus": {
+      "atk": 5,
+      "int": 1
+    },
+    "material": "water_scale",
+    "style": "staff"
+  },
+  {
+    "id": "pot_lid_shield",
+    "slot": "weapon",
+    "minStage": 1,
+    "bonus": {
+      "atk": 3,
+      "def": 4
+    },
+    "material": "old_brick",
+    "style": "shield"
+  },
+  {
+    "id": "broom_thorn",
+    "slot": "weapon",
+    "minStage": 1,
+    "bonus": {
+      "atk": 5,
+      "agi": 1
+    },
+    "material": "spark",
+    "style": "thorn"
+  },
+  {
+    "id": "plain_skin",
+    "slot": "skin",
+    "minStage": 1,
+    "bonus": {
+      "def": 1
+    },
+    "material": "old_brick"
+  },
+  {
+    "id": "clay_skin",
+    "slot": "skin",
+    "minStage": 4,
+    "bonus": {
+      "def": 2
+    },
+    "material": "old_brick",
+    "resist": {
+      "earth": 0.1
+    }
+  },
+  {
+    "id": "river_skin",
+    "slot": "skin",
+    "minStage": 7,
+    "bonus": {
+      "def": 2
+    },
+    "material": "water_scale",
+    "resist": {
+      "water": 0.1
+    }
+  },
+  {
+    "id": "ember_skin",
+    "slot": "skin",
+    "minStage": 10,
+    "bonus": {
+      "def": 2
+    },
+    "material": "spark",
+    "resist": {
+      "fire": 0.1
+    }
+  },
+  {
+    "id": "breeze_skin",
+    "slot": "skin",
+    "minStage": 13,
+    "bonus": {
+      "def": 2
+    },
+    "material": "wind_feather",
+    "resist": {
+      "wind": 0.1
+    }
+  },
+  {
+    "id": "night_market_skin",
+    "slot": "skin",
+    "minStage": 16,
+    "bonus": {
+      "def": 3
+    },
+    "material": "spark",
+    "resist": {
+      "fire": 0.05,
+      "wind": 0.05
+    }
+  },
+  {
+    "id": "moat_skin",
+    "slot": "skin",
+    "minStage": 19,
+    "bonus": {
+      "def": 3
+    },
+    "material": "water_scale",
+    "resist": {
+      "water": 0.05,
+      "earth": 0.05
+    }
+  },
+  {
+    "id": "mist_skin",
+    "slot": "skin",
+    "minStage": 22,
+    "bonus": {
+      "def": 4
+    },
+    "material": "wind_feather",
+    "resist": {
+      "earth": 0.03,
+      "water": 0.03,
+      "fire": 0.03,
+      "wind": 0.03
+    }
+  },
+  {
+    "id": "lucky_coin",
+    "slot": "charm",
+    "minStage": 1,
+    "bonus": {},
+    "material": "old_brick",
+    "rates": {
+      "coin": 0.1
+    }
+  },
+  {
+    "id": "study_scroll",
+    "slot": "charm",
+    "minStage": 5,
+    "bonus": {},
+    "material": "water_scale",
+    "rates": {
+      "exp": 0.1
+    }
+  },
+  {
+    "id": "treasure_bell",
+    "slot": "charm",
+    "minStage": 9,
+    "bonus": {},
+    "material": "spark",
+    "rates": {
+      "drop": 0.1
+    }
+  },
+  {
+    "id": "core_crystal",
+    "slot": "charm",
+    "minStage": 13,
+    "bonus": {},
+    "material": "wind_feather",
+    "rates": {
+      "core": 0.15
+    }
+  },
+  {
+    "id": "red_thread",
+    "slot": "charm",
+    "minStage": 17,
+    "bonus": {},
+    "material": "spark",
+    "rates": {
+      "crit": 0.04
+    }
+  },
+  {
+    "id": "fortune_pouch",
+    "slot": "charm",
+    "minStage": 21,
+    "bonus": {},
+    "material": "old_brick",
+    "rates": {
+      "coin": 0.05,
+      "drop": 0.05
+    }
+  }
+]

@@ -4,12 +4,11 @@ export default defineConfig({
   test: {
     include: ['test/**/*.test.ts'],
     coverage: {
-      all: false,
       provider: 'v8',
       include: ['src/**/*.ts'],
       exclude: ['src/index.ts', 'src/types.ts'],
       reporter: ['text-summary', 'json-summary'],
-      thresholds: { lines: 0 },
+      thresholds: { lines: 90 },
     },
   },
 });

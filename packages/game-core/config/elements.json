@@ -1,0 +1,6 @@
+{
+  "water": "fire",
+  "fire": "wind",
+  "wind": "earth",
+  "earth": "water"
+}

@@ -131,7 +131,7 @@ cdr       = min(0.3, INT*0.005)
 expToNext = round(20 * level^1.6)
 monsterHP(stage)  = base.hp  * 1.12^stage
 monsterATK(stage) = base.atk * 1.10^stage
-idleCap   = 8 ชม.
+idleCap   = 10 ชม.
 ```
 
 ### M1.4 `tools/balance-sim`

@@ -1,0 +1,23 @@
+[
+  {
+    "id": "flood_moat",
+    "effects": { "dropMultByElement": { "water": 2 }, "enemyAtkMultByElement": { "fire": 1.25 } }
+  },
+  { "id": "big_market", "effects": { "coinMult": 1.5 } },
+  {
+    "id": "doi_wind",
+    "effects": {
+      "damageMultByElement": { "wind": 1.25 },
+      "enemyAtkMultByElement": { "earth": 1.2 }
+    }
+  },
+  {
+    "id": "smoke_haze",
+    "effects": {
+      "critAdd": 0.1,
+      "enemyAtkMultByElement": { "earth": 1.1, "water": 1.1, "fire": 1.1, "wind": 1.1 }
+    }
+  },
+  { "id": "power_cut", "effects": { "damageMultByElement": { "fire": 0.8 }, "expMult": 1.2 } },
+  { "id": "all_day_rain", "effects": { "expMult": 1.15, "damageMultByElement": { "fire": 0.85 } } }
+]

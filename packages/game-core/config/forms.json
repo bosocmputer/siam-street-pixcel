@@ -1,0 +1,107 @@
+[
+  {
+    "id": "slime_clear",
+    "tier": 0,
+    "element": null,
+    "from": null,
+    "minLevel": 1,
+    "statBonus": {},
+    "skillId": null
+  },
+  {
+    "id": "slime_brick",
+    "tier": 1,
+    "element": "earth",
+    "from": "slime_clear",
+    "minLevel": 10,
+    "statBonus": {
+      "vit": 3,
+      "str": 1
+    },
+    "skillId": "form_brick"
+  },
+  {
+    "id": "slime_wall",
+    "tier": 2,
+    "element": "earth",
+    "from": "slime_brick",
+    "minLevel": 30,
+    "statBonus": {
+      "vit": 6,
+      "str": 2
+    },
+    "skillId": "form_wall"
+  },
+  {
+    "id": "slime_droplet",
+    "tier": 1,
+    "element": "water",
+    "from": "slime_clear",
+    "minLevel": 10,
+    "statBonus": {
+      "int": 2,
+      "vit": 2
+    },
+    "skillId": "form_droplet"
+  },
+  {
+    "id": "slime_riverside",
+    "tier": 2,
+    "element": "water",
+    "from": "slime_droplet",
+    "minLevel": 30,
+    "statBonus": {
+      "int": 4,
+      "vit": 4
+    },
+    "skillId": "form_river"
+  },
+  {
+    "id": "slime_ember",
+    "tier": 1,
+    "element": "fire",
+    "from": "slime_clear",
+    "minLevel": 10,
+    "statBonus": {
+      "str": 3,
+      "agi": 1
+    },
+    "skillId": "form_ember"
+  },
+  {
+    "id": "slime_market_fire",
+    "tier": 2,
+    "element": "fire",
+    "from": "slime_ember",
+    "minLevel": 30,
+    "statBonus": {
+      "str": 6,
+      "agi": 2
+    },
+    "skillId": "form_blaze"
+  },
+  {
+    "id": "slime_puff",
+    "tier": 1,
+    "element": "wind",
+    "from": "slime_clear",
+    "minLevel": 10,
+    "statBonus": {
+      "agi": 3,
+      "int": 1
+    },
+    "skillId": "form_breeze"
+  },
+  {
+    "id": "slime_doi",
+    "tier": 2,
+    "element": "wind",
+    "from": "slime_puff",
+    "minLevel": 30,
+    "statBonus": {
+      "agi": 6,
+      "int": 2
+    },
+    "skillId": "form_gust"
+  }
+]

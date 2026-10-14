@@ -1,0 +1,132 @@
+{
+  "content": {
+    "districts": {
+      "wiang": "ในเวียง",
+      "ping": "ริมปิง",
+      "thapae": "ท่าแพ–ไนท์บาซาร์",
+      "nimman": "นิมมาน"
+    },
+    "elements": {
+      "earth": "ดิน",
+      "water": "น้ำ",
+      "fire": "ไฟ",
+      "wind": "ลม"
+    },
+    "rarities": {
+      "common": "ธรรมดา",
+      "good": "ดี",
+      "rare": "แรร์",
+      "legend": "ตำนาน"
+    },
+    "stats": {
+      "str": "พลัง",
+      "agi": "ว่องไว",
+      "vit": "ทนทาน",
+      "int": "ปัญญา"
+    },
+    "slots": {
+      "head": "หัว",
+      "weapon": "อาวุธ",
+      "skin": "ผิว",
+      "charm": "เครื่องราง"
+    },
+    "materials": {
+      "jelly": "เจลลี่สไลม์",
+      "old_brick": "อิฐเก่า",
+      "water_scale": "เกล็ดน้ำ",
+      "spark": "ประกายไฟ",
+      "wind_feather": "ขนนกลม"
+    },
+    "monsters": {
+      "brick_imp": "ก้อนอิฐซน",
+      "clay_pot": "หม้อดินคลาน",
+      "wall_rat": "หนูกำแพง",
+      "hyacinth_walker": "ผักตบเดินได้",
+      "wicker_fish": "ปลาตะเพียนสาน",
+      "pier_frog": "กบท่าน้ำ",
+      "meatball_flame": "ลูกชิ้นไฟลุก",
+      "tuktuk_mini": "ตุ๊กตุ๊กจิ๋ว",
+      "fire_moth": "แมลงเม่าไฟ",
+      "coffee_cup": "แก้วกาแฟลอยลม",
+      "fan_goof": "พัดลมจอมซ่า",
+      "sparrow_spin": "นกกระจอกหมุนติ้ว"
+    },
+    "bosses": {
+      "boss_wall": "เจ้ากำแพงอิฐ",
+      "boss_hyacinth": "ราชาผักตบ",
+      "boss_market": "เจ้าตลาดไฟ",
+      "boss_caffeine": "พายุคาเฟอีน"
+    },
+    "skills": {
+      "brick_smash": "ทุบอิฐ",
+      "clay_armor": "เกราะดินเผา",
+      "wall_gnaw": "ฟันแทะ",
+      "root_bind": "รากพัน",
+      "weave_slash": "ว่ายเฉือน",
+      "tongue_drain": "ลิ้นดูด",
+      "skewer_fire": "ไฟปิ้ง",
+      "tuk_charge": "พุ่งชน",
+      "spark_dust": "ฝุ่นประกาย",
+      "caffeine_rush": "คาเฟอีนพุ่ง",
+      "fan_spin": "ลมหมุน",
+      "peck_burst": "จิกรัว",
+      "form_brick": "อิฐแน่น",
+      "form_wall": "กำแพงสะท้อน",
+      "form_droplet": "หยดชะลอ",
+      "form_river": "สายน้ำฟื้นฟู",
+      "form_ember": "ถ่านลุก",
+      "form_blaze": "ตลาดไฟโชน",
+      "form_breeze": "สายลมไว",
+      "form_gust": "ลมดอยหมุน"
+    },
+    "forms": {
+      "slime_clear": "สไลม์ใส",
+      "slime_brick": "สไลม์อิฐ",
+      "slime_wall": "สไลม์กำแพง",
+      "slime_droplet": "สไลม์หยดน้ำ",
+      "slime_riverside": "สไลม์ริมปิง",
+      "slime_ember": "สไลม์ถ่าน",
+      "slime_market_fire": "สไลม์ตลาดไฟ",
+      "slime_puff": "สไลม์ปุยลม",
+      "slime_doi": "สไลม์ดอย"
+    },
+    "items": {
+      "ngob": "งอบ",
+      "pakama_wrap": "ผ้าขาวม้าโพกหัว",
+      "win_helmet": "หมวกกันน็อกวิน",
+      "beanie": "หมวกไหมพรม",
+      "cat_headband": "ที่คาดผมหูแมว",
+      "paper_boat_hat": "หมวกเรือกระดาษ",
+      "chili_crown": "มงกุฎพริก",
+      "coffee_cap": "หมวกแก๊ปกาแฟ",
+      "lantern_crown": "มงกุฎโคมล้านนา",
+      "flower_wreath": "พวงดอกไม้",
+      "paddle_sword": "ดาบไม้พาย",
+      "ladle_staff": "ไม้เท้าทัพพี",
+      "pot_lid_shield": "โล่ฝาหม้อ",
+      "broom_thorn": "หนามไม้กวาด",
+      "plain_skin": "ผิวใส",
+      "clay_skin": "ผิวดินเผา",
+      "river_skin": "ผิวสายน้ำ",
+      "ember_skin": "ผิวถ่าน",
+      "breeze_skin": "ผิวสายลม",
+      "night_market_skin": "ผิวตลาดกลางคืน",
+      "moat_skin": "ผิวคูเมือง",
+      "mist_skin": "ผิวหมอกดอย",
+      "lucky_coin": "เหรียญนำโชค",
+      "study_scroll": "ม้วนตำรา",
+      "treasure_bell": "กระดิ่งขุมทรัพย์",
+      "core_crystal": "ผลึกแก่น",
+      "red_thread": "ด้ายแดง",
+      "fortune_pouch": "ถุงเศรษฐี"
+    },
+    "rules": {
+      "flood_moat": "น้ำท่วมคูเมือง",
+      "big_market": "ตลาดนัดใหญ่",
+      "doi_wind": "ลมแรงจากดอย",
+      "smoke_haze": "ฝุ่นควัน",
+      "power_cut": "ไฟตก",
+      "all_day_rain": "ฝนตกทั้งวัน"
+    }
+  }
+}

@@ -1,0 +1,6 @@
+[
+  { "id": "boss_wall", "districtId": "wiang", "element": "earth" },
+  { "id": "boss_hyacinth", "districtId": "ping", "element": "water" },
+  { "id": "boss_market", "districtId": "thapae", "element": "fire" },
+  { "id": "boss_caffeine", "districtId": "nimman", "element": "wind" }
+]

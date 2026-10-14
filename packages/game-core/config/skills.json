@@ -1,0 +1,234 @@
+[
+  {
+    "id": "brick_smash",
+    "element": "earth",
+    "tags": ["earth", "smash"],
+    "kind": "active",
+    "effects": {},
+    "part": "part_brick_ridge",
+    "cooldown": 5,
+    "power": 2.2
+  },
+  {
+    "id": "clay_armor",
+    "element": "earth",
+    "tags": ["earth", "defense"],
+    "kind": "passive",
+    "effects": {
+      "defBonus": 0.25
+    },
+    "part": "part_pot_lid"
+  },
+  {
+    "id": "wall_gnaw",
+    "element": "earth",
+    "tags": ["earth", "speed"],
+    "kind": "active",
+    "effects": {},
+    "part": "part_rat_ears",
+    "cooldown": 3,
+    "power": 1.3
+  },
+  {
+    "id": "root_bind",
+    "element": "water",
+    "tags": ["water", "slow"],
+    "kind": "active",
+    "effects": {
+      "slow": 0.2
+    },
+    "part": "part_hyacinth_leaf",
+    "cooldown": 6,
+    "power": 1.6
+  },
+  {
+    "id": "weave_slash",
+    "element": "water",
+    "tags": ["water", "crit"],
+    "kind": "active",
+    "effects": {
+      "critBonus": 0.1
+    },
+    "part": "part_wicker_fin",
+    "cooldown": 4,
+    "power": 1.8
+  },
+  {
+    "id": "tongue_drain",
+    "element": "water",
+    "tags": ["water", "lifesteal"],
+    "kind": "active",
+    "effects": {
+      "lifesteal": 0.25
+    },
+    "part": "part_frog_eyes",
+    "cooldown": 5,
+    "power": 1.5
+  },
+  {
+    "id": "skewer_fire",
+    "element": "fire",
+    "tags": ["fire", "burn"],
+    "kind": "active",
+    "effects": {
+      "dotMult": 0.6
+    },
+    "part": "part_skewer",
+    "cooldown": 5,
+    "power": 1.4
+  },
+  {
+    "id": "tuk_charge",
+    "element": "fire",
+    "tags": ["fire", "speed"],
+    "kind": "active",
+    "effects": {},
+    "part": "part_headlight",
+    "cooldown": 4,
+    "power": 2.0
+  },
+  {
+    "id": "spark_dust",
+    "element": "fire",
+    "tags": ["fire", "poison"],
+    "kind": "active",
+    "effects": {
+      "dotMult": 0.8
+    },
+    "part": "part_moth_wings",
+    "cooldown": 6,
+    "power": 1.2
+  },
+  {
+    "id": "caffeine_rush",
+    "element": "wind",
+    "tags": ["wind", "speed"],
+    "kind": "passive",
+    "effects": {
+      "atkSpeedBonus": 0.2
+    },
+    "part": "part_straw"
+  },
+  {
+    "id": "fan_spin",
+    "element": "wind",
+    "tags": ["wind", "multi"],
+    "kind": "active",
+    "effects": {
+      "multiTarget": true
+    },
+    "part": "part_fan_blades",
+    "cooldown": 6,
+    "power": 1.5
+  },
+  {
+    "id": "peck_burst",
+    "element": "wind",
+    "tags": ["wind", "crit"],
+    "kind": "active",
+    "effects": {
+      "critBonus": 0.15
+    },
+    "part": "part_sparrow_crest",
+    "cooldown": 3,
+    "power": 1.1
+  },
+  {
+    "id": "form_brick",
+    "element": "earth",
+    "tags": ["earth", "defense"],
+    "kind": "passive",
+    "effects": {
+      "hpBonus": 0.15
+    },
+    "part": "part_form_brick",
+    "formOnly": true
+  },
+  {
+    "id": "form_wall",
+    "element": "earth",
+    "tags": ["earth", "reflect"],
+    "kind": "active",
+    "effects": {
+      "reflect": 0.15
+    },
+    "part": "part_form_wall",
+    "cooldown": 8,
+    "power": 2.5,
+    "formOnly": true
+  },
+  {
+    "id": "form_droplet",
+    "element": "water",
+    "tags": ["water", "slow"],
+    "kind": "active",
+    "effects": {
+      "slow": 0.15
+    },
+    "part": "part_form_droplet",
+    "cooldown": 7,
+    "power": 1.8,
+    "formOnly": true
+  },
+  {
+    "id": "form_river",
+    "element": "water",
+    "tags": ["water", "lifesteal"],
+    "kind": "passive",
+    "effects": {
+      "lifesteal": 0.1,
+      "hpBonus": 0.1
+    },
+    "part": "part_form_river",
+    "formOnly": true
+  },
+  {
+    "id": "form_ember",
+    "element": "fire",
+    "tags": ["fire", "burn"],
+    "kind": "active",
+    "effects": {
+      "dotMult": 0.5
+    },
+    "part": "part_form_ember",
+    "cooldown": 6,
+    "power": 2.0,
+    "formOnly": true
+  },
+  {
+    "id": "form_blaze",
+    "element": "fire",
+    "tags": ["fire", "crit"],
+    "kind": "passive",
+    "effects": {
+      "atkBonus": 0.15,
+      "critBonus": 0.05
+    },
+    "part": "part_form_blaze",
+    "formOnly": true
+  },
+  {
+    "id": "form_breeze",
+    "element": "wind",
+    "tags": ["wind", "speed"],
+    "kind": "passive",
+    "effects": {
+      "atkSpeedBonus": 0.12
+    },
+    "part": "part_form_breeze",
+    "formOnly": true
+  },
+  {
+    "id": "form_gust",
+    "element": "wind",
+    "tags": ["wind", "multi"],
+    "kind": "active",
+    "effects": {
+      "multiTarget": true
+    },
+    "part": "part_form_gust",
+    "cooldown": 7,
+    "power": 2.4,
+    "formOnly": true
+  }
+]
