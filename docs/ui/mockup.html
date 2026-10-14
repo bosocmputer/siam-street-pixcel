@@ -484,6 +484,25 @@
   .hp {
     width: 96px;
   }
+  .trk {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 2px 4px 0 10px;
+  }
+  .sks {
+    display: flex;
+    gap: 10px;
+    flex: none;
+  }
+  .sks .sk {
+    width: 40px;
+    height: 40px;
+  }
+  .sks .sk img {
+    width: 28px;
+    height: 28px;
+  }
   .skillrow {
     position: absolute;
     left: 0;
@@ -1009,6 +1028,154 @@
     text-align: left;
   }
 
+  .rankbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 4px 14px 6px;
+    padding: 6px 10px;
+    background: var(--panel);
+    box-shadow:
+      0 -3px 0 0 var(--line),
+      0 3px 0 0 var(--line),
+      -3px 0 0 0 var(--line),
+      3px 0 0 0 var(--line);
+    height: 38px;
+    flex: none;
+  }
+  .rk-d {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-hd);
+    font-size: 15px;
+  }
+  .flag {
+    width: 10px;
+    height: 18px;
+    display: block;
+    box-shadow: 0 0 0 2px var(--line);
+  }
+  .rk-r {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    font-size: 18px;
+  }
+  .rk-r .up {
+    font-size: 11px;
+    color: var(--good);
+    font-weight: 800;
+  }
+  .rk-b {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 600;
+  }
+  .rk-b .bar {
+    flex: 1;
+    height: 10px;
+  }
+  .ghost {
+    opacity: 0.55;
+    filter: saturate(0.8);
+    text-align: center;
+  }
+  .gtag {
+    display: inline-block;
+    margin-top: -6px;
+    font-size: 11px;
+    font-weight: 700;
+    background: rgba(13, 11, 34, 0.8);
+    padding: 0 6px;
+  }
+  .mytag {
+    position: absolute;
+    left: 66px;
+    top: 318px;
+    font-family: var(--font-hd);
+    font-size: 12px;
+    background: var(--amber);
+    color: #2b1700;
+    padding: 0 8px;
+  }
+  .pop {
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    bottom: 64px;
+    padding: 10px;
+    background: var(--panel2);
+    margin: 0;
+  }
+  .pop-h {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .emo {
+    display: flex;
+    gap: 6px;
+    padding: 8px 0 2px;
+    flex-wrap: wrap;
+  }
+  .emo span {
+    font-size: 13px;
+    font-weight: 700;
+    background: var(--bg2);
+    padding: 3px 10px;
+    box-shadow: 0 0 0 2px var(--edge);
+  }
+  .bubble {
+    position: relative;
+    background: var(--text);
+    color: #1b1838;
+    font-weight: 700;
+    font-size: 15px;
+    padding: 8px 12px;
+    box-shadow: 0 0 0 3px var(--line);
+  }
+  .bubble::before {
+    content: '';
+    position: absolute;
+    left: -9px;
+    top: 16px;
+    border: 6px solid transparent;
+    border-right-color: var(--text);
+    border-left: 0;
+  }
+  .cheer {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 6px 10px 2px;
+    padding: 8px 12px;
+    font-size: 14px;
+    background: rgba(255, 111, 143, 0.12);
+    box-shadow: 0 0 0 2px #ff6f8f;
+  }
+  .bounce {
+    animation: hop 1.1s ease-in-out infinite;
+  }
+  @keyframes hop {
+    50% {
+      transform: translateY(-6px) scale(1.04, 0.96);
+    }
+  }
+  .scard {
+    position: relative;
+    height: 100%;
+    overflow: hidden;
+    box-shadow:
+      0 0 0 4px var(--line),
+      0 0 0 7px var(--amber);
+  }
+
   /* ---------- explainer widgets ---------- */
   .swatchrow {
     display: flex;
@@ -1132,14 +1299,25 @@
 
 <div class="wrap">
   <header class="stack">
-    <span class="tag">M2.5 · รอบที่ 1</span>
+    <span class="tag">M2.5 · รอบที่ 2</span>
     <h1>แบบหน้าจอ สไลม์คุมย่าน <span class="status">รออนุมัติ</span></h1>
     <p class="lead">
       นี่คือภาพจำลองหน้าจอ <b>ก่อนเขียนโค้ดจริง</b> ใช้ขนาดมือถือ 390×844 ภาพสไลม์ มอน และฉากเป็นของวาดชั่วคราว
       จะถูกแทนด้วย pixel art จาก PixelLab เมื่อต่อได้ ตัวเลขในภาพเป็นตัวอย่าง
     </p>
+    <div class="ask" style="border-color: var(--amber)">
+      <b>รอบ 2 เปลี่ยนอะไร</b> (ผมทำตามที่แนะนำไว้ ถ้าไม่เอาข้อไหนบอกได้ ผมตัดออก)
+      <ol>
+        <li><b>แถบแรงก์ย่านบนหน้าฟาร์ม</b> (อันดับ + บอสย่านสัปดาห์นี้) ที่รอบแรกลืมใส่ ซึ่งเป็นจุดต่างของเกมนี้</li>
+        <li><b>สไลม์เพื่อนบ้าน</b> เงาจาง ๆ ของคนในย่านเดินในฉาก แตะดูการ์ด ส่งอิโมจิสำเร็จรูปและ "แรงใจ" ได้ (ดูเฟรม "แตะเพื่อน")</li>
+        <li><b>กระติบข้าวเหนียว</b> แทนถุงของออโต้ เปิดแล้วมีไอน้ำ</li>
+        <li><b>การ์ดสไลม์แชร์ได้</b> กดปุ่ม "การ์ด" ในหน้าสไลม์ สร้างภาพในเครื่อง ไว้โพสต์ไลน์/อินสตา/ติ๊กต็อก</li>
+        <li><b>สไลม์ทักทายตอนกลับมา</b> + <b>แรงใจจากเพื่อน</b> ในหน้าเก็บของ และเติมหน้าสกิลไม่ให้โล่ง</li>
+      </ol>
+      <div class="hint" style="margin-top: 8px">ข้อ 2 (เพื่อนบ้านจริง) และแรงใจต้องรอ M4–M5 ภาพตอนนี้เป็นตำแหน่งที่เว้นไว้ ข้อมูลในภาพเป็นตัวอย่าง</div>
+    </div>
     <div class="ask">
-      <b>อยากให้คุณตัดสินแค่ 5 เรื่อง</b> (ตอบสั้น ๆ ก็พอ ผมแก้ได้ถูกที่สุดตอนนี้)
+      <b>และ 5 ข้อจากรอบแรก ที่ยังรอคำตอบ</b> (ตอบสั้น ๆ ก็พอ ผมแก้ได้ถูกที่สุดตอนนี้)
       <ol>
         <li>บรรยากาศ <b>ตลาดกลางคืนเชียงใหม่ (ม่วงเข้ม + แสงโคมสีส้ม)</b> ใช่ไหม หรืออยากได้อารมณ์อื่น</li>
         <li>หน้าฟาร์มที่เห็นสไลม์ใหญ่ครึ่งจอ ดูเป็นเกมขึ้นไหม</li>
@@ -1622,6 +1800,15 @@
           R(g, '#fff', 8, 7, 3, 3);
           break;
         }
+        case 'heart': {
+          const H = ['.XX..XX.', 'XXXXXXXX', 'XXXXXXXX', '.XXXXXX.', '..XXXX..', '...XX...'];
+          const dots = [];
+          H.forEach((row, y) => [...row].forEach((c, x) => c === 'X' && dots.push([x, y])));
+          dots.forEach(([x, y]) => [[-1, 0], [1, 0], [0, -1], [0, 1]].forEach(([dx, dy]) => R(g, L, 3 + (x + dx) * 2, 6 + (y + dy) * 2, 2, 2)));
+          dots.forEach(([x, y]) => R(g, '#ff6f8f', 3 + x * 2, 6 + y * 2, 2, 2));
+          R(g, '#ffc2d0', 5, 8, 2, 2);
+          break;
+        }
         case 'lock':
           R(g, '#6e68a0', 6, 10, 12, 10);
           R(g, '#6e68a0', 8, 5, 8, 6);
@@ -1681,33 +1868,38 @@
     });
   }
   const bag = (fill) =>
-    mk(`pouch:${fill}`, 32, 32, (g) => {
+    mk(`kratip:${fill}`, 32, 32, (g) => {
       const L = '#0b0a1c';
-      R(g, 'rgba(0,0,0,0.3)', 5, 28, 22, 3);
-      R(g, L, 6, 10, 20, 19);
-      R(g, L, 8, 8, 16, 3);
-      R(g, '#9a6a3a', 7, 11, 18, 17);
-      R(g, '#c0904f', 7, 11, 18, 4);
-      R(g, '#7a4f26', 7, 24, 18, 4);
-      R(g, L, 12, 8, 8, 2);
-      R(g, '#e0463a', 11, 9, 10, 2);
-      R(g, '#e0463a', 9, 11, 2, 3);
-      R(g, '#e0463a', 21, 11, 2, 3);
-      for (let i = 0; i < 3; i++) R(g, L, 10 + i * 5, 17, 1, 9);
-      // contents peeking out scale with fill
-      if (fill >= 1) R(g, '#ffd98a', 11, 6, 4, 3);
+      R(g, 'rgba(0,0,0,0.3)', 5, 29, 22, 3);
+      // body: woven bamboo cylinder
+      R(g, L, 6, 14, 20, 15);
+      for (let y = 15; y < 28; y++)
+        for (let x = 7; x < 25; x++) R(g, (x + (y >> 1)) % 3 === 0 ? '#a8702f' : (y % 2 ? '#d6a05a' : '#c98f4a'), x, y);
+      R(g, '#8a5a2a', 7, 26, 18, 2);
+      // rim band + red cord
+      R(g, L, 5, 12, 22, 3);
+      R(g, '#8a5a2a', 6, 13, 20, 1);
+      R(g, '#e0463a', 6, 17, 20, 1);
+      // lid: low cone
+      for (let r = 0; r < 7; r++) {
+        const half = 4 + r * 1.6;
+        R(g, L, 16 - Math.round(half) - 1, 5 + r, Math.round(half) * 2 + 2, 1);
+        R(g, r % 2 ? '#d9a55e' : '#e6b672', 16 - Math.round(half), 5 + r, Math.round(half) * 2, 1);
+      }
+      R(g, L, 14, 3, 4, 3);
+      R(g, '#8a5a2a', 15, 4, 2, 1);
+      // steam when there is something inside
       if (fill >= 2) {
-        R(g, '#5fe0b0', 16, 5, 4, 4);
-        R(g, '#ffb84d', 20, 7, 3, 3);
+        R(g, 'rgba(255,255,255,0.55)', 12, 1, 1, 2);
+        R(g, 'rgba(255,255,255,0.4)', 13, 0, 1, 1);
+        R(g, 'rgba(255,255,255,0.55)', 19, 2, 1, 2);
       }
       if (fill >= 3) {
-        R(g, '#5aa9ff', 9, 4, 4, 4);
-        R(g, '#ffd98a', 14, 3, 5, 4);
-        R(g, '#ef5a50', 19, 4, 3, 3);
-      }
-      if (fill >= 2) {
-        R(g, 'rgba(255,217,138,0.9)', 5, 3, 1, 3);
-        R(g, 'rgba(255,217,138,0.9)', 26, 4, 1, 3);
+        R(g, 'rgba(255,255,255,0.5)', 16, 0, 1, 2);
+        R(g, '#ffd98a', 3, 6, 2, 2);
+        R(g, '#ffd98a', 27, 8, 2, 2);
+        R(g, '#5fe0b0', 4, 18, 2, 2);
+        R(g, '#ffb84d', 26, 20, 2, 2);
       }
     });
 
@@ -1817,45 +2009,64 @@
   const skillBtn = (icn, p, on) =>
     `<div class="sk ${on ? 'on' : ''}">${img(icon(icn), 'px')}<div class="cd" style="--p:${p}%"></div></div>`;
 
+  const ghost = (color, eyes, hat, left, top, name, size = 104) => `
+    <div class="abs ghost" style="left:${left}px;top:${top}px;width:${size}px">
+      ${img(slime({ color, eyes, hat }), 'px', `width:${size}px;height:${size}px`)}
+      <span class="gtag">${name}</span></div>`;
+
   function farm(state = 'normal') {
     const full = state === 'full',
       stuck = state === 'stuck',
-      cool = state === 'cool';
+      cool = state === 'cool',
+      friend = state === 'friend';
     const fill = full ? 3 : cool ? 0 : 2;
     return `<div class="scr">
       ${sbar({})}
+      <div class="rankbar">
+        <div class="rk-d"><i class="flag" style="background:var(--earth)"></i><b>ในเวียง</b></div>
+        <div class="rk-r"><span class="num" style="color:var(--amber-l)">#2</span><span class="up">▲1</span></div>
+        <div class="rk-b"><span>บอสย่าน</span><div class="bar red"><i style="width:62%"></i></div></div>
+      </div>
       <div class="body">
-        <div class="stage" style="height:380px">
-          ${img(scene('wiang', 130, 140), 'bg px')}
-          <div class="abs zone"><span class="chip hot">ในเวียง · ด่าน 3</span></div>
+        <div class="stage" style="height:330px">
+          ${img(scene('wiang', 130, 122), 'bg px')}
+          <div class="abs zone"><span class="chip hot">ด่าน 3</span></div>
           <div class="abs" style="right:8px;top:8px"><span class="chip">${img(icon('brick'), 'px', 'width:18px;height:18px')} ออโต้ทำงานอยู่</span></div>
-          ${img(slime({ color: 'mint', sword: true, part: true }), 'px abs', 'left:6px;top:178px;width:192px;height:192px')}
-          ${stuck ? '' : `<div class="abs" style="right:26px;top:215px">
-              <div class="bar red hp" style="margin:0 auto 6px"><i style="width:${stuck ? 100 : 58}%"></i></div>
-              ${img(monster('imp'), 'px', 'width:128px;height:128px')}</div>`}
-          ${stuck ? `<div class="abs" style="right:20px;top:215px;width:170px">${img(monster('imp', { dark: true }), 'px', 'width:128px;height:128px;margin:0 auto')}<div class="chip" style="color:var(--chili)">หนักเกินไป</div></div>` : ''}
-          ${stuck ? '' : `<span class="float crit" style="left:190px;top:178px;font-size:30px">128!</span>
-          <span class="float" style="left:236px;top:150px;font-size:20px">64</span>
-          <span class="float" style="left:92px;top:196px;font-size:18px;color:#ff8c84">-12</span>`}
-          <div class="skillrow">${skillBtn('brick', 35, true)}<div class="sk empty"></div><div class="sk empty"></div></div>
+          ${ghost('sky', 2, '', 20, 118, 'มิ้นต์', 76)}
+          ${ghost('lilac', 1, 'ngob', 150, 108, 'ต้นกล้า', 70)}
+          ${ghost('peach', 0, '', 262, 118, 'ฟ้าใส', 70)}
+          ${img(slime({ color: 'mint', sword: true, part: true, hat: friend ? 'ngob' : '' }), 'px abs', 'left:6px;top:150px;width:172px;height:172px')}
+          <span class="mytag">โมจิ</span>
+          ${stuck ? `<div class="abs" style="right:22px;top:190px;width:150px">${img(monster('imp', { dark: true }), 'px', 'width:120px;height:120px;margin:0 auto')}<div class="chip" style="color:var(--chili)">หนักเกินไป</div></div>`
+            : `<div class="abs" style="right:26px;top:185px"><div class="bar red hp" style="margin:0 auto 6px"><i style="width:58%"></i></div>${img(monster('imp'), 'px', 'width:120px;height:120px')}</div>
+          <span class="float crit" style="left:190px;top:156px;font-size:28px">128!</span>
+          <span class="float" style="left:236px;top:130px;font-size:20px">64</span>
+          <span class="float" style="left:92px;top:170px;font-size:18px;color:#ff8c84">-12</span>`}
+          ${friend ? `<div class="pop pnl"><div class="pop-h">${img(slime({ color: 'lilac', eyes: 1, hat: 'ngob' }), 'px', 'width:52px;height:52px')}
+              <div style="flex:1;min-width:0"><b style="font-family:var(--font-hd);font-weight:500;font-size:16px">ต้นกล้า</b><div class="muted" style="font-size:12px">สไลม์ใส · เวล 14 · ย่านในเวียง</div></div></div>
+              <div class="emo"><span>สู้ ๆ</span><span>เก่งมาก</span><span>ไปด้วยกัน</span><span>555</span></div>
+              <button class="btn sm" style="margin:2px 4px 4px">${img(icon('heart'), 'px', 'width:20px;height:20px;display:inline-block;vertical-align:middle')} ส่งแรงใจ <span class="muted" style="font-size:12px">วันนี้เหลือ 2/3</span></button></div>` : ''}
         </div>
-        <div class="track">
-          <div class="top"><b style="font-family:var(--font-hd);font-weight:500">${stuck ? 'ด่าน 3 ยังสู้ไม่ไหว · ไปฟาร์มด่านก่อนหน้า' : 'ด่านถัดไป'}</b><span class="num muted">${stuck ? 'แนะนำด่าน 2' : '168 / 270'}</span></div>
-          <div class="pips">
-            <span class="pip done"></span><span class="pip done"></span><span class="pip now"></span><span class="pip"></span>
-            <span class="pip ms">${img(icon('charm'), 'px', 'width:22px;height:22px')}</span>
+        <div class="trk">
+          <div class="sks">${skillBtn('brick', 35, true)}<div class="sk empty"></div><div class="sk empty"></div></div>
+          <div class="track" style="flex:1;min-width:0">
+            <div class="top"><b style="font-family:var(--font-hd);font-weight:500">${stuck ? 'ด่าน 3 หนักไป · ลองด่าน 2' : 'ด่านถัดไป'}</b><span class="num muted">${stuck ? '' : '168 / 270'}</span></div>
+            <div class="pips">
+              <span class="pip done"></span><span class="pip done"></span><span class="pip now"></span><span class="pip"></span>
+              <span class="pip ms">${img(icon('charm'), 'px', 'width:22px;height:22px')}</span>
+            </div>
           </div>
         </div>
         <div class="pnl idle">
           ${img(bag(fill), 'px')}
           <div>
-            <h3>${cool ? 'เก็บไปแล้ว' : full ? 'ถุงเต็มแล้ว!' : 'ถุงของออโต้'}</h3>
+            <h3>${cool ? 'เก็บไปแล้ว' : full ? 'กระติบเต็มแล้ว!' : 'กระติบของออโต้'}</h3>
             <div class="sub">${cool ? 'รอบหน้าอีก 12 วิ' : full ? 'ของที่เกินเพดานจะลดเหลือ 30%' : 'สะสมไว้ 3 ชม. 20 นาที · เต็มในอีก 6 ชม. 40 นาที'}</div>
           </div>
-          <button class="btn pri ${cool ? 'dim' : 'glow'}" style="${cool ? '' : ''}" data-act="claim">${cool ? 'พักแป๊บ (12 วิ)' : 'เก็บของออโต้'}</button>
+          <button class="btn pri ${cool ? 'dim' : 'glow'}" data-act="claim">${cool ? 'พักแป๊บ (12 วิ)' : 'เก็บของออโต้'}</button>
         </div>
       </div>
-      ${state === 'normal' ? `<div class="nudge">${img(icon('core', { c: '#c9825a' }), 'px', 'width:24px;height:24px')}<span>มีแก่น 3 ชิ้นรอกลืน</span><b>ไปสกิล ▸</b></div>` : full ? `<div class="nudge">${img(icon('coin'), 'px', 'width:24px;height:24px')}<span>เก็บเลย ของกำลังจะล้นถุง</span><b>เก็บ ▸</b></div>` : stuck ? `<div class="nudge"><span>เลเวลยังไม่พอ ลองแจกแต้มหรือเปลี่ยนสกิล</span><b>ไปสไลม์ ▸</b></div>` : `<div style="height:12px"></div>`}
+      ${state === 'normal' || friend ? `<div class="nudge">${img(icon('core', { c: '#c9825a' }), 'px', 'width:24px;height:24px')}<span>มีแก่น 3 ชิ้นรอกลืน</span><b>ไปสกิล ▸</b></div>` : full ? `<div class="nudge">${img(icon('coin'), 'px', 'width:24px;height:24px')}<span>เก็บเลย ของกำลังจะล้นกระติบ</span><b>เก็บ ▸</b></div>` : stuck ? `<div class="nudge"><span>เลเวลยังไม่พอ ลองแจกแต้มหรือเปลี่ยนสกิล</span><b>ไปสไลม์ ▸</b></div>` : `<div style="height:8px"></div>`}
       ${tabs('farm', { slime: state === 'normal', skills: state === 'normal' })}
     </div>`;
   }
@@ -1863,20 +2074,24 @@
   function claim() {
     return `<div class="scr">${farm('normal').replace(/^<div class="scr">/, '').replace(/<\/div>\s*$/, '')}
       <div class="dim-bg"></div>
-      <div class="sheet" style="padding-bottom:32px">
-        <div class="center" style="gap:2px;padding:4px 0 6px">
+      <div class="sheet" style="padding-bottom:30px">
+        <div style="display:flex;align-items:center;gap:10px;padding:0 4px 4px">
+          <div style="position:relative">${img(slime({ color: 'mint', sword: true, part: true, happy: true, hat: '' }), 'px bounce', 'width:84px;height:84px')}</div>
+          <div class="bubble">กลับมาแล้ว! คิดถึงเลย</div>
+        </div>
+        <div class="center" style="gap:0;padding:0 0 4px">
           <span class="muted" style="font-size:14px;font-weight:600">หายไป 3 ชม. 20 นาที</span>
-          <div class="bigtxt" style="font-size:26px">สไลม์ฟาร์มให้แล้ว!</div>
+          <div class="bigtxt" style="font-size:24px">กระติบเต็มไปด้วยของ!</div>
         </div>
         <div class="loot">
           <div class="lootc gold"><div class="tile r-legend">${img(monster('imp', { gold: true }), 'px')}</div><span style="color:var(--legend)">เจอมอนทอง!</span></div>
-          <div class="lootc"><div class="tile r-rare">${img(icon('ngob'), 'px')}</div><span style="color:var(--rare)">หมวกงอบ</span><span class="muted" style="font-size:12px;margin-top:-6px">หายาก</span></div>
+          <div class="lootc"><div class="tile r-rare">${img(icon('ngob'), 'px')}</div><span style="color:var(--rare)">หมวกงอบ</span></div>
           <div class="lootc"><div class="tile r-common">${img(icon('core', { c: '#c9825a' }), 'px')}</div><span>แก่นยักษ์อิฐ ×4</span></div>
         </div>
         <div class="line"><span>เอ็กซ์พี</span><b>+3,420</b></div>
         <div class="line"><span>เหรียญ</span><b>+1,180</b></div>
         <div class="line"><span>ผ่านด่านเพิ่ม</span><b>ด่าน 3 → 8</b></div>
-        <div class="line" style="font-size:13px;color:var(--muted)"><span>ย่อยของธรรมดาให้ 14 ชิ้น</span><b>เจลลี่ +32</b></div>
+        <div class="cheer">${img(icon('heart'), 'px', 'width:26px;height:26px')}<span><b>แรงใจจากเพื่อนย่าน ×3</b><br /><span class="muted" style="font-size:12px">มิ้นต์ ต้นกล้า ฟ้าใส · ของเพิ่ม +3%</span></span></div>
         <button class="btn pri glow" data-act="close">เก็บเข้ากระเป๋า</button>
       </div>
     </div>`;
@@ -1911,7 +2126,7 @@
         </div>
         <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 8px 0">
           <div><div class="ttl" style="padding:0">โมจิ</div><div class="muted" style="font-size:14px">สไลม์ใส · ธาตุดิน · เวล 12</div></div>
-          <span class="chip hot" style="font-size:14px">แต้มว่าง 3</span>
+          <span style="display:flex;align-items:center"><span class="chip hot" style="font-size:14px">แต้มว่าง 3</span><button class="btn sm" style="min-height:36px;margin:2px">การ์ด</button></span>
         </div>
         ${o.evolve ? `<div class="nudge" style="margin:10px 6px 4px;background:var(--panel2)">${img(slime({ color: 'mint' }), 'px', 'width:30px;height:30px')}<span>อัปร่างได้แล้ว เลือกร่างใหม่</span><b>ดูเลย ▸</b></div>` : ''}
         <div class="pnl" style="margin-top:10px">
@@ -1931,6 +2146,30 @@
         </div>
       </div>
       ${tabs('slime', { slime: true, skills: true })}
+    </div>`;
+  }
+
+  function shareCard() {
+    return `<div class="scr" style="background:#0c0a22">
+      <div class="ttl" style="padding-top:34px;display:flex;justify-content:space-between"><span>การ์ดสไลม์</span><span class="muted" style="font-size:14px;font-weight:400;font-family:var(--font-th)">ปิด ✕</span></div>
+      <div style="padding:6px 36px 0;flex:1;min-height:0">
+        <div class="scard">
+          ${img(scene('wiang', 130, 150, 13), 'bg px', 'position:absolute;inset:0;width:100%;height:100%')}
+          <div style="position:absolute;inset:0;background:linear-gradient(transparent 45%,rgba(11,10,28,.92))"></div>
+          <div class="center" style="position:absolute;top:14px;left:0;right:0"><span class="num" style="font-size:12px;letter-spacing:.2em;color:var(--amber)">SLIME HOOD</span></div>
+          ${img(slime({ color: 'mint', sword: true, part: true, hat: 'ngob', happy: true }), 'px', 'position:absolute;left:36px;top:86px;width:220px;height:220px')}
+          <div style="position:absolute;left:14px;right:14px;bottom:14px" class="center">
+            <div class="bigtxt" style="font-size:28px">โมจิ</div>
+            <div style="font-size:14px;color:#e8e2f6">สไลม์ใส · ธาตุดิน · เวล 12</div>
+            <div style="display:flex;gap:8px;margin-top:8px"><span class="chip hot">ย่านในเวียง</span><span class="chip">ผ่าน 8 ด่าน</span><span class="chip">มอน 5/12</span></div>
+          </div>
+        </div>
+      </div>
+      <div style="padding:10px 16px 34px;display:flex;flex-direction:column;gap:2px">
+        <button class="btn pri" style="width:calc(100% - 8px)">แชร์การ์ด</button>
+        <div style="display:flex"><button class="btn" style="flex:1">บันทึกรูป</button><button class="btn" style="flex:1">เปลี่ยนท่า</button></div>
+        <div class="muted" style="font-size:12px;text-align:center;margin-top:6px">สร้างภาพในเครื่อง ไม่ส่งข้อมูลไปที่ใด · มีแค่ชื่อที่คุณตั้งและย่าน</div>
+      </div>
     </div>`;
   }
 
@@ -1980,6 +2219,12 @@
         <div style="display:grid;grid-template-columns:1fr 1fr;padding:0 2px">
           ${card('brick', 'ทุบอิฐ', 1, 'ใช้เอง · ดิน', 'คูลดาวน์ 5 วิ')}
           ${card('', '', 0, '', '', true)}
+          ${card('', '', 0, '', '', true)}
+          ${card('', '', 0, '', '', true)}
+        </div>
+        <div class="pnl" style="margin:8px 10px;padding:12px;display:flex;gap:12px;align-items:center">
+          ${img(monster('imp', { dark: true }), 'px', 'width:44px;height:44px')}
+          <div style="font-size:14px"><b>ในเวียงมีมอน 3 ชนิด</b><div class="muted" style="font-size:12px">กลืนให้ครบทุกชนิดปลดสกิลใหม่ และได้โบนัสถาวร</div></div>
         </div>
       </div>
       ${tabs('skills', { slime: true, skills: true })}
@@ -2167,8 +2412,9 @@
     fig(first(true), '4 · ส่วนงอกโผล่', 'ช่วงที่ต้อง "ว้าว" ตัวสไลม์เปลี่ยนจริงทันที ประกาย + การ์ดสกิลที่ได้'),
   ]);
   put('row-farm', [
-    fig(farm('normal'), 'ปกติ', 'สไลม์ใหญ่ครึ่งจอ ถุงของออโต้เติมให้เห็น ริบบิ้นเดียวบอกขั้นต่อไป'),
-    fig(farm('full'), 'ถุงเต็ม', 'ถุงล้น ปุ่มส้มกระพริบ ริบบิ้นเปลี่ยนเป็น "เก็บเลย" ไม่ลงโทษ แค่เตือนว่าของเกินเพดานจะลดเหลือ 30%'),
+    fig(farm('normal'), 'ปกติ', 'แถบแรงก์ย่านอยู่บนสุด เงาเพื่อนบ้านเดินในฉาก กระติบเติมให้เห็น ริบบิ้นเดียวบอกขั้นต่อไป'),
+    fig(farm('friend'), 'แตะเพื่อน', 'แตะเงาเพื่อนเห็นการ์ดเล็ก ส่งอิโมจิสำเร็จรูปหรือ "ส่งแรงใจ" วันละ 3 ครั้ง ไม่มีพิมพ์เอง'),
+    fig(farm('full'), 'กระติบเต็ม', 'กระติบมีไอน้ำและประกาย ปุ่มส้มกระพริบ ริบบิ้นเปลี่ยนเป็น "เก็บเลย" ไม่ลงโทษ แค่เตือนว่าของเกินเพดานจะลดเหลือ 30%'),
     fig(farm('cool'), 'เพิ่งเก็บ', 'ปุ่มหรี่ลงชัดเจนว่ารอ ไม่ใช่ปุ่มพัง นับถอยหลังสั้น ๆ'),
     fig(farm('stuck'), 'ด่านหนักเกิน', 'มอนหม่น ข้อความเป็นมิตร บอกทางออก (ไปด่านก่อน/แจกแต้ม) ไม่ใช่ตัวแดงน่ากลัว'),
     fig(claim(), 'หน้าเก็บของออโต้', 'เปิดของเป็นจังหวะ ของหายาก/มอนทองใหญ่ ที่เหลือเป็นบรรทัดสั้น ๆ ปุ่มส้มเดียว'),
@@ -2176,7 +2422,8 @@
   ]);
   put('row-manage', [
     fig(slimePage(), 'สไลม์', 'ตัวสไลม์ใหญ่ มีช่องของแต่งรอบตัวแบบตุ๊กตาแต่งตัว สถานะเป็นแท่งพร้อมปุ่ม +'),
-    fig(slimePage({ evolve: true }), 'สไลม์ (พร้อมอัปร่าง)', 'ริบบิ้นอัปร่างเด่นเมื่อถึงเวล 10 และ 30'),
+    fig(slimePage({ evolve: true }), 'สไลม์ (พร้อมอัปร่าง)', 'ริบบิ้นอัปร่างเด่นเมื่อถึงเวล 10 และ 30 ปุ่ม "การ์ด" ข้างแต้มว่าง'),
+    fig(shareCard(), 'การ์ดสไลม์', 'ภาพแนวตั้งสำหรับแชร์ สร้างในเครื่อง ไม่ส่งข้อมูล มีแค่ชื่อที่ตั้งและย่านที่เลือก'),
     fig(evolve(), 'เลือกร่างใหม่', 'จอเต็ม เห็นสองร่างเทียบกัน บอกผลเป็นสามข้อสั้น ๆ และบอกชัดว่าเปลี่ยนไม่ได้'),
     fig(skillsPage(), 'สกิล', 'ช่องสกิลเป็นภาพ แก่นที่รอกลืนเป็นแถบเด่นพร้อมปุ่ม "กลืน" ช่องที่ยังไม่เจอเป็นเงา (ล่อให้ไปหา)'),
     fig(bagPage(), 'กระเป๋า', 'ตารางไอคอนสีตามความหายาก ลูกศรเขียวบอกว่าดีกว่าของที่ใส่อยู่ แตะแล้วเห็นรายละเอียดด้านล่าง'),
