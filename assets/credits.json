@@ -1,0 +1,69 @@
+{
+  "note": "ภาพทดลองสไตล์ M2.5 ข้อ 2.5.3 สร้างด้วย PixelLab (MCP) เมื่อ 2026-10-15 ยังไม่ได้รับการอนุมัติจากผู้สร้างให้ใช้ในเกมจริง seed ที่ระบุ null คือไม่ได้ส่ง seed และไม่ได้บันทึกค่าที่ระบบสุ่มให้ ต้นทุนวัดจากยอด generations ที่ลดลง/ที่ระบบรายงาน ไม่ใช่ราคาตามใบเสร็จ",
+  "items": [
+    {
+      "file": "assets/trial/slime_a.png",
+      "tool": "create_object_pro_flash (n_directions=1, 48x48, low top-down)",
+      "prompt": "cute round jelly slime, translucent mint green, thick dark outline, glossy highlight on top left, two small black eyes, tiny smile, pixel art, game sprite",
+      "seed": null,
+      "date": "2026-10-15",
+      "pixellab_id": "object ec0662df-8a75-4918-95ce-705d7dc2ff09 / job 817e24ef-b486-4af0-bf7f-59fc9ed8ba4b",
+      "generations": 5
+    },
+    {
+      "file": "assets/trial/slime_b.png",
+      "tool": "create_object_pro_flash (n_directions=1, 48x48, low top-down, style_image = slime_a, copy palette/detail/outline)",
+      "prompt": "cute round jelly slime, translucent mint green, darker shading at the bottom, bigger shiny black eyes, soft blush on cheeks, tiny smile, thick dark outline, pixel art, game sprite",
+      "seed": null,
+      "date": "2026-10-15",
+      "pixellab_id": "object 11bc353e-96eb-4d5e-9598-d91c845d3b49 / job e36ff1ee-58d4-4ec7-8482-93bffe6e0480",
+      "generations": 5
+    },
+    {
+      "file": "assets/trial/slime_idle.png",
+      "tool": "animate_image (first frame = slime_a, frame_count 4); sprite sheet 5 เฟรมแนวนอน 240x48 ประกอบเองด้วย Pillow (เฟรม 0 = slime_a ต้นฉบับ เฟรม 1-4 = ที่สร้างใหม่)",
+      "prompt": "gentle idle bounce, jelly body squashes down slightly then stretches up, looping",
+      "seed": null,
+      "date": "2026-10-15",
+      "pixellab_id": "image job 2b23f080-cd75-49f9-8ab0-d9981833b62c / asset ef2f88d8-7483-5488-b630-e2a596990b98",
+      "generations": 1
+    },
+    {
+      "file": "assets/trial/monster_brick_imp.png",
+      "tool": "create_object_pro_flash (n_directions=1, 48x48, low top-down, style_image = slime_a, ไม่ลอกพาเลต)",
+      "prompt": "small brick imp monster made of clay bricks with two little horns, angry eyes, pixel art, game sprite, Chiang Mai old city wall theme",
+      "seed": null,
+      "date": "2026-10-15",
+      "pixellab_id": "object 715bb4d2-ac6b-47a2-a0db-36d28148a688 / job a9cbb54a-213b-453f-b553-4827d641415c",
+      "generations": 5
+    },
+    {
+      "file": "assets/trial/hat_ngob.png",
+      "tool": "create_object_pro_flash (n_directions=1, 32x32, low top-down, ไม่มี style reference เพราะอ้างอิง 48x48 ใหญ่เกินผืนผ้า)",
+      "prompt": "Northern Thai farmer's hat (ngob), wide cone shape, woven bamboo, tan and gold, thick dark outline, pixel art item",
+      "seed": null,
+      "date": "2026-10-15",
+      "pixellab_id": "object fa530b3f-da75-40c0-b3ee-c5796904ef47 / job 9ed4f8e5-520b-46e0-a7a8-6f31a4514d9b",
+      "generations": 5
+    },
+    {
+      "file": "assets/trial/basket_kratip.png",
+      "tool": "create_object_pro_flash (n_directions=1, 32x32, low top-down, ไม่มี style reference)",
+      "prompt": "kratip, small woven bamboo sticky rice basket with lid, warm brown, thick dark outline, pixel art item",
+      "seed": null,
+      "date": "2026-10-15",
+      "pixellab_id": "object 6abc076b-c0b9-4799-b47e-af9d9af72833 / job ea3afc66-d341-44cd-b2b2-96a947444f34",
+      "generations": 5
+    },
+    {
+      "file": "assets/trial/tiles_market.png",
+      "tool": "create_topdown_tileset (standard, 16px, low top-down, transition_size 0.25, lineless, basic shading, medium detail) ได้ 16 ไทล์ sheet 64x64",
+      "prompt": "lower: dark purple-grey old brick pavement at night / upper: packed earth path with warm lantern light stains / transition: worn brick edges",
+      "seed": null,
+      "date": "2026-10-15",
+      "pixellab_id": "tileset 76607277-80b1-4e39-b7f1-82c8b790f31c (base tile lower 06bde158-6c2e-4843-b7de-5cd8522e57c0, upper 67dea5d6-920b-44fb-ad81-cae56e68c833)",
+      "generations": 4
+    }
+  ],
+  "total_generations": 30
+}
