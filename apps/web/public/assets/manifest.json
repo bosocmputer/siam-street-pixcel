@@ -1,1 +1,9 @@
-{ "images": {} }
+{
+  "images": {
+    "body:b": "slime_b.png",
+    "body:b_noeyes": "slime_b_noeyes.png",
+    "hat:ngob": "hat_ngob.png",
+    "monster:brick_imp": "monster_brick_imp.png",
+    "ui:kratip": "basket_kratip.png"
+  }
+}

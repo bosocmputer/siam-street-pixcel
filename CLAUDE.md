@@ -43,6 +43,11 @@ pnpm lint && pnpm typecheck && pnpm test && pnpm build
 - ทำหน้าจอใหม่หรือเปลี่ยน layout ใหญ่ก่อนผู้สร้างอนุมัติ mockup (ดู M2.5) และก่อนส่งให้ลองเล่นต้องดูภาพหน้าจอจริงทุกหน้าด้วยตัวเอง
 - ผลจำลองสมดุลไม่เข้าเป้า
 
+## ภาพ
+
+- ภาพที่ใช้ในเกมอยู่ใน `apps/web/public/assets/` (รายการใน `manifest.json`) สร้างจาก `assets/trial/` ด้วย `python3 tools/asset-pipeline/trial_to_game.py` (ต้องมี Pillow, ไม่เรียก PixelLab) ภาพที่ไม่มีใน manifest ใช้ภาพชั่วคราวที่วาดด้วยโค้ดใน `apps/web/src/art/`
+- สไลม์ B 1 ภาพ + เปลี่ยนสีตอนรัน (`art/bodyB.ts`) ห้ามสร้างภาพสไลม์ใหม่โดยไม่ถามผู้สร้าง
+
 ## ทดสอบเว็บ
 
 - `pnpm e2e` build ใหม่ก่อนรันเสมอ ใช้ `?debug=1` เพื่อให้เทสต์ย้ายนาฬิกา (`__slime.advance`) และใส่ของ (`__slime.grant`) ได้

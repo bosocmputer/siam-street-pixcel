@@ -67,6 +67,14 @@ async function startGame(page: Page, opts: { name?: string; color?: number; eyes
   await expect(page.locator('.farm-canvas canvas')).toBeVisible();
 }
 
+/** Close the "auto loot" sheet, and the level-up card that follows it when the slime grew. */
+async function collect(page: Page) {
+  await page.getByRole('dialog').getByRole('button', { name: 'เก็บเข้ากระเป๋า' }).click();
+  const later = page.getByRole('button', { name: 'ไว้ก่อน' });
+  if (await later.isVisible().catch(() => false)) await later.click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+}
+
 const tab = (page: Page, name: string) =>
   page.locator('.tabbar').getByRole('button', { name }).click();
 
@@ -84,7 +92,7 @@ test('the first minute: hatch, design the slime, absorb, farm, with no sign-up',
   expect(s.name).toBe('โมจิ');
   expect(s.look).toEqual({ color: 'rose', eyes: 2 });
   expect(s.homeDistrictId).toBeNull(); // no district question in the first minute
-  await expect(page.getByText('เลือกย่านเรา')).toHaveCount(0);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
 });
 
 test('the creator shows the slime as you change it, and can suggest a name', async ({ page }) => {
@@ -105,20 +113,18 @@ test('the creator shows the slime as you change it, and can suggest a name', asy
 
 test('the home district is chosen later on the map, free the first time', async ({ page }) => {
   await startGame(page);
-  await page.evaluate(() => window.__slime.store.setState({ page: 'map' }));
-  await expect(page.getByText('ยังไม่มีย่านเรา')).toHaveCount(0); // tip only shows from level 3
-  await page.evaluate(() => {
-    const st = window.__slime.store.getState();
-    window.__slime.store.setState({ player: { ...st.player, level: 3 } });
-    window.__slime.store.getState().setPage('farm');
-  });
-  await page.getByRole('button', { name: 'ยังไม่มีย่านเรา ไปเลือกที่แผนที่' }).click();
+  // the farm page offers it quietly; nothing asks for it in the first minute
+  await page.getByRole('button', { name: /เลือกย่านเรา/ }).click();
   await expect(page.getByText('ย่านที่คุณจะเชียร์')).toBeVisible();
-  await page.getByRole('button', { name: 'ตั้งเป็นย่านเรา' }).nth(2).click();
+  await page.getByRole('button', { name: 'ตั้งเป็นย่านเรา' }).first().click();
   await expect(page.getByText('ย่านเราคือ')).toBeVisible();
   const s = await page.evaluate(() => window.__slime.state);
   expect(s.homeDistrictId).not.toBeNull();
-  await expect(page.getByRole('button', { name: /เปลี่ยนย่านเราได้อีกใน/ }).first()).toBeDisabled();
+  await page
+    .getByRole('button', { name: /ริมปิง/ })
+    .first()
+    .click();
+  await expect(page.getByRole('button', { name: /เปลี่ยนย่านเราได้อีกใน/ })).toBeDisabled();
 });
 
 test('the first absorb makes a growth part appear on the slime straight away', async ({ page }) => {
@@ -139,11 +145,10 @@ test('claiming after hours away shows what the slime earned, and then the button
   await page.evaluate(() => window.__slime.advance(6 * 3600));
   await page.getByRole('button', { name: 'รับของออโต้' }).click();
   const dialog = page.getByRole('dialog');
-  await expect(dialog).toContainText('ระหว่างหายไป');
+  await expect(dialog).toContainText('หายไป');
   await expect(dialog).toContainText('ฆ่ามอน');
-  await expect(dialog).toContainText('เอ็กซ์พี');
-  await dialog.getByRole('button', { name: 'โอเค' }).click();
-  await expect(dialog).toHaveCount(0);
+  await expect(dialog).toContainText('เหรียญ');
+  await collect(page);
   await expect(page.getByRole('button', { name: /รอสักครู่/ })).toBeVisible();
   expect((await page.evaluate(() => window.__slime.state)).level).toBeGreaterThan(5);
 });
@@ -151,16 +156,17 @@ test('claiming after hours away shows what the slime earned, and then the button
 test('putting on a hat changes how the slime looks', async ({ page }) => {
   await startGame(page);
   await tab(page, 'สไลม์');
-  const slime = page.locator('.hero img[alt="สไลม์"]');
+  const slime = page.locator('.hero-slime img');
   const before = await slime.getAttribute('src');
   await page.evaluate(() => window.__slime.grant('ngob'));
   await tab(page, 'กระเป๋า');
-  const card = page.locator('.item-card', { hasText: 'งอบ' });
-  await card.getByRole('button', { name: 'ใส่', exact: true }).click();
+  await page.getByRole('button', { name: 'งอบ', exact: true }).click();
+  await page.getByRole('button', { name: 'ใส่', exact: true }).click();
   await tab(page, 'สไลม์');
   await expect(slime).not.toHaveAttribute('src', before!);
   await tab(page, 'กระเป๋า');
-  await page.locator('.item-card', { hasText: 'งอบ' }).getByRole('button', { name: 'ถอด' }).click();
+  await page.getByRole('button', { name: 'งอบ', exact: true }).click();
+  await page.getByRole('button', { name: 'ถอด', exact: true }).click();
   await tab(page, 'สไลม์');
   await expect(slime).toHaveAttribute('src', before!);
 });
@@ -169,7 +175,7 @@ test('the save survives a reload', async ({ page }) => {
   await startGame(page);
   await page.evaluate(() => window.__slime.advance(8 * 3600));
   await page.getByRole('button', { name: 'รับของออโต้' }).click();
-  await page.getByRole('dialog').getByRole('button', { name: 'โอเค' }).click();
+  await collect(page);
   const before = await page.evaluate(() => window.__slime.state);
   await page.reload();
   await expect(page.locator('.tabbar')).toBeVisible();
@@ -196,7 +202,7 @@ test('absorbing cores on the skills page unlocks more skills and equipping one w
   await startGame(page);
   await page.evaluate(() => window.__slime.advance(8 * 3600));
   await page.getByRole('button', { name: 'รับของออโต้' }).click();
-  await page.getByRole('dialog').getByRole('button', { name: 'โอเค' }).click();
+  await collect(page);
   await tab(page, 'สกิล');
   const owned = async () =>
     Object.keys((await page.evaluate(() => window.__slime.state)).skills).length;
@@ -213,10 +219,11 @@ test('at level 10 the slime can evolve and its form changes', async ({ page }) =
   await startGame(page);
   await page.evaluate(() => window.__slime.advance(8 * 3600));
   await page.getByRole('button', { name: 'รับของออโต้' }).click();
-  await page.getByRole('dialog').getByRole('button', { name: 'โอเค' }).click();
+  await collect(page);
   await tab(page, 'สไลม์');
-  await expect(page.getByText('อัปร่างได้แล้ว!')).toBeVisible();
-  await page.getByRole('button', { name: 'ไปร่างนี้' }).first().click();
+  await expect(page.getByText('อัปร่างได้แล้ว')).toBeVisible();
+  await page.getByRole('button', { name: /อัปร่างได้แล้ว/ }).click();
+  await page.getByRole('button', { name: 'เลือกร่างนี้' }).click();
   const s = await page.evaluate(() => window.__slime.state);
   expect(s.formId).not.toBe('slime_clear');
 });
@@ -232,7 +239,7 @@ test('every page fits a 360px phone with no sideways scrolling', async ({ page }
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
     );
   expect(await wide()).toBeLessThanOrEqual(0);
-  await page.getByRole('dialog').getByRole('button', { name: 'โอเค' }).click();
+  await collect(page);
   for (const name of ['ฟาร์ม', 'สไลม์', 'สกิล', 'กระเป๋า', 'แผนที่']) {
     await tab(page, name);
     await page.waitForTimeout(150);
@@ -241,7 +248,10 @@ test('every page fits a 360px phone with no sideways scrolling', async ({ page }
     const overflowing = await page.evaluate(
       () =>
         Array.from(document.querySelectorAll('.content *')).filter(
-          (el) => el.getBoundingClientRect().right > window.innerWidth + 1,
+          // art inside a clipped frame (the map, the stage) may extend past it on purpose
+          (el) =>
+            !el.closest('.mapwrap, .stage, .hero-stage') &&
+            el.getBoundingClientRect().right > window.innerWidth + 1,
         ).length,
     );
     expect(overflowing, `page ${name}`).toBe(0);
@@ -251,9 +261,13 @@ test('every page fits a 360px phone with no sideways scrolling', async ({ page }
 test('the map lets you change where the slime farms', async ({ page }) => {
   await startGame(page);
   await tab(page, 'แผนที่');
-  await expect(page.getByText('ยังหนักเกินไป').first()).toBeVisible(); // the later districts are far too hard at level 1
-  await page.getByRole('button', { name: 'กำลังฟาร์มอยู่' }).first().click();
-  await expect(page.getByText('ฟาร์มที่ด่าน 1')).toBeVisible();
+  await page
+    .getByRole('button', { name: /ริมปิง/ })
+    .first()
+    .click();
+  await expect(page.getByText('ยังหนักเกินไป').first()).toBeVisible(); // later districts are far too hard at level 1
+  await page.getByRole('button', { name: /ไปฟาร์มที่นี่/ }).click();
+  await expect(page.locator('.zone.chip')).toContainText('ริมปิง');
 });
 
 test('starting over asks first and then returns to the egg', async ({ page }) => {
@@ -266,3 +280,63 @@ test('starting over asks first and then returns to the egg', async ({ page }) =>
   await page.getByRole('button', { name: 'เริ่มใหม่เลย' }).click();
   await expect(page.locator('.egg')).toBeVisible();
 });
+
+test('the share card is drawn on the device and can be previewed', async ({ page }) => {
+  await startGame(page, { name: 'โมจิ' });
+  await tab(page, 'สไลม์');
+  await page.getByRole('button', { name: 'การ์ด' }).click();
+  const img = page.locator('.scard-img');
+  await expect(img).toBeVisible();
+  expect(await img.getAttribute('src')).toMatch(/^data:image\/png;base64,/);
+  await expect(page.getByRole('button', { name: 'แชร์การ์ด' })).toBeEnabled();
+  await page.getByRole('button', { name: 'ปิด' }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+});
+
+// The design checklist from docs/ui_design.md that a machine can check (looks are judged by eye, see docs/ui/review.md)
+for (const [w, h] of [
+  [360, 740],
+  [390, 844],
+  [412, 915],
+] as const) {
+  test(`every page keeps to the design rules on a ${w}px phone`, async ({ page }) => {
+    await page.setViewportSize({ width: w, height: h });
+    await startGame(page);
+    await page.evaluate(() => window.__slime.advance(8 * 3600));
+    await page.getByRole('button', { name: 'รับของออโต้' }).click();
+    await collect(page);
+    for (const name of ['ฟาร์ม', 'สไลม์', 'สกิล', 'กระเป๋า', 'แผนที่']) {
+      await tab(page, name);
+      await page.waitForTimeout(150);
+      const r = await page.evaluate(() => {
+        const visible = (el: Element) => {
+          const b = el.getBoundingClientRect();
+          return b.width > 0 && b.height > 0;
+        };
+        const primaries = Array.from(document.querySelectorAll('.content .btn.primary')).filter(
+          visible,
+        ).length;
+        const smallTargets = Array.from(
+          document.querySelectorAll(
+            '.content button, .content select, .content input, .tabbar button',
+          ),
+        )
+          .filter(visible)
+          .filter((el) => el.getBoundingClientRect().height < 43.5)
+          .map((el) => `${el.className}:${Math.round(el.getBoundingClientRect().height)}`);
+        const tinyText = Array.from(document.querySelectorAll('.content *, .tabbar *'))
+          .filter(
+            (el) =>
+              visible(el) &&
+              Array.from(el.childNodes).some((n) => n.nodeType === 3 && n.textContent?.trim()) &&
+              parseFloat(getComputedStyle(el).fontSize) < 12,
+          )
+          .map((el) => `${el.className}:${getComputedStyle(el).fontSize}`);
+        return { primaries, smallTargets, tinyText };
+      });
+      expect(r.primaries, `${name}: at most one amber button`).toBeLessThanOrEqual(1);
+      expect(r.smallTargets, `${name}: touch targets under 44px`).toEqual([]);
+      expect(r.tinyText, `${name}: text under 12px`).toEqual([]);
+    }
+  });
+}

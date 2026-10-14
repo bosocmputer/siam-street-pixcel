@@ -81,70 +81,95 @@ export function SkillsPage() {
         }),
         'good',
       );
-      if (info.awakenReady) toast(t('farm.tipAwaken'), 'info');
+      if (info.awakenReady) toast(t('farm.nudgeAwaken'), 'info');
     } else toast(t('toast.error'), 'bad');
   };
 
   const slotBtn = (kind: 'active' | 'passive', index: number, id: string | null) => (
     <button
       key={`${kind}${index}`}
-      className={`slot-btn ${id ? 'filled' : ''}`}
+      className={`slot ${id ? 'filled' : 'empty'}`}
+      style={kind === 'active' ? { width: 56, height: 56 } : { width: 46, height: 46 }}
       onClick={() => setPick({ kind, index })}
       aria-label={`${kind === 'active' ? t('skills.active') : t('skills.passive')} ${t('skills.slot', { n: index + 1 })}`}
     >
-      {id ? <SkillIcon id={id} size={48} /> : <div className="slot-empty" />}
-      <span className="small">{id ? nm('skills', id) : t('skills.empty')}</span>
+      {id && <SkillIcon id={id} size={kind === 'active' ? 40 : 32} />}
+      <span className="lb">{id ? nm('skills', id) : t('skills.empty')}</span>
     </button>
   );
+  const firstCore = coreList[0];
+  const district = cfg.districts.find((d) => d.id === player.farm.districtId) ?? cfg.districts[0]!;
+  const seenHere = district.monsters.filter((m) => (player.bestiary[m.id] ?? 0) > 0).length;
+  const lockedCount = Math.max(0, district.monsters.length - owned.length);
 
   return (
     <div className="page">
+      <h1 className="title-lg">{t('nav.skills')}</h1>
+
       <Panel title={t('skills.active')}>
-        <div className="slot-row">
+        <div className="slot-row compact">
           {player.activeSkills.map((id, i) => slotBtn('active', i, id))}
-        </div>
-      </Panel>
-      <Panel title={t('skills.passive')}>
-        <div className="slot-row">
+          <span
+            style={{ width: 2, height: 46, background: 'var(--edge)', margin: '0 6px' }}
+            aria-hidden="true"
+          />
           {player.passiveSkills.map((id, i) => slotBtn('passive', i, id))}
         </div>
+        <p className="muted small" style={{ textAlign: 'center', marginTop: -14 }}>
+          {t('skills.slotHint')}
+        </p>
       </Panel>
-      <Panel title={t('skills.combos')}>
-        {combos.length === 0 ? (
-          <p className="muted">{t('skills.noCombo')}</p>
-        ) : (
-          <ul className="plain">
+
+      {firstCore && (
+        <section className="panel core-banner">
+          <div className="core-count">
+            <MonsterSprite id={firstCore[0]} size={48} />
+            <span className="n">{coreList.reduce((a, [, n]) => a + n, 0)}</span>
+          </div>
+          <div className="grow">
+            <strong style={{ fontFamily: 'var(--font-hd)', fontWeight: 500 }}>
+              {t('skills.coreBanner', {
+                name: nm('skills', getMonster(cfg, firstCore[0]).skillId),
+              })}
+            </strong>
+            <span className="muted small">{t('skills.coreMore')}</span>
+          </div>
+          <button className="btn primary" onClick={() => absorb(firstCore[0], 'all')}>
+            {t('skills.absorb')}
+          </button>
+        </section>
+      )}
+      {coreList.slice(1).map(([id, n]) => (
+        <section key={id} className="panel core-banner">
+          <MonsterSprite id={id} size={44} />
+          <div className="grow">
+            <strong>{nm('skills', getMonster(cfg, id).skillId)}</strong>
+            <span className="muted small">
+              {t('skills.from', { name: nm('monsters', id) })} ×{n}
+            </span>
+          </div>
+          <button className="btn" onClick={() => absorb(id, 'all')}>
+            {t('skills.absorb')}
+          </button>
+        </section>
+      ))}
+
+      {combos.length > 0 && (
+        <Panel title={t('skills.combos')}>
+          <ul>
             {combos.map((l) => (
-              <li key={l} className="good">
+              <li key={l} className="good small" style={{ padding: '2px 0' }}>
                 {l}
               </li>
             ))}
           </ul>
-        )}
-      </Panel>
-
-      <Panel title={t('skills.cores')}>
-        {coreList.length === 0 ? (
-          <p className="muted">{t('skills.noCores')}</p>
-        ) : (
-          <ul className="core-list">
-            {coreList.map(([id, n]) => (
-              <li key={id} className="core-row">
-                <MonsterSprite id={id} size={44} />
-                <div className="grow">
-                  <strong>{nm('skills', getMonster(cfg, id).skillId)}</strong>
-                  <span className="muted small">
-                    {t('skills.from', { name: nm('monsters', id) })} ×{n}
-                  </span>
-                </div>
-                <button className="btn primary" onClick={() => absorb(id, 'all')}>
-                  {t('skills.absorb')}
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Panel>
+        </Panel>
+      )}
+      {combos.length === 0 && owned.length > 0 && (
+        <p className="muted small" style={{ padding: '0 12px' }}>
+          {t('skills.noCombo')}
+        </p>
+      )}
 
       <Panel title={t('skills.owned')}>
         <ul className="skill-list">
@@ -192,8 +217,36 @@ export function SkillsPage() {
               </li>
             );
           })}
+          {Array.from({ length: Math.min(lockedCount, 2) }, (_, i) => (
+            <li key={`lock${i}`} className="skill-row" style={{ opacity: 0.55 }}>
+              <div className="slot" style={{ margin: 0, width: 48, height: 48 }} aria-hidden="true">
+                <span className="num" style={{ color: 'var(--edge)' }}>
+                  ?
+                </span>
+              </div>
+              <div className="grow">
+                <strong>???</strong>
+                <span className="muted small">{t('skills.locked')}</span>
+              </div>
+            </li>
+          ))}
         </ul>
       </Panel>
+
+      <section className="panel core-banner">
+        <MonsterSprite id={district.monsters[0]?.id ?? 'brick_imp'} size={44} />
+        <div className="grow">
+          <strong>
+            {t('skills.hintTitle', {
+              name: nm('districts', district.id),
+              n: district.monsters.length,
+            })}
+          </strong>
+          <span className="muted small">
+            {t('skills.hintBody')} ({seenHere}/{district.monsters.length})
+          </span>
+        </div>
+      </section>
 
       {pick && (
         <Modal

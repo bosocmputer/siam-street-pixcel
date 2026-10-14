@@ -93,5 +93,32 @@
       "generations": 1
     }
   ],
-  "total_generations": 37
+  "total_generations": 37,
+  "derived": [
+    {
+      "file": "apps/web/public/assets/slime_b.png",
+      "from": "assets/trial/slime_b.png",
+      "how": "copied as is"
+    },
+    {
+      "file": "apps/web/public/assets/slime_b_noeyes.png",
+      "from": "assets/trial/slime_b.png",
+      "how": "original face painted over with the body colour so other eye styles can be drawn (tools/asset-pipeline/trial_to_game.py)"
+    },
+    {
+      "file": "apps/web/public/assets/hat_ngob.png",
+      "from": "assets/trial/hat_ngob.png",
+      "how": "NOT generated: redrawn by hand at 16 px with the colours of the generated hat, because the generated one was wider than the slime and lost its shape when shrunk (same script)"
+    },
+    {
+      "file": "apps/web/public/assets/monster_brick_imp.png",
+      "from": "assets/trial/monster_brick_imp.png",
+      "how": "copied as is"
+    },
+    {
+      "file": "apps/web/public/assets/basket_kratip.png",
+      "from": "assets/trial/basket_kratip.png",
+      "how": "copied as is"
+    }
+  ]
 }

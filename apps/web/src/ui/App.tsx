@@ -6,16 +6,11 @@ import { BagPage } from './BagPage';
 import { FarmPage, ReportDialog, tipsFor } from './FarmPage';
 import { MapPage } from './MapPage';
 import { Onboarding } from './Onboarding';
+import { TabImg } from './common';
 import { SkillsPage } from './SkillsPage';
 import { SlimePage } from './SlimePage';
 
-const TABS: { id: Page; icon: string }[] = [
-  { id: 'farm', icon: '⚔' },
-  { id: 'slime', icon: '●' },
-  { id: 'skills', icon: '✦' },
-  { id: 'bag', icon: '▣' },
-  { id: 'map', icon: '⌖' },
-];
+const TABS: Page[] = ['farm', 'slime', 'skills', 'bag', 'map'];
 
 export function App() {
   const ready = useGame((s) => s.ready);
@@ -54,16 +49,14 @@ export function App() {
       <nav className="tabbar" aria-label={t('a11y.menu')}>
         {TABS.map((tab) => (
           <button
-            key={tab.id}
-            className={`tab ${page === tab.id ? 'active' : ''}`}
-            onClick={() => useGame.getState().setPage(tab.id)}
-            aria-current={page === tab.id ? 'page' : undefined}
+            key={tab}
+            className={`tab ${page === tab ? 'active' : ''}`}
+            onClick={() => useGame.getState().setPage(tab)}
+            aria-current={page === tab ? 'page' : undefined}
           >
-            <span className="tab-icon" aria-hidden="true">
-              {tab.icon}
-            </span>
-            <span>{t(`nav.${tab.id}`)}</span>
-            {dot[tab.id] && <i className="dot" aria-label={t('a11y.todo')} />}
+            <TabImg name={tab} on={page === tab} />
+            <span>{t(`nav.${tab}`)}</span>
+            {dot[tab] && <i className="dot" aria-label={t('a11y.todo')} />}
           </button>
         ))}
       </nav>

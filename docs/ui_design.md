@@ -1,6 +1,6 @@
 # UI/UX Design — SLIME HOOD (M2.5 รอบที่ 2)
 
-สถานะ: **ฉบับร่างรออนุมัติ** (จุดหยุดถามผู้สร้าง #1)
+สถานะ: mockup และสไตล์ภาพ B ผู้สร้างอนุมัติแล้ว หน้าจอจริงทำเสร็จ รอผู้สร้างตรวจ (จุดหยุด #3) ดู `docs/ui/review.md`
 ภาพจำลอง: `docs/ui/mockup.html` (ไฟล์เดียว เปิดในเบราว์เซอร์ได้ มีต้นแบบกดดูได้ 1 เครื่อง) · ภาพ M2 เดิม `docs/ui/before-m2-farm.png`
 อ้างอิง: [GDD](../game_design_document.md) · [แผนพัฒนา M2.5](development_plan.md) · [มาตรฐานสไตล์ภาพ](technical_direction.md)
 

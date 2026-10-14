@@ -49,6 +49,13 @@ export function itemLines(inst: ItemInstance): string[] {
   return out;
 }
 
+const RARITY_TEXT: Record<Rarity, string> = {
+  common: 'muted',
+  good: 'good',
+  rare: 'rare',
+  legend: 'amber',
+};
+
 const SLOT_ORDER = ['weapon', 'head', 'skin', 'charm'] as const;
 
 export function BagPage() {
@@ -77,147 +84,216 @@ export function BagPage() {
     else toast(t('toast.error'), 'bad');
   };
 
+  const [tab, setTab] = useState<'items' | 'mats' | 'sets'>('items');
+  const [selUid, setSelUid] = useState<string | null>(null);
+  const sel = items.find((i) => i.uid === selUid) ?? items[0] ?? null;
+
   return (
     <div className="page">
-      <Panel
-        title={t('bag.items')}
-        aside={
-          <span className="muted small">
-            {t('bag.capacity', { used: usedSlots(player), max: capacity(player, cfg) })}
-          </span>
-        }
+      <h1
+        className="title-lg"
+        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}
       >
-        <label className="auto-row">
-          <span>{t('bag.autoSalvage')}</span>
-          <select
-            value={player.autoSalvageBelow ?? ''}
-            onChange={(e) =>
-              dispatch({ t: 'autoSalvage', below: (e.target.value || null) as Rarity | null })
-            }
+        {t('nav.bag')}
+        <span className="muted small num">
+          {t('bag.capacity', { used: usedSlots(player), max: capacity(player, cfg) })}
+        </span>
+      </h1>
+      <div className="seg" role="tablist">
+        {(
+          [
+            ['items', t('bag.items')],
+            ['mats', t('bag.materials')],
+            ['sets', t('bag.presets')],
+          ] as const
+        ).map(([id, label]) => (
+          <button
+            key={id}
+            role="tab"
+            aria-selected={tab === id}
+            className={tab === id ? 'on' : ''}
+            onClick={() => setTab(id)}
           >
-            <option value="">{t('bag.autoOff')}</option>
-            {RARITIES.slice(1).map((r) => (
-              <option key={r} value={r}>
-                {t('bag.autoBelow', { rarity: nm('rarities', r) })}
-              </option>
-            ))}
-          </select>
-        </label>
-        {spare.length > 0 && (
-          <button className="btn danger" onClick={() => setBulk(true)}>
-            {t('bag.bulk', { n: spare.length })}
+            {label}
           </button>
-        )}
-        {items.length === 0 ? (
-          <p className="muted">{t('bag.noItems')}</p>
-        ) : (
-          <ul className="item-list">
-            {items.map((it) => {
-              const def = getItemDef(cfg, it.defId);
-              const on = equipped.has(it.uid);
-              const maxed = it.upgrade >= cfg.balance.items.upgradeMax;
-              const cost = upgradeCost(it, cfg);
-              return (
-                <li
+        ))}
+      </div>
+
+      {tab === 'items' && (
+        <>
+          {items.length === 0 ? (
+            <p className="muted" style={{ padding: '8px 12px' }}>
+              {t('bag.noItems')}
+            </p>
+          ) : (
+            <div className="grid4">
+              {items.map((it) => (
+                <button
                   key={it.uid}
-                  className={`item-card ${RARITY_CLASS[it.rarity]} ${on ? 'on' : ''}`}
+                  className={`tile ${RARITY_CLASS[it.rarity]} ${sel?.uid === it.uid ? 'sel' : ''}`}
+                  onClick={() => setSelUid(it.uid)}
+                  aria-label={nm('items', it.defId)}
                 >
-                  <ItemIcon defId={it.defId} rarity={it.rarity} size={56} />
-                  <div className="grow">
-                    <strong>
-                      {nm('items', it.defId)}{' '}
-                      {it.upgrade > 0 && <em className="bonus">+{it.upgrade}</em>}
-                    </strong>
-                    <span className="muted small">
-                      {nm('rarities', it.rarity)} · {nm('slots', def.slot)}
-                      {on ? ` · ${t('bag.equipped')}` : ''}
-                    </span>
-                    <span className="small">{itemLines(it).join(' · ')}</span>
-                    {!maxed && (
-                      <span className="muted small">
-                        {t('bag.need')} {cost.coins} {t('common.coins', { n: '' }).trim()} ·{' '}
-                        {nm('materials', 'jelly')} {cost.jelly} ·{' '}
-                        {nm('materials', cost.material.id)} {cost.material.qty}
+                  <ItemIcon defId={it.defId} rarity={it.rarity} size={48} bare />
+                  {equipped.has(it.uid) && <span className="eq">{t('bag.equipped')}</span>}
+                </button>
+              ))}
+            </div>
+          )}
+          {sel &&
+            (() => {
+              const def = getItemDef(cfg, sel.defId);
+              const on = equipped.has(sel.uid);
+              const maxed = sel.upgrade >= cfg.balance.items.upgradeMax;
+              const cost = upgradeCost(sel, cfg);
+              return (
+                <section className={`panel detail ${RARITY_CLASS[sel.rarity]}`}>
+                  <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                    <div className={`slot ${RARITY_CLASS[sel.rarity]}`} style={{ margin: 6 }}>
+                      <ItemIcon defId={sel.defId} rarity={sel.rarity} size={44} bare />
+                    </div>
+                    <div className="grow">
+                      <strong
+                        style={{ fontFamily: 'var(--font-hd)', fontWeight: 500, fontSize: 17 }}
+                      >
+                        {nm('items', sel.defId)}{' '}
+                        {sel.upgrade > 0 && <em className="bonus">+{sel.upgrade}</em>}
+                      </strong>
+                      <span className="small">
+                        <span className={RARITY_TEXT[sel.rarity]}>
+                          {nm('rarities', sel.rarity)}
+                        </span>{' '}
+                        · {nm('slots', def.slot)}
+                        {on ? ` · ${t('bag.equipped')}` : ''}
                       </span>
-                    )}
+                    </div>
                   </div>
-                  <div className="item-btns">
+                  <p className="small">{itemLines(sel).join(' · ')}</p>
+                  {!maxed && (
+                    <p className="muted small">
+                      {t('bag.need')} {cost.coins} {t('common.coins', { n: '' }).trim()} ·{' '}
+                      {nm('materials', 'jelly')} {cost.jelly} · {nm('materials', cost.material.id)}{' '}
+                      {cost.material.qty}
+                    </p>
+                  )}
+                  <div style={{ display: 'flex', flexWrap: 'wrap' }}>
                     {on ? (
                       <button
-                        className="btn small"
-                        onClick={() => act({ t: 'unequip', slot: def.slot }, t('bag.unequip'))}
+                        className="btn"
+                        style={{ flex: 1 }}
+                        onClick={() =>
+                          act(
+                            { t: 'unequip', slot: def.slot },
+                            t('bag.unequipDone', { name: nm('items', sel.defId) }),
+                          )
+                        }
                       >
                         {t('bag.unequip')}
                       </button>
                     ) : (
                       <button
-                        className="btn small primary"
-                        onClick={() => act({ t: 'equipItem', uid: it.uid }, t('bag.equip'))}
+                        className="btn primary"
+                        style={{ flex: 2 }}
+                        onClick={() =>
+                          act(
+                            { t: 'equipItem', uid: sel.uid },
+                            t('bag.equipDone', { name: nm('items', sel.defId) }),
+                          )
+                        }
                       >
                         {t('bag.equip')}
                       </button>
                     )}
                     <button
-                      className="btn small"
+                      className="btn"
+                      style={{ flex: 1 }}
                       disabled={maxed}
-                      onClick={() => act({ t: 'upgrade', uid: it.uid }, t('bag.upgraded'))}
+                      onClick={() => act({ t: 'upgrade', uid: sel.uid }, t('bag.upgraded'))}
                     >
-                      {maxed ? t('bag.maxed') : t('bag.upgrade', { n: it.upgrade + 1 })}
+                      {maxed ? t('bag.maxed') : t('bag.upgrade', { n: sel.upgrade + 1 })}
                     </button>
                     {!on && (
-                      <button className="btn small danger" onClick={() => setConfirm(it)}>
+                      <button className="btn danger" onClick={() => setConfirm(sel)}>
                         {t('bag.salvage')}
                       </button>
                     )}
                   </div>
-                </li>
+                </section>
               );
-            })}
+            })()}
+          <label className="auto-row" style={{ padding: '0 12px' }}>
+            <span>{t('bag.autoSalvage')}</span>
+            <select
+              value={player.autoSalvageBelow ?? ''}
+              onChange={(e) =>
+                dispatch({ t: 'autoSalvage', below: (e.target.value || null) as Rarity | null })
+              }
+            >
+              <option value="">{t('bag.autoOff')}</option>
+              {RARITIES.slice(1).map((r) => (
+                <option key={r} value={r}>
+                  {t('bag.autoBelow', { rarity: nm('rarities', r) })}
+                </option>
+              ))}
+            </select>
+          </label>
+          {spare.length > 0 && (
+            <button
+              className="btn danger"
+              style={{ margin: '0 12px' }}
+              onClick={() => setBulk(true)}
+            >
+              {t('bag.bulk', { n: spare.length })}
+            </button>
+          )}
+        </>
+      )}
+
+      {tab === 'sets' && (
+        <Panel title={t('bag.presets')}>
+          <ul className="preset-list">
+            {player.presets.map((p, i) => (
+              <li key={i} className="preset-row">
+                <strong>{t('bag.presetName', { n: i + 1 })}</strong>
+                <span className="muted small grow">
+                  {p ? presetSummary(player, i) : t('bag.presetEmpty')}
+                </span>
+                <button
+                  className="btn small"
+                  onClick={() =>
+                    act({ t: 'savePreset', index: i }, t('bag.presetSaved', { n: i + 1 }))
+                  }
+                >
+                  {t('bag.presetSave')}
+                </button>
+                <button
+                  className="btn small"
+                  disabled={!p}
+                  onClick={() =>
+                    act({ t: 'applyPreset', index: i }, t('bag.presetApplied', { n: i + 1 }))
+                  }
+                >
+                  {t('bag.presetUse')}
+                </button>
+              </li>
+            ))}
           </ul>
-        )}
-      </Panel>
+        </Panel>
+      )}
 
-      <Panel title={t('bag.presets')}>
-        <ul className="preset-list">
-          {player.presets.map((p, i) => (
-            <li key={i} className="preset-row">
-              <strong>{t('bag.presetName', { n: i + 1 })}</strong>
-              <span className="muted small grow">
-                {p ? presetSummary(player, i) : t('bag.presetEmpty')}
-              </span>
-              <button
-                className="btn small"
-                onClick={() =>
-                  act({ t: 'savePreset', index: i }, t('bag.presetSaved', { n: i + 1 }))
-                }
-              >
-                {t('bag.presetSave')}
-              </button>
-              <button
-                className="btn small primary"
-                disabled={!p}
-                onClick={() =>
-                  act({ t: 'applyPreset', index: i }, t('bag.presetApplied', { n: i + 1 }))
-                }
-              >
-                {t('bag.presetUse')}
-              </button>
-            </li>
-          ))}
-        </ul>
-      </Panel>
-
-      <Panel title={t('bag.materials')}>
-        <ul className="mat-list">
-          {['jelly', ...cfg.districts.map((d) => d.material)].map((id) => (
-            <li key={id} className="mat">
-              <MaterialIcon id={id} size={36} />
-              <span>{nm('materials', id)}</span>
-              <span className="num">{player.materials[id] ?? 0}</span>
-            </li>
-          ))}
-        </ul>
-      </Panel>
+      {tab === 'mats' && (
+        <Panel title={t('bag.materials')}>
+          <ul className="mat-list">
+            {['jelly', ...cfg.districts.map((d) => d.material)].map((id) => (
+              <li key={id} className="mat">
+                <MaterialIcon id={id} size={36} />
+                <span className="grow">{nm('materials', id)}</span>
+                <span className="num">{player.materials[id] ?? 0}</span>
+              </li>
+            ))}
+          </ul>
+        </Panel>
+      )}
 
       {bulk && (
         <Modal title={t('bag.bulk', { n: spare.length })} onClose={() => setBulk(false)}>
