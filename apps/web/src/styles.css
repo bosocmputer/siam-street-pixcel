@@ -133,7 +133,8 @@ ul {
 .slot-btn:focus-visible,
 select:focus-visible,
 .tip:focus-visible,
-.district-card:focus-visible,
+.swatch:focus-visible,
+.eye-card:focus-visible,
 .skill-pick:focus-visible {
   outline: 3px solid var(--amber);
   outline-offset: 2px;
@@ -799,40 +800,6 @@ select {
   gap: 16px;
   align-items: center;
 }
-.district-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  width: 100%;
-}
-.district-card {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  align-items: flex-start;
-  padding: 12px;
-  min-height: 80px;
-  background: var(--panel);
-  border: 2px solid var(--line);
-  border-left: 8px solid var(--accent, var(--line));
-  border-radius: 6px;
-  cursor: pointer;
-  text-align: left;
-}
-.district-card.sel {
-  background: var(--panel-2);
-  border-color: var(--amber);
-  border-left-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--amber);
-}
-.district-name {
-  font-weight: 600;
-  font-size: 17px;
-}
-.district-el {
-  color: var(--muted);
-  font-size: 13px;
-}
 .duel {
   display: flex;
   justify-content: center;
@@ -927,4 +894,77 @@ select {
     animation: none !important;
     transition: none !important;
   }
+}
+
+/* ---------- slime creator ---------- */
+.creator-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 0 4px;
+}
+.creator-name {
+  font-weight: 600;
+  font-size: 20px;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+.field-row {
+  display: flex;
+  gap: 8px;
+}
+.input {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px 12px;
+  background: var(--panel);
+  color: var(--text);
+  border: 2px solid var(--line);
+  border-radius: 6px;
+  font: inherit;
+}
+.input:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 1px;
+}
+.swatches {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 8px;
+}
+.swatch {
+  aspect-ratio: 1;
+  min-height: 36px;
+  border: 3px solid var(--line);
+  border-radius: 50%;
+  cursor: pointer;
+}
+.swatch.sel {
+  border-color: var(--amber);
+  box-shadow: 0 0 0 2px var(--amber);
+}
+.eye-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.eye-card {
+  display: grid;
+  place-items: center;
+  padding: 4px;
+  background: var(--panel);
+  border: 2px solid var(--line);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.eye-card.sel {
+  background: var(--panel-2);
+  border-color: var(--amber);
+  box-shadow: 0 0 0 2px var(--amber);
 }

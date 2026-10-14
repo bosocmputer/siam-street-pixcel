@@ -80,7 +80,15 @@ export function slimeSignature(state: PlayerState): string {
   const parts = [...state.activeSkills, ...state.passiveSkills]
     .map((id) => (id && (state.skills[id]?.level ?? 0) > 0 ? id : '-'))
     .join(',');
-  return [state.formId, head?.defId, weapon?.defId, skin?.defId, parts].join('|');
+  return [
+    state.formId,
+    head?.defId,
+    weapon?.defId,
+    skin?.defId,
+    parts,
+    state.look?.color,
+    state.look?.eyes,
+  ].join('|');
 }
 
 /** The slime with everything it wears and grows, as a 48x48 canvas. */
@@ -94,7 +102,12 @@ export function slimeCanvas(state: PlayerState): HTMLCanvasElement {
   const instOf = (uid: string | undefined) => state.items.find((i) => i.uid === uid);
   const skin = instOf(state.equipment.skin);
   if (!override(g, `form:${form.id}`, 0, 0, SLIME, SLIME)) {
-    drawSlimeBody(g, { element: form.element, tier: form.tier, skin: skin?.defId });
+    drawSlimeBody(g, {
+      element: form.element,
+      tier: form.tier,
+      skin: skin?.defId,
+      look: state.look,
+    });
   }
   [...state.activeSkills, ...state.passiveSkills].forEach((id, slot) => {
     if (!id || (state.skills[id]?.level ?? 0) < 1) return;
@@ -117,6 +130,17 @@ export function slimeCanvas(state: PlayerState): HTMLCanvasElement {
       drawHat(g, head.defId);
     }
   }
+  cache.set(sig, c);
+  return c;
+}
+
+/** Just the plain slime with a chosen look (the creator preview and its choice buttons). */
+export function lookCanvas(look: { color: string; eyes: number }): HTMLCanvasElement {
+  const sig = `look:${look.color}:${look.eyes}`;
+  const hit = cache.get(sig);
+  if (hit) return hit;
+  const c = makeCanvas(SLIME);
+  drawSlimeBody(ctxOf(c), { element: null, tier: 0, look });
   cache.set(sig, c);
   return c;
 }

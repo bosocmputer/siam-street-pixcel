@@ -245,6 +245,7 @@ export interface BalanceConfig {
   boss: { hpPerActivePlayer: number; minHp: number; uptime: number };
   league: { shrinkK: number };
   tutorial: { firstMonsterCores: number };
+  home: { promptLevel: number; changeDays: number };
 }
 
 export interface GameConfig {
@@ -259,6 +260,19 @@ export interface GameConfig {
   districts: DistrictDef[];
   bosses: BossDef[];
   rules: RuleDef[];
+  looks: LooksConfig;
+}
+
+export interface LooksConfig {
+  colors: string[]; // ids of the body colours offered when creating the slime
+  eyes: number; // number of eye styles
+  nameMaxLength: number;
+}
+
+/** What the player picked in the slime creator. Cosmetic only. */
+export interface SlimeLook {
+  color: string;
+  eyes: number;
 }
 
 // ---------- player state ----------
@@ -278,7 +292,11 @@ export interface Loadout {
 
 export interface PlayerState {
   version: 1;
-  homeDistrictId: string; // "ย่านเรา": the player's identity, not where they farm
+  name: string; // chosen in the creator; may be empty for old saves
+  look: SlimeLook;
+  /** "ย่านเรา": the player's team, not where they farm. null until they choose one on the map. */
+  homeDistrictId: string | null;
+  homeChosenAt: number | null; // server seconds of the last choice (for the change cooldown)
   level: number;
   exp: number;
   coins: number;

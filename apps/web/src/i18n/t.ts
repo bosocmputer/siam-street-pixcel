@@ -31,7 +31,9 @@ export type ContentGroup =
   | 'items'
   | 'rules'
   | 'tags'
-  | 'awaken';
+  | 'awaken'
+  | 'looks'
+  | 'names';
 
 /** Thai name of a piece of game content (monster, skill, item...). */
 export function nm(group: ContentGroup, id: string): string {

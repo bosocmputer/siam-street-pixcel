@@ -56,6 +56,24 @@ export const ELEMENT_COLORS: Record<Element, { body: string; shade: string; line
 };
 const CLEAR = { body: '#7ee0b0', shade: '#4fb88a', line: '#1e5a46' };
 
+/** Body colours offered in the slime creator (ids come from game-core looks.json). */
+export const LOOK_COLORS: Record<string, { body: string; shade: string; line: string }> = {
+  mint: CLEAR,
+  sky: { body: '#8cc8f5', shade: '#5a9ad0', line: '#1f4670' },
+  peach: { body: '#ffc29a', shade: '#e0925f', line: '#6e3a1c' },
+  rose: { body: '#ff9ec0', shade: '#e0679a', line: '#6e2447' },
+  lilac: { body: '#c4a6f0', shade: '#9575cf', line: '#3f2a73' },
+  lemon: { body: '#f7e46b', shade: '#d4b93a', line: '#66561a' },
+  coral: { body: '#ff7f7a', shade: '#d9524e', line: '#6b1f1d' },
+  cloud: { body: '#eef2f5', shade: '#b4c0c9', line: '#3d4a54' },
+};
+
+const mixHex = (a: string, b: string, t: number): string => {
+  const ch = (h: string, i: number) => parseInt(h.slice(1 + i * 2, 3 + i * 2), 16);
+  const out = [0, 1, 2].map((i) => Math.round(ch(a, i) * (1 - t) + ch(b, i) * t));
+  return `#${out.map((v) => v.toString(16).padStart(2, '0')).join('')}`;
+};
+
 export const SKIN_COLORS: Record<string, string> = {
   clay_skin: '#b5785a',
   river_skin: '#5a90d8',
@@ -87,12 +105,53 @@ export const ANCHORS = {
   ],
 } as const;
 
+/** Four eye styles the player can pick in the creator. */
+function drawEyes(c: Ctx, style: number, line: string): void {
+  const dark = '#12201b';
+  switch (style) {
+    case 1: // wide and sparkly
+      for (const ex of [17, 29]) {
+        rect(c, dark, ex, 28, 4, 6);
+        rect(c, '#ffffff', ex, 28, 2, 2);
+        rect(c, '#ffffff', ex + 2, 31, 1, 1);
+      }
+      break;
+    case 2: // happy arcs
+      for (const ex of [17, 29]) {
+        rect(c, dark, ex, 31, 1, 2);
+        rect(c, dark, ex + 1, 30, 2, 1);
+        rect(c, dark, ex + 3, 31, 1, 2);
+      }
+      break;
+    case 3: // sleepy half-closed
+      for (const ex of [17, 29]) {
+        rect(c, dark, ex, 32, 4, 1);
+        rect(c, line, ex, 33, 4, 1);
+      }
+      break;
+    default: // small round
+      for (const ex of [18, 29]) {
+        rect(c, dark, ex, 29, 3, 5);
+        rect(c, '#ffffff', ex, 29, 1, 2);
+      }
+  }
+}
+
 export function drawSlimeBody(
   c: Ctx,
-  opts: { element: Element | null; tier: number; skin?: string | null },
+  opts: {
+    element: Element | null;
+    tier: number;
+    skin?: string | null;
+    look?: { color: string; eyes: number } | null;
+  },
 ): void {
-  const pal = opts.element ? ELEMENT_COLORS[opts.element] : CLEAR;
-  const body = (opts.skin && SKIN_COLORS[opts.skin]) || pal.body;
+  const mine = LOOK_COLORS[opts.look?.color ?? ''] ?? CLEAR;
+  // the plain slime wears the colour the player picked; evolved forms keep their element's
+  // outline but stay tinted by it (60% element, 40% player) so both read at a glance
+  const pal = opts.element ? ELEMENT_COLORS[opts.element] : mine;
+  const tinted = opts.element ? mixHex(pal.body, mine.body, 0.4) : pal.body;
+  const body = (opts.skin && SKIN_COLORS[opts.skin]) || tinted;
   const grow = opts.tier >= 2 ? 2 : 0; // second-tier forms are a bit bigger
   const w = 17 + grow;
   const h = 14 + grow;
@@ -118,10 +177,7 @@ export function drawSlimeBody(
   // shine, eyes, mouth
   rect(c, 'rgba(255,255,255,0.55)', 15, 22, 5, 3);
   rect(c, 'rgba(255,255,255,0.35)', 15, 25, 2, 2);
-  for (const ex of [18, 29]) {
-    rect(c, '#12201b', ex, 29, 3, 5);
-    rect(c, '#ffffff', ex, 29, 1, 2);
-  }
+  drawEyes(c, opts.look?.eyes ?? 0, pal.line);
   rect(c, pal.line, 23, 36, 3, 1);
   if (opts.tier >= 1) {
     // little crest so evolved forms read differently at a glance

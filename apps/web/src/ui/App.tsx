@@ -39,6 +39,7 @@ export function App() {
   const dot: Partial<Record<Page, boolean>> = {
     slime: tips.points > 0 || tips.evolve,
     skills: tips.cores > 0 || tips.awaken > 0,
+    map: tips.home,
   };
 
   return (

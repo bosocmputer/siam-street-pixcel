@@ -3,13 +3,25 @@ import {
   bestiaryBonus,
   bossMaxHp,
   completedSets,
+  chooseHome,
   createNewPlayer,
+  evolutionOptions,
+  homeCooldownDays,
+  normalizeLook,
+  sanitizeName,
   grantTutorialCores,
   pickRuleOptions,
   seasonScore,
   tallyVotes,
+  type PlayerState,
 } from '../src';
 import { cfg, fresh } from './helpers';
+
+function chooseHomeOk(st: PlayerState, id: string, now: number): PlayerState {
+  const r = chooseHome(st, id, now, cfg);
+  if (!r.ok) throw new Error(r.reason);
+  return r.state;
+}
 
 describe('district boss and league', () => {
   it('boss HP scales with active players and has a floor', () => {
@@ -86,15 +98,57 @@ describe('bestiary and new player', () => {
     expect(() => createNewPlayer(cfg, 'nope', 0)).toThrow();
   });
 
-  it('tutorial cores are enough to unlock the first skill at once', () => {
+  it('tutorial cores come from the district everyone starts on and are enough to unlock a skill', () => {
     const s = grantTutorialCores(fresh(), cfg);
     expect(s.cores.brick_imp).toBe(cfg.balance.tutorial.firstMonsterCores);
-    // the cores come from the home district, not the district being farmed
-    const home = grantTutorialCores(createNewPlayer(cfg, 'nimman', 0), cfg);
-    expect(home.cores.coffee_cup).toBe(cfg.balance.tutorial.firstMonsterCores);
-    expect(home.cores.brick_imp).toBeUndefined();
     expect(cfg.balance.tutorial.firstMonsterCores).toBeGreaterThanOrEqual(
       cfg.balance.skills.unlockCores,
     );
+  });
+
+  it('a new player has no home district until they choose, and can choose once for free', () => {
+    const s = createNewPlayer(cfg, null, 100, { name: 'บอส', look: { color: 'sky', eyes: 2 } });
+    expect(s.homeDistrictId).toBeNull();
+    expect(s.homeChosenAt).toBeNull();
+    expect(s.name).toBe('บอส');
+    expect(s.look).toEqual({ color: 'sky', eyes: 2 });
+    const r = chooseHome(s, 'nimman', 200, cfg);
+    expect(r.ok && r.state.homeDistrictId).toBe('nimman');
+    expect(r.ok && r.state.homeChosenAt).toBe(200);
+  });
+
+  it('changing the home district waits for the cooldown, and rejects unknown or same ones', () => {
+    const day = 86400;
+    const s = chooseHomeOk(createNewPlayer(cfg, null, 0), 'ping', 0);
+    expect(chooseHome(s, 'ping', 10, cfg)).toEqual({ ok: false, reason: 'same' });
+    expect(chooseHome(s, 'nope', 10, cfg)).toEqual({ ok: false, reason: 'unknownDistrict' });
+    expect(chooseHome(s, 'thapae', 10, cfg)).toEqual({ ok: false, reason: 'cooldown' });
+    expect(homeCooldownDays(s, 0, cfg)).toBe(cfg.balance.home.changeDays);
+    expect(homeCooldownDays(s, day * 10, cfg)).toBe(cfg.balance.home.changeDays - 10);
+    const later = chooseHome(s, 'thapae', day * cfg.balance.home.changeDays, cfg);
+    expect(later.ok && later.state.homeDistrictId).toBe('thapae');
+    expect(homeCooldownDays(createNewPlayer(cfg, null, 0), 0, cfg)).toBe(0);
+  });
+
+  it('cleans up names and looks the player typed or picked', () => {
+    expect(sanitizeName('  สไลม์\n\tน้อย  ', cfg)).toBe('สไลม์ น้อย');
+    expect(Array.from(sanitizeName('ก'.repeat(50), cfg))).toHaveLength(cfg.looks.nameMaxLength);
+    expect(sanitizeName('', cfg)).toBe('');
+    expect(normalizeLook({ color: 'nope', eyes: 99 }, cfg)).toEqual({
+      color: cfg.looks.colors[0],
+      eyes: cfg.looks.eyes - 1,
+    });
+    expect(normalizeLook(undefined, cfg).eyes).toBe(0);
+    expect(normalizeLook({ eyes: -3 }, cfg).eyes).toBe(0);
+  });
+
+  it('home element only opens a first evolution line when a home has been chosen', () => {
+    const s = createNewPlayer(cfg, null, 0);
+    s.level = 10;
+    s.absorbedElements = { earth: 9, water: 0, fire: 0, wind: 0 };
+    const lines = (st: typeof s) => evolutionOptions(st, cfg).map((f) => f.element);
+    expect(lines(s)).toEqual(['earth']); // only what was absorbed
+    const withHome = chooseHomeOk(s, 'nimman', 0);
+    expect(lines(withHome)).toContain('wind');
   });
 });

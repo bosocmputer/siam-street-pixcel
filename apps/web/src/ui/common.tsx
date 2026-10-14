@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import type { Rarity } from '@slimehood/game-core';
 import { dataUrl, formCanvas, itemIcon, materialIcon, monsterCanvas, skillIcon } from '../art';
-import { slimeCanvas } from '../art';
+import { lookCanvas, slimeCanvas } from '../art';
 import type { PlayerState } from '@slimehood/game-core';
 import { nm, t } from '../i18n/t';
 
@@ -29,6 +29,13 @@ export function PixelImg({
 export const SlimeSprite = ({ player, size = 96 }: { player: PlayerState; size?: number }) => (
   <PixelImg canvas={slimeCanvas(player)} size={size} alt={t('a11y.slime')} />
 );
+export const LookSprite = ({
+  look,
+  size = 96,
+}: {
+  look: { color: string; eyes: number };
+  size?: number;
+}) => <PixelImg canvas={lookCanvas(look)} size={size} alt={t('a11y.slime')} />;
 export const FormSprite = ({ id, size = 64 }: { id: string; size?: number }) => (
   <PixelImg canvas={formCanvas(id)} size={size} alt={nm('forms', id)} />
 );

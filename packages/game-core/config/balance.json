@@ -139,6 +139,10 @@
   "league": {
     "shrinkK": 3
   },
+  "home": {
+    "promptLevel": 3,
+    "changeDays": 30
+  },
   "tutorial": {
     "firstMonsterCores": 5
   }

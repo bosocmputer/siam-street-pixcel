@@ -1,9 +1,16 @@
 import { useState } from 'react';
-import { completedSets, defaultConfig as cfg, farmStatus, getMonster } from '@slimehood/game-core';
+import {
+  completedSets,
+  defaultConfig as cfg,
+  farmStatus,
+  getMonster,
+  homeCooldownDays,
+} from '@slimehood/game-core';
 import { useGame } from '../game/store';
 import { nm, t } from '../i18n/t';
 import { ELEMENT_COLORS } from '../art/draw';
 import { MonsterSprite, Modal, Panel } from './common';
+import { useNow } from './hooks';
 
 export function MapPage() {
   const player = useGame((s) => s.player)!;
@@ -13,6 +20,15 @@ export function MapPage() {
   const [sure, setSure] = useState(false);
   const sets = new Set(completedSets(player, cfg));
   const farming = player.farm.districtId;
+  const noHome = player.homeDistrictId === null;
+  const cooldown = homeCooldownDays(player, useNow(), cfg);
+
+  const setHome = async (districtId: string) => {
+    const r = await dispatch({ t: 'chooseHome', districtId });
+    if (r.ok) toast(t('home.chosen', { name: nm('districts', districtId) }), 'good');
+    else if (r.reason === 'cooldown') toast(t('home.cooldownToast', { n: cooldown }), 'bad');
+    else toast(t('toast.error'), 'bad');
+  };
 
   const farm = async (districtId: string, stage: number) => {
     const r = await dispatch({ t: 'setFarm', districtId, stage });
@@ -25,6 +41,11 @@ export function MapPage() {
   return (
     <div className="page">
       <h1 className="title-lg">{t('map.title')}</h1>
+      {noHome && (
+        <Panel title={t('home.pickTitle')}>
+          <p className="muted small">{t('home.pickSub')}</p>
+        </Panel>
+      )}
       {cfg.districts.map((d) => {
         const cleared = player.progress[d.id] ?? 0;
         const frontier = Math.min(cleared + 1, d.stageCount);
@@ -49,6 +70,19 @@ export function MapPage() {
             }
           >
             <p className="muted small">{t('map.cleared', { n: cleared, total: d.stageCount })}</p>
+            {player.homeDistrictId !== d.id && (
+              <button
+                className={`btn ${noHome ? 'primary' : ''}`}
+                disabled={!noHome && cooldown > 0}
+                onClick={() => setHome(d.id)}
+              >
+                {noHome
+                  ? t('home.set')
+                  : cooldown > 0
+                    ? t('home.cooldown', { n: cooldown })
+                    : t('home.change')}
+              </button>
+            )}
             {sets.has(d.id) && <p className="note good">{t('map.setBonus')}</p>}
             <div className="bestiary">
               {d.monsters.map((m) => {

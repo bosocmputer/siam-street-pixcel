@@ -1,5 +1,10 @@
 import { create } from 'zustand';
-import { defaultConfig as cfg, type ClaimReport, type PlayerState } from '@slimehood/game-core';
+import {
+  defaultConfig as cfg,
+  type ClaimReport,
+  type PlayerState,
+  type SlimeLook,
+} from '@slimehood/game-core';
 import type { Action, Backend } from './backend';
 import { LocalBackend } from './local';
 
@@ -21,7 +26,7 @@ interface GameStore {
   busy: boolean;
   backend: Backend;
   boot(): Promise<void>;
-  createPlayer(home: string): Promise<void>;
+  createPlayer(profile: { name: string; look: SlimeLook }): Promise<void>;
   dispatch(a: Action): Promise<{ ok: boolean; reason?: string; info?: Record<string, unknown> }>;
   setPage(p: Page): void;
   endIntro(): void;
@@ -47,8 +52,8 @@ export const useGame = create<GameStore>((set, get) => ({
     set({ player, ready: true });
   },
 
-  async createPlayer(home) {
-    const player = await get().backend.create(home);
+  async createPlayer(profile) {
+    const player = await get().backend.create(profile);
     set({ player, page: 'farm', intro: true });
   },
 

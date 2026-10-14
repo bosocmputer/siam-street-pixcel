@@ -9,9 +9,16 @@ declare global {
         formId: string;
         items: { uid: string; defId: string }[];
         skills: Record<string, { level: number }>;
+        name: string;
+        look: { color: string; eyes: number };
+        homeDistrictId: string | null;
       };
       advance(seconds: number): void;
       grant(defId: string, rarity?: string): void;
+      store: {
+        getState(): { player: object; setPage(p: string): void };
+        setState(s: object): void;
+      };
     };
   }
 }
@@ -34,11 +41,27 @@ test.afterEach(() => {
   expect(real).toEqual([]);
 });
 
-async function startGame(page: Page, districtIndex = 0) {
+/** Egg -> slime creator -> first monster -> farm. `name` is typed in; colour/eyes are picked by index. */
+async function createSlime(
+  page: Page,
+  opts: { name?: string; color?: number; eyes?: number } = {},
+) {
   await page.goto('/?debug=1');
   await page.click('.egg');
-  await page.locator('.district-card').nth(districtIndex).click();
-  await page.getByRole('button', { name: 'ย่านนี้แหละ!' }).click();
+  if (opts.name !== undefined) await page.getByRole('textbox').fill(opts.name);
+  await page
+    .locator('.swatch')
+    .nth(opts.color ?? 0)
+    .click();
+  await page
+    .locator('.eye-card')
+    .nth(opts.eyes ?? 0)
+    .click();
+}
+
+async function startGame(page: Page, opts: { name?: string; color?: number; eyes?: number } = {}) {
+  await createSlime(page, opts);
+  await page.getByRole('button', { name: 'ตัวนี้แหละ!' }).click();
   await page.getByRole('button', { name: 'กลืนเลย!' }).click();
   await page.getByRole('button', { name: 'ไปฟาร์มกัน' }).click();
   await expect(page.locator('.farm-canvas canvas')).toBeVisible();
@@ -47,24 +70,60 @@ async function startGame(page: Page, districtIndex = 0) {
 const tab = (page: Page, name: string) =>
   page.locator('.tabbar').getByRole('button', { name }).click();
 
-test('the first minute: hatch, pick a district, absorb, farm, with no sign-up', async ({
+test('the first minute: hatch, design the slime, absorb, farm, with no sign-up', async ({
   page,
 }) => {
   const t0 = Date.now();
-  await startGame(page, 1);
+  await startGame(page, { name: 'โมจิ', color: 3, eyes: 2 });
   const elapsed = Date.now() - t0;
   expect(elapsed).toBeLessThan(60_000);
   await expect(page.locator('input')).toHaveCount(0);
   const s = await page.evaluate(() => window.__slime.state);
   expect(s.level).toBe(1);
   expect(Object.keys(s.skills).length).toBe(1); // the first absorbed skill
+  expect(s.name).toBe('โมจิ');
+  expect(s.look).toEqual({ color: 'rose', eyes: 2 });
+  expect(s.homeDistrictId).toBeNull(); // no district question in the first minute
+  await expect(page.getByText('เลือกย่านเรา')).toHaveCount(0);
+});
+
+test('the creator shows the slime as you change it, and can suggest a name', async ({ page }) => {
+  await createSlime(page);
+  const preview = page.locator('.creator-preview img');
+  const first = await preview.getAttribute('src');
+  await page.locator('.swatch').nth(4).click();
+  const recoloured = await preview.getAttribute('src');
+  expect(recoloured).not.toBe(first);
+  await page.locator('.eye-card').nth(3).click();
+  expect(await preview.getAttribute('src')).not.toBe(recoloured);
+  await page.getByRole('textbox').fill('');
+  await page.getByRole('button', { name: 'สุ่มชื่อ' }).click();
+  expect((await page.getByRole('textbox').inputValue()).length).toBeGreaterThan(0);
+  await page.getByRole('textbox').fill('A'.repeat(40));
+  expect((await page.getByRole('textbox').inputValue()).length).toBeLessThanOrEqual(12);
+});
+
+test('the home district is chosen later on the map, free the first time', async ({ page }) => {
+  await startGame(page);
+  await page.evaluate(() => window.__slime.store.setState({ page: 'map' }));
+  await expect(page.getByText('ยังไม่มีย่านเรา')).toHaveCount(0); // tip only shows from level 3
+  await page.evaluate(() => {
+    const st = window.__slime.store.getState();
+    window.__slime.store.setState({ player: { ...st.player, level: 3 } });
+    window.__slime.store.getState().setPage('farm');
+  });
+  await page.getByRole('button', { name: 'ยังไม่มีย่านเรา ไปเลือกที่แผนที่' }).click();
+  await expect(page.getByText('ย่านที่คุณจะเชียร์')).toBeVisible();
+  await page.getByRole('button', { name: 'ตั้งเป็นย่านเรา' }).nth(2).click();
+  await expect(page.getByText('ย่านเราคือ')).toBeVisible();
+  const s = await page.evaluate(() => window.__slime.state);
+  expect(s.homeDistrictId).not.toBeNull();
+  await expect(page.getByRole('button', { name: /เปลี่ยนย่านเราได้อีกใน/ }).first()).toBeDisabled();
 });
 
 test('the first absorb makes a growth part appear on the slime straight away', async ({ page }) => {
-  await page.goto('/?debug=1');
-  await page.click('.egg');
-  await page.locator('.district-card').nth(0).click();
-  await page.getByRole('button', { name: 'ย่านนี้แหละ!' }).click();
+  await createSlime(page);
+  await page.getByRole('button', { name: 'ตัวนี้แหละ!' }).click();
   const before = await page.locator('.duel img[alt="สไลม์"]').getAttribute('src');
   await page.getByRole('button', { name: 'กลืนเลย!' }).click();
   await expect(page.getByText('งอกแล้ว!')).toBeVisible();
@@ -151,7 +210,7 @@ test('absorbing cores on the skills page unlocks more skills and equipping one w
 });
 
 test('at level 10 the slime can evolve and its form changes', async ({ page }) => {
-  await startGame(page, 0);
+  await startGame(page);
   await page.evaluate(() => window.__slime.advance(8 * 3600));
   await page.getByRole('button', { name: 'รับของออโต้' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'โอเค' }).click();
@@ -192,7 +251,6 @@ test('every page fits a 360px phone with no sideways scrolling', async ({ page }
 test('the map lets you change where the slime farms', async ({ page }) => {
   await startGame(page);
   await tab(page, 'แผนที่');
-  await expect(page.getByText('ย่านเรา').first()).toBeVisible();
   await expect(page.getByText('ยังหนักเกินไป').first()).toBeVisible(); // the later districts are far too hard at level 1
   await page.getByRole('button', { name: 'กำลังฟาร์มอยู่' }).first().click();
   await expect(page.getByText('ฟาร์มที่ด่าน 1')).toBeVisible();

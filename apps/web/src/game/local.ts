@@ -3,6 +3,7 @@ import {
   allocateStat,
   applyPreset,
   awaken,
+  chooseHome,
   claim,
   createNewPlayer,
   defaultConfig as cfg,
@@ -10,6 +11,7 @@ import {
   equipSkill,
   evolve,
   grantTutorialCores,
+  normalizeLook,
   resetStats,
   salvageItems,
   savePreset,
@@ -18,6 +20,7 @@ import {
   unequipSlot,
   upgradeItem,
   type PlayerState,
+  type SlimeLook,
 } from '@slimehood/game-core';
 import type { Action, ActionResult, Backend } from './backend';
 
@@ -40,7 +43,7 @@ function read(): string | null {
   }
 }
 
-function write(text: string): void {
+export function writeRaw(text: string): void {
   memory = text;
   try {
     localStorage.setItem(KEY, text);
@@ -49,12 +52,26 @@ function write(text: string): void {
   }
 }
 
+/** Saves from before the slime creator / optional home district get sensible defaults. */
+function migrate(state: PlayerState): PlayerState {
+  const old = state as Partial<PlayerState>;
+  return {
+    ...state,
+    name: old.name ?? '',
+    look: normalizeLook(old.look, cfg),
+    homeDistrictId: old.homeDistrictId ?? null,
+    homeChosenAt: old.homeChosenAt ?? null,
+  };
+}
+
 export function loadSave(): SaveFile | null {
   const raw = read();
   if (!raw) return null;
   try {
     const f = JSON.parse(raw) as SaveFile;
-    if (f && f.version === 1 && f.state && typeof f.state.level === 'number') return f;
+    if (f && f.version === 1 && f.state && typeof f.state.level === 'number') {
+      return { ...f, state: migrate(f.state) };
+    }
   } catch {
     /* corrupt save: start over rather than crash */
   }
@@ -74,8 +91,8 @@ export class LocalBackend implements Backend {
     return loadSave()?.state ?? null;
   }
 
-  async create(homeDistrictId: string): Promise<PlayerState> {
-    const state = grantTutorialCores(createNewPlayer(cfg, homeDistrictId, this.now()), cfg);
+  async create(profile: { name: string; look: SlimeLook }): Promise<PlayerState> {
+    const state = grantTutorialCores(createNewPlayer(cfg, null, this.now(), profile), cfg);
     this.claims = 0;
     this.persist(state);
     return state;
@@ -91,7 +108,7 @@ export class LocalBackend implements Backend {
   }
 
   private persist(state: PlayerState): void {
-    write(JSON.stringify({ version: 1, state, claims: this.claims } satisfies SaveFile));
+    writeRaw(JSON.stringify({ version: 1, state, claims: this.claims } satisfies SaveFile));
   }
 
   async exec(state: PlayerState, a: Action): Promise<ActionResult> {
@@ -143,6 +160,8 @@ export class LocalBackend implements Backend {
       }
       case 'setFarm':
         return wrap(setFarmTarget(state, a.districtId, a.stage, cfg));
+      case 'chooseHome':
+        return wrap(chooseHome(state, a.districtId, this.now(), cfg));
       case 'savePreset':
         return wrap(savePreset(state, a.index, cfg));
       case 'applyPreset':

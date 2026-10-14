@@ -1,4 +1,11 @@
-import type { ClaimReport, PlayerState, Rarity, Slot, StatKey } from '@slimehood/game-core';
+import type {
+  ClaimReport,
+  SlimeLook,
+  PlayerState,
+  Rarity,
+  Slot,
+  StatKey,
+} from '@slimehood/game-core';
 
 /** Every change a player can make. The local backend runs them with game-core; M4 sends them to the server. */
 export type Action =
@@ -16,7 +23,8 @@ export type Action =
   | { t: 'evolve'; formId: string }
   | { t: 'setFarm'; districtId: string; stage: number }
   | { t: 'savePreset'; index: number }
-  | { t: 'applyPreset'; index: number };
+  | { t: 'applyPreset'; index: number }
+  | { t: 'chooseHome'; districtId: string };
 
 export type ActionResult =
   | { ok: true; state: PlayerState; report?: ClaimReport; info?: Record<string, unknown> }
@@ -25,7 +33,8 @@ export type ActionResult =
 export interface Backend {
   /** Saved game, or null for a brand-new player. */
   load(): Promise<PlayerState | null>;
-  create(homeDistrictId: string): Promise<PlayerState>;
+  /** Start a new game with what the player picked in the creator. */
+  create(profile: { name: string; look: SlimeLook }): Promise<PlayerState>;
   exec(state: PlayerState, action: Action): Promise<ActionResult>;
   /** Server time in seconds (local clock in the local backend). */
   now(): number;

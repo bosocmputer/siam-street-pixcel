@@ -44,7 +44,8 @@ export function SlimePage() {
         <div className="hero-row">
           <SlimeSprite player={player} size={132} />
           <div className="hero-info">
-            <h1 className="title-lg">{nm('forms', form.id)}</h1>
+            <h1 className="title-lg">{player.name || t('slime.unnamed')}</h1>
+            <p className="muted small">{nm('forms', form.id)}</p>
             <p className="muted">{t('common.level', { n: player.level })}</p>
             {form.element && (
               <span className="chip">

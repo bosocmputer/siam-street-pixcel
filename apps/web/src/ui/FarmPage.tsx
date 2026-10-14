@@ -22,6 +22,7 @@ export function tipsFor(player: PlayerState) {
     cores,
     evolve: evolutionOptions(player, cfg).length > 0,
     awaken,
+    home: player.homeDistrictId === null && player.level >= cfg.balance.home.promptLevel,
   };
 }
 
@@ -130,6 +131,11 @@ export function FarmPage() {
         {tips.evolve && (
           <button className="tip hot" onClick={() => setPage('slime')}>
             {t('farm.tipEvolve')}
+          </button>
+        )}
+        {tips.home && (
+          <button className="tip hot" onClick={() => setPage('map')}>
+            {t('farm.tipHome')}
           </button>
         )}
         {tips.awaken > 0 && (

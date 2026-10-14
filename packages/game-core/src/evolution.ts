@@ -23,10 +23,8 @@ export function evolutionOptions(state: PlayerState, cfg: GameConfig): FormDef[]
     const total = ELEMENTS.reduce((s, e) => s + state.absorbedElements[e], 0);
     if (total < cfg.balance.evolution.minAbsorbForTier1) return [];
     // the element you absorbed most, plus the element of your home district ("ย่านเรา")
-    const open = new Set<Element>([
-      ...dominantElements(state),
-      getDistrict(cfg, state.homeDistrictId).element,
-    ]);
+    const open = new Set<Element>(dominantElements(state));
+    if (state.homeDistrictId) open.add(getDistrict(cfg, state.homeDistrictId).element);
     return candidates.filter((f) => f.element !== null && open.has(f.element));
   }
   return candidates;

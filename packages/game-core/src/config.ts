@@ -9,6 +9,7 @@ import items from '../config/items.json';
 import districts from '../config/districts.json';
 import bosses from '../config/bosses.json';
 import rules from '../config/rules.json';
+import looks from '../config/looks.json';
 import { ELEMENTS, type GameConfig } from './types';
 
 export const defaultConfig = {
@@ -23,6 +24,7 @@ export const defaultConfig = {
   districts,
   bosses,
   rules,
+  looks,
 } as unknown as GameConfig;
 
 /** Referential-integrity checks for a config. Returns a list of problems (empty = valid). */
@@ -113,6 +115,9 @@ export function validateConfig(cfg: GameConfig): string[] {
   if (cfg.balance.skills.activeSlots < 1 || cfg.balance.skills.passiveSlots < 1) {
     errs.push('skill slots must be >= 1');
   }
+  if (cfg.looks.colors.length < 2) errs.push('looks needs at least 2 colours');
+  dup('look colour', cfg.looks.colors);
+  if (cfg.looks.eyes < 1) errs.push('looks needs at least 1 eye style');
   void monsterIds;
   return errs;
 }
