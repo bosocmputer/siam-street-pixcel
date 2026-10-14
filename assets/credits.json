@@ -1,5 +1,5 @@
 {
-  "note": "ภาพทดลองสไตล์ M2.5 ข้อ 2.5.3 สร้างด้วย PixelLab (MCP) เมื่อ 2026-10-15 ยังไม่ได้รับการอนุมัติจากผู้สร้างให้ใช้ในเกมจริง seed ที่ระบุ null คือไม่ได้ส่ง seed และไม่ได้บันทึกค่าที่ระบบสุ่มให้ ต้นทุนวัดจากยอด generations ที่ลดลง/ที่ระบบรายงาน ไม่ใช่ราคาตามใบเสร็จ",
+  "note": "ภาพทดลองสไตล์ M2.5 ข้อ 2.5.3 (ใช้ generations ครบงบที่เหลือแล้ว) สร้างด้วย PixelLab (MCP) เมื่อ 2026-10-15 ยังไม่ได้รับการอนุมัติจากผู้สร้างให้ใช้ในเกมจริง seed ที่ระบุ null คือไม่ได้ส่ง seed และไม่ได้บันทึกค่าที่ระบบสุ่มให้ ต้นทุนวัดจากยอด generations ที่ลดลง/ที่ระบบรายงาน ไม่ใช่ราคาตามใบเสร็จ",
   "items": [
     {
       "file": "assets/trial/slime_a.png",
@@ -57,13 +57,41 @@
     },
     {
       "file": "assets/trial/tiles_market.png",
-      "tool": "create_topdown_tileset (standard, 16px, low top-down, transition_size 0.25, lineless, basic shading, medium detail) ได้ 16 ไทล์ sheet 64x64",
-      "prompt": "lower: dark purple-grey old brick pavement at night / upper: packed earth path with warm lantern light stains / transition: worn brick edges",
+      "tool": "create_topdown_tileset (standard, 16px, low top-down, transition_size 0.25, lineless, basic shading, medium detail) ได้ 16 ไทล์ sheet 64x64 — รอบที่ 2 แทนรอบแรกที่ไม่ตรง brief (ดู git history commit cf9b810)",
+      "prompt": "lower: dark desaturated purple-grey stone brick pavement, night colors / upper: flat packed brown dirt ground, dusty, no bricks, subtle dark speckles / transition: crumbled brick edges fading into dirt",
       "seed": null,
       "date": "2026-10-15",
-      "pixellab_id": "tileset 76607277-80b1-4e39-b7f1-82c8b790f31c (base tile lower 06bde158-6c2e-4843-b7de-5cd8522e57c0, upper 67dea5d6-920b-44fb-ad81-cae56e68c833)",
-      "generations": 4
+      "pixellab_id": "tileset 014c6def-f039-46bc-84ad-fbf61c4f20c3 (base tile lower 94bb8874-d026-42b9-a98d-bf566dd63772, upper 02fe9115-1cdd-4603-b737-fe65a6b2afed); รอบแรกที่ถูกแทนที่: 76607277-80b1-4e39-b7f1-82c8b790f31c (4 generations)",
+      "generations": 4,
+      "extra_generations_replaced_version": 4
+    },
+    {
+      "file": "assets/trial/slime_b_idle.png",
+      "tool": "animate_image (frame_count 4) sprite sheet 5 เฟรมแนวนอน 240x48 ประกอบเองด้วย Pillow (เฟรม 0 = ภาพต้นฉบับ เฟรม 1-4 = ที่สร้างใหม่) จาก slime_b.png",
+      "prompt": "gentle idle bounce, jelly body squashes down slightly then stretches up, face stays the same, looping",
+      "seed": null,
+      "date": "2026-10-15",
+      "pixellab_id": "image job 40463205-ef6b-4376-b064-887cc868a659 / asset 3f715fbb-7c0f-59f7-8bb3-6cb03166c224",
+      "generations": 1
+    },
+    {
+      "file": "assets/trial/slime_b_gulp.png",
+      "tool": "animate_image (frame_count 4) sprite sheet 5 เฟรมแนวนอน 240x48 ประกอบเองด้วย Pillow (เฟรม 0 = ภาพต้นฉบับ เฟรม 1-4 = ที่สร้างใหม่) จาก slime_b.png (ท่ากลืน)",
+      "prompt": "gulping: body stretches wide and flat as if swallowing something, then bulges up and settles back, face stays the same",
+      "seed": null,
+      "date": "2026-10-15",
+      "pixellab_id": "image job cb1fdaf2-0f1c-423e-98d4-882b3412ad03 / asset 3afbe176-9c36-504d-be1c-007cfb13f4c4",
+      "generations": 1
+    },
+    {
+      "file": "assets/trial/monster_brick_imp_idle.png",
+      "tool": "animate_image (frame_count 4) sprite sheet 5 เฟรมแนวนอน 240x48 ประกอบเองด้วย Pillow (เฟรม 0 = ภาพต้นฉบับ เฟรม 1-4 = ที่สร้างใหม่) จาก monster_brick_imp.png",
+      "prompt": "small idle stomp, brick body bobs up and down slightly, horns and angry face stay the same, looping",
+      "seed": null,
+      "date": "2026-10-15",
+      "pixellab_id": "image job 7635eaf4-aeb2-4f7c-9d02-f81629477643 / asset 63719d52-1411-5ebb-8892-a21afed68622",
+      "generations": 1
     }
   ],
-  "total_generations": 30
+  "total_generations": 37
 }
