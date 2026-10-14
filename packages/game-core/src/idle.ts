@@ -333,6 +333,61 @@ export function claim(
   return { ok: true, state: st, report };
 }
 
+export interface FarmStatus {
+  districtId: string;
+  targetStage: number; // what the player picked (never above the frontier)
+  farmedStage: number; // what the slime can actually farm right now (0 = stuck)
+  stuck: boolean;
+  killsPerSecond: number;
+  frontierKills: number; // kills already made towards the next stage
+  killsNeeded: number; // kills needed to clear the frontier stage
+  districtCleared: boolean;
+  hint?: Hint;
+}
+
+/** What the slime is doing right now, without claiming anything (for the farm screen). */
+export function farmStatus(
+  state: PlayerState,
+  cfg: GameConfig,
+  ctx: FightContext = {},
+): FarmStatus {
+  const district = getDistrict(cfg, state.farm.districtId);
+  const d = computeDerived(state, cfg);
+  const cleared = state.progress[district.id] ?? 0;
+  const frontier = Math.min(cleared + 1, district.stageCount);
+  const target = Math.min(state.farm.stage, frontier);
+  const monsters = district.monsters.map((m) => ({ def: getMonster(cfg, m.id), weight: m.weight }));
+  const total = monsters.reduce((sum, m) => sum + m.weight, 0);
+  const evalStage = (stage: number) => {
+    let ok = true;
+    let cycle = 0;
+    for (const m of monsters) {
+      const f = evaluateFight(d, m.def, stage, district.stageOffset, cfg, ctx);
+      if (!f.survives) ok = false;
+      cycle += (m.weight / total) * f.killCycle;
+    }
+    return { ok, kps: ok ? 1 / cycle : 0 };
+  };
+  let eff = target;
+  let ev = evalStage(eff);
+  while (!ev.ok && eff > 1) {
+    eff -= 1;
+    ev = evalStage(eff);
+  }
+  const stuck = !ev.ok;
+  return {
+    districtId: district.id,
+    targetStage: target,
+    farmedStage: stuck ? 0 : eff,
+    stuck,
+    killsPerSecond: stuck ? 0 : ev.kps,
+    frontierKills: state.frontierKills[district.id] ?? 0,
+    killsNeeded: killsForStage(frontier, cfg, district.killMult),
+    districtCleared: cleared >= district.stageCount,
+    hint: stuck || eff < target ? diagnoseStage(d, district.id, target, cfg, ctx) : undefined,
+  };
+}
+
 /** Choose which stage to farm (never above the frontier) and which district. */
 export function setFarmTarget(
   state: PlayerState,

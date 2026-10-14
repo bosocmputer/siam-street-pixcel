@@ -9,12 +9,14 @@
     "test": "vitest run --passWithNoTests",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --port 4173 --strictPort",
-    "e2e": "playwright test"
+    "e2e": "vite build && playwright test"
   },
   "dependencies": {
     "@slimehood/game-core": "workspace:*",
+    "phaser": "3.90.0",
     "react": "18.3.1",
-    "react-dom": "18.3.1"
+    "react-dom": "18.3.1",
+    "zustand": "4.5.5"
   },
   "devDependencies": {
     "@playwright/test": "1.56.1",
@@ -22,6 +24,7 @@
     "@types/react-dom": "18.3.1",
     "@vitejs/plugin-react": "4.3.4",
     "vite": "5.4.11",
+    "vite-plugin-pwa": "0.21.1",
     "vitest": "2.1.8"
   }
 }

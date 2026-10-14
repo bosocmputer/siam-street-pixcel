@@ -6,6 +6,7 @@ import {
   diagnoseStage,
   equipSkill,
   evaluateFight,
+  farmStatus,
   getDistrict,
   getMonster,
   killsForStage,
@@ -252,6 +253,48 @@ describe('partial stage progress', () => {
     expect(mid).toBeLessThan(need);
     const second = must(claim(first.state, 4 * H, 's2', cfg));
     expect(second.report.kills).toBeGreaterThan(0);
+  });
+});
+
+describe('farmStatus', () => {
+  it('reports what the slime is farming without changing anything', () => {
+    const s = fresh();
+    const copy = structuredClone(s);
+    const st = farmStatus(s, cfg);
+    expect(s).toEqual(copy);
+    expect(st.districtId).toBe('wiang');
+    expect(st.stuck).toBe(false);
+    expect(st.farmedStage).toBe(1);
+    expect(st.killsPerSecond).toBeGreaterThan(0);
+    expect(st.killsNeeded).toBe(killsForStage(1, cfg, 1));
+    expect(st.districtCleared).toBe(false);
+  });
+
+  it('says stuck, with a hint, when the district is far too hard', () => {
+    const s = fresh();
+    s.farm.districtId = 'nimman';
+    const st = farmStatus(s, cfg);
+    expect(st.stuck).toBe(true);
+    expect(st.farmedStage).toBe(0);
+    expect(st.killsPerSecond).toBe(0);
+    expect(st.hint).toBeDefined();
+  });
+
+  it('agrees with what claim actually does', () => {
+    const s = fresh();
+    s.progress.wiang = 29;
+    s.farm.stage = 30;
+    const st = farmStatus(s, cfg);
+    const r = must(claim(s, 2 * H, 'x', cfg)).report;
+    expect(r.farmedStage).toBe(st.farmedStage);
+    expect(r.stuck).toBe(st.stuck);
+  });
+
+  it('knows when a district is finished', () => {
+    const s = strong(80);
+    s.progress.wiang = 30;
+    s.farm.stage = 30;
+    expect(farmStatus(s, cfg).districtCleared).toBe(true);
   });
 });
 
