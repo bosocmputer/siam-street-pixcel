@@ -1,5 +1,9 @@
 import {
   absorb,
+  awaken,
+  awakenOptions,
+  awakenReady,
+  getSkill,
   allocateStat,
   applyPreset as _applyPreset,
   computeDerived,
@@ -135,6 +139,31 @@ export function playSession(
     if (r.ok) {
       s = r.state;
       if (r.unlocked) log.push(`unlock:${r.skillId}`);
+    }
+  }
+
+  // 1b. awaken skills whose gauge is full: try every choice and keep the one that farms best
+  for (const id of Object.keys(s.skills)) {
+    if (!awakenReady(s, id, cfg)) continue;
+    const kind = getSkill(cfg, id).kind;
+    const farmNow = chooseFarm(s, cfg);
+    let best: PlayerState | null = null;
+    let bestScore = -Infinity;
+    let bestChoice = '';
+    for (const choice of awakenOptions(getSkill(cfg, id), cfg)) {
+      const r = awaken(s, id, choice, cfg);
+      if (!r.ok) continue;
+      const tuned = bestSkills(r.state, cfg, kind, farmNow.districtId, farmNow.stage);
+      const score = farmScore(tuned, cfg, farmNow.districtId, farmNow.stage);
+      if (score > bestScore) {
+        bestScore = score;
+        best = r.state;
+        bestChoice = choice;
+      }
+    }
+    if (best) {
+      s = best;
+      log.push(`awaken:${id}:${bestChoice}`);
     }
   }
 

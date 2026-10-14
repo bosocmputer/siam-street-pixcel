@@ -44,6 +44,10 @@ describe('Thai names for every piece of game content', () => {
       ...missing('rarities', RARITIES),
       ...missing('slots', SLOTS),
       ...missing('stats', STAT_KEYS),
+      ...missing('tags', [
+        ...new Set([...cfg.skills.flatMap((x) => x.tags), ...cfg.balance.skills.awakenTags]),
+      ]),
+      ...missing('awaken', ['power', 'swift', 'boost', 'tag']),
     ];
     expect(gaps).toEqual([]);
   });

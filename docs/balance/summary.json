@@ -1,6 +1,6 @@
 {
   "diligent": {
-    "finalLevel": 71,
+    "finalLevel": 70,
     "finalForm": "slime_wall",
     "skillsOwned": 14,
     "clearedStages": 86,
@@ -8,10 +8,10 @@
       "firstAbsorbSec": 30,
       "level10At": 0.010416666666666666,
       "evolve1At": 0.010416666666666666,
-      "evolve2At": 3.5416666666666665,
-      "level30At": 3.5416666666666665,
-      "level60At": 20.541666666666668,
-      "firstDistrictClearedAt": 6.375
+      "evolve2At": 3.9166666666666665,
+      "level30At": 3.9166666666666665,
+      "level60At": 21.375,
+      "firstDistrictClearedAt": 6.916666666666667
     }
   },
   "normal": {
@@ -25,23 +25,23 @@
       "evolve1At": 0.010416666666666666,
       "evolve2At": 4.166666666666667,
       "level30At": 4.166666666666667,
-      "level60At": 22.958333333333332,
-      "firstDistrictClearedAt": 7.166666666666667
+      "level60At": 23.166666666666668,
+      "firstDistrictClearedAt": 7.458333333333333
     }
   },
   "rare": {
-    "finalLevel": 36,
+    "finalLevel": 43,
     "finalForm": "slime_wall",
-    "skillsOwned": 8,
-    "clearedStages": 34,
+    "skillsOwned": 11,
+    "clearedStages": 49,
     "milestones": {
       "firstAbsorbSec": 30,
       "level10At": 0.010416666666666666,
       "evolve1At": 0.010416666666666666,
-      "evolve2At": 18.458333333333332,
-      "level30At": 18.458333333333332,
+      "evolve2At": 12.458333333333334,
+      "level30At": 12.458333333333334,
       "level60At": null,
-      "firstDistrictClearedAt": null
+      "firstDistrictClearedAt": 22.458333333333332
     }
   }
 }

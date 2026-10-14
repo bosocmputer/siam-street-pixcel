@@ -57,6 +57,21 @@ export function rarityIndex(r: Rarity): number {
   return RARITIES.indexOf(r);
 }
 
+/** Like rollItem, but never below `min` (used for guaranteed rewards). */
+export function rollItemAtLeast(
+  stage: number,
+  cfg: GameConfig,
+  rng: Rng,
+  uid: string,
+  min: Rarity,
+): ItemInstance {
+  const pool = cfg.items.filter((i) => i.minStage <= stage);
+  const def = pool[Math.min(pool.length - 1, Math.floor(rng() * pool.length))] as ItemDef;
+  const floor = rarityIndex(min);
+  const weights = rarityWeights(stage, cfg).map((w, i) => (i < floor ? 0 : w));
+  return { uid, defId: def.id, rarity: RARITIES[pickWeighted(weights, rng)] as Rarity, upgrade: 0 };
+}
+
 export function upgradeCost(inst: ItemInstance, cfg: GameConfig) {
   const i = cfg.balance.items;
   const def = getItemDef(cfg, inst.defId);

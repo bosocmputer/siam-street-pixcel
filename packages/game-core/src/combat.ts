@@ -44,11 +44,11 @@ export function playerDps(
     (1 + styleDot);
 
   let skills = 0;
-  for (const { def, level } of d.actives) {
-    const cd = (def.cooldown ?? 1) * (1 - d.cdr);
+  for (const { def, level, powerMult, cdMult } of d.actives) {
+    const cd = (def.cooldown ?? 1) * cdMult * (1 - d.cdr);
     const dot = (def.effects.dotMult ?? 0) > 0 ? (def.effects.dotMult ?? 0) + d.combo.dotMult : 0;
     skills +=
-      ((d.atk * d.skillPow * d.style.skillMult * skillPowerAt(def, level, cfg)) / cd) *
+      ((d.atk * d.skillPow * d.style.skillMult * skillPowerAt(def, level, cfg) * powerMult) / cd) *
       critMult *
       elementMult(def.element, targetEl, cfg) *
       ruleDmg(ctx.rule, def.element) *

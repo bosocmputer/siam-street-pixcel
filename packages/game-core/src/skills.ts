@@ -12,6 +12,56 @@ export function coresNeeded(level: number, cfg: GameConfig): number {
   return level === 0 ? s.unlockCores : s.levelUpCoresBase * level;
 }
 
+function isAwakenReady(
+  entry: { level: number; progress: number; awakened?: string },
+  cfg: GameConfig,
+): boolean {
+  return (
+    entry.level >= cfg.balance.skills.maxLevel &&
+    !entry.awakened &&
+    entry.progress >= cfg.balance.skills.awakenCores
+  );
+}
+
+/** Choices offered when a skill awakens ("ตื่นพลัง"): stronger, faster, or a new combo tag. */
+export function awakenOptions(def: SkillDef, cfg: GameConfig): string[] {
+  const base = def.kind === 'active' ? ['power', 'swift'] : ['boost'];
+  const tags = cfg.balance.skills.awakenTags
+    .filter((t) => !def.tags.includes(t))
+    .map((t) => `tag:${t}`);
+  return [...base, ...tags];
+}
+
+export function awakenReady(state: PlayerState, skillId: string, cfg: GameConfig): boolean {
+  const entry = state.skills[skillId];
+  return !!entry && isAwakenReady(entry, cfg);
+}
+
+export type AwakenFail = 'notOwned' | 'notReady' | 'badChoice';
+
+/** Spend a full awakening gauge to pick how the skill evolves. The choice is permanent. */
+export function awaken(
+  state: PlayerState,
+  skillId: string,
+  choice: string,
+  cfg: GameConfig,
+): Result<{ state: PlayerState }, AwakenFail> {
+  const entry = state.skills[skillId];
+  if (!entry || entry.level < 1 || !hasSkill(cfg, skillId))
+    return { ok: false, reason: 'notOwned' };
+  if (!isAwakenReady(entry, cfg)) return { ok: false, reason: 'notReady' };
+  if (!awakenOptions(getSkill(cfg, skillId), cfg).includes(choice)) {
+    return { ok: false, reason: 'badChoice' };
+  }
+  const next = structuredClone(state);
+  const target = next.skills[skillId];
+  if (target) {
+    target.awakened = choice;
+    target.progress = 0;
+  }
+  return { ok: true, state: next };
+}
+
 export type AbsorbFail = 'noCores' | 'invalidAmount';
 
 export interface AbsorbResult {
@@ -20,6 +70,7 @@ export interface AbsorbResult {
   unlocked: boolean;
   level: number;
   absorbed: number;
+  awakenReady: boolean;
 }
 
 /**
@@ -59,7 +110,12 @@ export function absorb(
       entry.progress = 0;
     }
   }
-  if (entry.level >= cfg.balance.skills.maxLevel) entry.progress = 0;
+  if (entry.level >= cfg.balance.skills.maxLevel) {
+    // cores beyond max level fill the awakening gauge
+    entry.progress = entry.awakened
+      ? 0
+      : Math.min(cfg.balance.skills.awakenCores, entry.progress + left);
+  }
   next.skills[m.skillId] = entry;
   return {
     ok: true,
@@ -68,6 +124,7 @@ export function absorb(
     unlocked: wasLocked && entry.level >= 1,
     level: entry.level,
     absorbed: n,
+    awakenReady: isAwakenReady(entry, cfg),
   };
 }
 

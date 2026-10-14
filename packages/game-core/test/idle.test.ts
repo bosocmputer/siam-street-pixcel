@@ -44,11 +44,12 @@ describe('claim: determinism and idempotence', () => {
     expect(a.report).toEqual(b.report);
   });
 
-  it('different seeds can differ in drops but never in kills or exp', () => {
+  it('different seeds can differ in drops and lucky golden monsters, but never in kills', () => {
     const a = must(claim(fresh(), 4 * H, 'seed-a', cfg));
     const b = must(claim(fresh(), 4 * H, 'seed-b', cfg));
     expect(a.report.kills).toBe(b.report.kills);
-    expect(a.report.exp).toBe(b.report.exp);
+    expect(a.report.exp / b.report.exp).toBeGreaterThan(0.7); // only golden-monster luck differs
+    expect(a.report.exp / b.report.exp).toBeLessThan(1.4);
   });
 
   it('a second claim right away is refused and changes nothing', () => {
@@ -79,22 +80,37 @@ describe('claim: determinism and idempotence', () => {
   });
 });
 
-describe('claim: the offline cap and the welcome-back gift', () => {
-  it('ignores time beyond the cap', () => {
-    const capped = must(claim(fresh(), cfg.balance.idle.capSeconds, 's', cfg));
-    const longer = must(claim(fresh(), cfg.balance.idle.capSeconds + 2 * H, 's', cfg));
-    expect(longer.report.effectiveSeconds).toBe(cfg.balance.idle.capSeconds);
-    expect(longer.report.exp).toBe(capped.report.exp);
+describe('claim: the offline cap and rested time', () => {
+  const idle = cfg.balance.idle;
+
+  it('time beyond the cap still counts, but at a reduced rate', () => {
+    const capped = must(claim(fresh(), idle.capSeconds, 's', cfg)).report;
+    const away = must(claim(fresh(), idle.capSeconds + 6 * H, 's', cfg)).report;
+    expect(capped.restedSeconds).toBe(0);
+    expect(away.restedSeconds).toBeCloseTo(6 * H * idle.restedRate);
+    expect(away.effectiveSeconds).toBeGreaterThan(capped.effectiveSeconds);
+    expect(away.effectiveSeconds).toBeLessThan(idle.capSeconds + 6 * H);
   });
 
-  it('gives a welcome-back bonus only after a long absence, and never more than what was lost', () => {
-    const away = cfg.balance.idle.welcomeBackAfterSeconds + 6 * H;
-    const r = must(claim(fresh(), away, 's', cfg)).report;
-    expect(r.welcomeBackSeconds).toBeGreaterThan(0);
-    expect(r.welcomeBackSeconds).toBeLessThanOrEqual(away - cfg.balance.idle.capSeconds);
-    expect(r.welcomeBackSeconds).toBeLessThanOrEqual(cfg.balance.idle.welcomeBackMaxBonusSeconds);
-    const normal = must(claim(fresh(), 2 * 86400, 's', cfg)).report;
-    expect(normal.welcomeBackSeconds).toBe(0);
+  it('rested time is limited, so a very long absence cannot be farmed', () => {
+    const r = must(claim(fresh(), 60 * 86400, 's', cfg)).report;
+    expect(r.restedSeconds).toBeCloseTo(idle.restedMaxSeconds * idle.restedRate);
+    expect(r.effectiveSeconds).toBeLessThanOrEqual(
+      idle.capSeconds + idle.restedMaxSeconds * idle.restedRate + 1e-6,
+    );
+  });
+
+  it('opening the app often is never worse per hour than being away', () => {
+    // 3 days away: frequent players earn far more than one big late claim
+    let s = fresh();
+    let often = 0;
+    for (let h = 8; h <= 72; h += 8) {
+      const r = must(claim(s, h * H, `o${h}`, cfg));
+      s = r.state;
+      often += r.report.exp;
+    }
+    const once = must(claim(fresh(), 72 * H, 's', cfg)).report.exp;
+    expect(often).toBeGreaterThan(once);
   });
 });
 
@@ -300,7 +316,9 @@ describe('claim: invariants over random players and times (property-based)', () 
         if (state.level > cfg.balance.maxLevel || state.level < s.level) return false;
         if (
           report.effectiveSeconds >
-          cfg.balance.idle.capSeconds + cfg.balance.idle.welcomeBackMaxBonusSeconds
+          cfg.balance.idle.capSeconds +
+            cfg.balance.idle.restedMaxSeconds * cfg.balance.idle.restedRate +
+            1e-6
         )
           return false;
         const district = getDistrict(cfg, state.farm.districtId);
@@ -338,5 +356,80 @@ describe('claim: invariants over random players and times (property-based)', () 
     const eq = equipSkill(s, 'active', 0, 'brick_smash', cfg);
     if (!eq.ok) throw new Error('equip');
     expect(claim(eq.state, 8 * H, 's', cfg).ok).toBe(true);
+  });
+});
+
+describe('golden monsters', () => {
+  const lucky = structuredClone(cfg);
+  lucky.balance.rewards.golden.chance = 1; // every kill is golden
+  const none = structuredClone(cfg);
+  none.balance.rewards.golden.chance = 0;
+
+  it('are counted, deterministic and never negative', () => {
+    const a = must(claim(fresh(), 4 * H, 's', lucky));
+    const b = must(claim(fresh(), 4 * H, 's', lucky));
+    expect(a.report.golden.count).toBeGreaterThan(0);
+    expect(a.report.golden).toEqual(b.report.golden);
+    const byMonster = Object.values(a.report.golden.byMonster).reduce((x, y) => x + y, 0);
+    expect(byMonster).toBe(a.report.golden.count);
+  });
+
+  it('give a burst of exp, coins and cores compared with no golden monsters', () => {
+    const base = must(claim(fresh(), 4 * H, 's', none)).report;
+    const gold = must(claim(fresh(), 4 * H, 's', lucky)).report;
+    expect(base.golden.count).toBe(0);
+    expect(gold.exp).toBeGreaterThan(base.exp * 3);
+    expect(gold.coins).toBeGreaterThan(base.coins * 3);
+    const coresOf = (r: ClaimReport) => Object.values(r.cores).reduce((x, y) => x + y, 0);
+    expect(coresOf(gold)).toBeGreaterThan(coresOf(base));
+  });
+});
+
+describe('stage milestones', () => {
+  // make monsters trivial and stages short so one claim clears many stages
+  const easy = structuredClone(cfg);
+  easy.balance.combat.hpStep = 0;
+  easy.balance.combat.atkStep = 0;
+  easy.balance.idle.killsPerStage = 1;
+  easy.balance.idle.killsPerStageGrowth = 1;
+  easy.balance.rewards.itemDropChance = 0; // every item below comes from a milestone
+  easy.balance.rewards.golden.chance = 0;
+  for (const d of easy.districts) d.killMult = 1;
+
+  it('pay out on every 5th stage and on the last stage', () => {
+    const s = strong(60);
+    const r = must(claim(s, 8 * H, 's', easy)).report;
+    const stages = r.milestones.map((m) => m.stage);
+    expect(stages.length).toBeGreaterThan(0);
+    for (const m of r.milestones) {
+      expect(m.stage % 5 === 0 || m.final).toBe(true);
+      expect(r.stagesCleared).toContain(m.stage);
+    }
+  });
+
+  it('guarantee at least a good item, and at least a rare one for finishing the district', () => {
+    const s = strong(80);
+    s.autoSalvageBelow = null;
+    for (let i = 0; i < 100; i++)
+      s.items.push({ uid: `x${i}`, defId: 'ngob', rarity: 'common', upgrade: 0 });
+    s.progress.wiang = 25;
+    s.farm.stage = 26;
+    // a roomy bag so nothing is salvaged
+    easy.balance.inventory.baseCapacity = 500;
+    const r = must(claim(s, 8 * H, 's', easy)).report;
+    const rank = ['common', 'good', 'rare', 'legend'];
+    expect(r.items.length).toBe(r.milestones.length);
+    r.items.forEach((it, i) => {
+      const final = r.milestones[i]?.final ?? false;
+      expect(rank.indexOf(it.rarity)).toBeGreaterThanOrEqual(rank.indexOf(final ? 'rare' : 'good'));
+    });
+    expect(r.milestones.some((m) => m.final)).toBe(true);
+  });
+
+  it('also give cores of every monster in the district', () => {
+    const s = strong(60);
+    const r = must(claim(s, 8 * H, 's', easy)).report;
+    for (const m of getDistrict(easy, 'wiang').monsters)
+      expect(r.cores[m.id] ?? 0).toBeGreaterThan(0);
   });
 });

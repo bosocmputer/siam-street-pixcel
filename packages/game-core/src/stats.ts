@@ -16,6 +16,10 @@ import {
 export interface EquippedSkill {
   def: SkillDef;
   level: number;
+  powerMult: number; // awakening: stronger
+  cdMult: number; // awakening: faster
+  extraTag: string | null; // awakening: an extra tag for combos
+  effectMult: number; // awakening: passive boost
 }
 
 export interface Derived {
@@ -44,7 +48,7 @@ export interface Derived {
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
 /** Count tags over the equipped skills and merge the matching combo bonuses. */
-export function comboMods(skills: SkillDef[], cfg: GameConfig): Required<ComboMods> {
+export function comboMods(skills: { tags: string[] }[], cfg: GameConfig): Required<ComboMods> {
   const counts = new Map<string, number>();
   for (const s of skills) for (const t of new Set(s.tags)) counts.set(t, (counts.get(t) ?? 0) + 1);
   const out: Required<ComboMods> = {
@@ -122,13 +126,24 @@ export function computeDerived(state: PlayerState, cfg: GameConfig): Derived {
       if (!id) return [];
       const owned = state.skills[id];
       if (!owned || owned.level < 1) return [];
-      return [{ def: getSkill(cfg, id), level: owned.level }];
+      const a = owned.awakened;
+      const sk = cfg.balance.skills;
+      return [
+        {
+          def: getSkill(cfg, id),
+          level: owned.level,
+          powerMult: a === 'power' ? sk.awakenPowerMult : 1,
+          cdMult: a === 'swift' ? sk.awakenCooldownMult : 1,
+          extraTag: a?.startsWith('tag:') ? a.slice(4) : null,
+          effectMult: a === 'boost' ? sk.awakenPassiveMult : 1,
+        },
+      ];
     });
   const actives = equipped(state.activeSkills);
   const passives = equipped(state.passiveSkills);
   const all = [...actives, ...passives];
   const combo = comboMods(
-    all.map((x) => x.def),
+    all.map((x) => ({ tags: x.extraTag ? [...x.def.tags, x.extraTag] : x.def.tags })),
     cfg,
   );
 
@@ -140,16 +155,16 @@ export function computeDerived(state: PlayerState, cfg: GameConfig): Derived {
   let lifesteal = 0;
   let slow = 0;
   let reflect = style.reflect;
-  for (const { def } of all) {
+  for (const { def, effectMult } of all) {
     const f = def.effects;
-    atkBonus += f.atkBonus ?? 0;
-    hpBonus += f.hpBonus ?? 0;
-    defBonus += f.defBonus ?? 0;
-    speedBonus += f.atkSpeedBonus ?? 0;
-    critBonus += f.critBonus ?? 0;
-    lifesteal += f.lifesteal ?? 0;
-    slow = Math.max(slow, f.slow ?? 0);
-    reflect += f.reflect ?? 0;
+    atkBonus += (f.atkBonus ?? 0) * effectMult;
+    hpBonus += (f.hpBonus ?? 0) * effectMult;
+    defBonus += (f.defBonus ?? 0) * effectMult;
+    speedBonus += (f.atkSpeedBonus ?? 0) * effectMult;
+    critBonus += (f.critBonus ?? 0) * effectMult;
+    lifesteal += (f.lifesteal ?? 0) * effectMult;
+    slow = Math.max(slow, (f.slow ?? 0) * effectMult);
+    reflect += (f.reflect ?? 0) * effectMult;
   }
   lifesteal += combo.lifesteal;
   slow += combo.slow;

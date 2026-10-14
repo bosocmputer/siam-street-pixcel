@@ -45,6 +45,7 @@ interface DayRow {
   bestiary: number;
   coins: number;
   bossDamage: number;
+  awakened: number;
 }
 
 interface Milestones {
@@ -78,6 +79,7 @@ function simulate(p: Profile, home = 'wiang', prefer: Element | null = null, nai
   const reports: { t: number; report: ClaimReport }[] = [];
   let evolutions = 0;
   let bossToday = 0;
+  const totals = { golden: 0, milestones: 0, restedHours: 0, claims: 0 };
   let n = 0;
 
   const note = (now: number, log: string[], state: PlayerState) => {
@@ -103,6 +105,10 @@ function simulate(p: Profile, home = 'wiang', prefer: Element | null = null, nai
     if (!r.ok) return;
     s = r.state;
     bossToday += r.report.bossDamage;
+    totals.golden += r.report.golden.count;
+    totals.milestones += r.report.milestones.length;
+    totals.restedHours += r.report.restedSeconds / 3600;
+    totals.claims += 1;
     reports.push({ t: now, report: r.report });
     const played = playSession(s, cfg, undefined, n, prefer, naive);
     s = played.state;
@@ -129,10 +135,11 @@ function simulate(p: Profile, home = 'wiang', prefer: Element | null = null, nai
       bestiary: Object.keys(s.bestiary).length,
       coins: s.coins,
       bossDamage: Math.round(bossToday),
+      awakened: Object.values(s.skills).filter((x) => x.awakened).length,
     });
     bossToday = 0;
   }
-  return { days, ms, final: s };
+  return { days, ms, final: s, totals };
 }
 
 const results = profiles.map((p) => ({ p, ...simulate(p) }));
@@ -149,7 +156,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const outDir = resolve(here, '../../../docs/balance');
 mkdirSync(outDir, { recursive: true });
 
-const header = 'profile,day,level,form,skills,clearedStages,bestiary,coins,bossDamage';
+const header = 'profile,day,level,form,skills,clearedStages,bestiary,coins,bossDamage,awakened';
 const csv = [header, ...results.flatMap((r) => r.days.map((d) => Object.values(d).join(',')))].join(
   '\n',
 );
@@ -266,6 +273,7 @@ const at = (id: string, day: number) => byId(id)?.days.find((d) => d.day === day
 const notes = [
   `ที่วันที่ 30 ผู้เล่นขยันผ่านไป ${lastRow(byId('diligent') ?? results[0]!).clearedStages}/120 ด่าน ปกติ ${at('normal', 30)?.clearedStages}/120 นาน ๆ ที ${at('rare', 30)?.clearedStages}/120 จึงยังมีเนื้อหาเหลือหลังวันที่ 30 สำหรับสองแบบแรก แต่ไม่มากเกินไป`,
   `ผู้เล่นนาน ๆ ที (เปิดทุก 2 วัน) เลเวล ${at('rare', 14)?.level} ที่วันที่ 14 เทียบกับปกติ ${at('normal', 14)?.level} เพราะของออโต้สะสมได้สูงสุด ${(cfg.balance.idle.capSeconds / 3600).toFixed(0)} ชม. ต่อครั้ง`,
+  `ระบบใหม่ที่ใส่เพิ่ม (นับใน 30 วัน ผู้เล่นปกติ): มอนทอง ${byId('normal')?.totals.golden} ตัว · หมุดหมายด่าน ${byId('normal')?.totals.milestones} ครั้ง · พลังสะสมนอกเวลารวม ${byId('normal')?.totals.restedHours.toFixed(0)} ชม. · สกิลที่ตื่นพลังแล้ว ${at('normal', 30)?.awakened} ตัวที่วันที่ 30 (ขยัน ${at('diligent', 30)?.awakened}, นาน ๆ ที ${at('rare', 30)?.awakened})`,
   'ผลนี้มาจากนโยบายผู้เล่นจำลอง (ใส่ของที่ดีที่สุด กลืนทุกอย่าง เดินตามลำดับย่าน สลับไปย่านอื่นเพื่อเก็บสกิลสลับรอบ) คนจริงจะต่างจากนี้ โดยเฉพาะการเลือกธาตุ สกิล และจังหวะเข้าเล่น',
   `ผู้เล่นที่ไม่แตะสกิลและของเลย ไปได้แค่ ${naiveRun.days.find((d) => d.day === 14)?.clearedStages}/120 ด่านที่วันที่ 14 เทียบกับผู้เล่นปกติ ${at('normal', 14)?.clearedStages}/120 แปลว่าการเลือกบิลด์มีผลจริง`,
   'ยังไม่ได้จำลองกฎย่านรายสัปดาห์ (ใช้ “ไม่มีกฎ” ตลอด), การแบกเพื่อน, และคนที่เลิกเล่นกลางทาง',

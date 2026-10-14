@@ -187,8 +187,9 @@ export interface BalanceConfig {
     killsPerStage: number;
     killsPerStageGrowth: number;
     minClaimIntervalSeconds: number;
-    welcomeBackAfterSeconds: number;
-    welcomeBackMaxBonusSeconds: number;
+    // time beyond the offline cap still counts at `restedRate`, up to `restedMaxSeconds` extra
+    restedRate: number;
+    restedMaxSeconds: number;
   };
   rewards: {
     expGrowth: number;
@@ -200,6 +201,20 @@ export interface BalanceConfig {
     rarityStageShift: number;
     salvageJelly: Record<Rarity, number>;
     salvageCoins: Record<Rarity, number>;
+    golden: {
+      chance: number;
+      expMult: number;
+      coinMult: number;
+      cores: number;
+      itemChance: number;
+    };
+    milestones: {
+      everyStages: number;
+      minRarity: Rarity;
+      cores: number;
+      finalMinRarity: Rarity;
+      finalCores: number;
+    };
   };
   skills: {
     unlockCores: number;
@@ -208,6 +223,11 @@ export interface BalanceConfig {
     powerPerLevel: number;
     activeSlots: number;
     passiveSlots: number;
+    awakenCores: number; // extra cores after max level that fill the awakening gauge
+    awakenPowerMult: number;
+    awakenCooldownMult: number;
+    awakenPassiveMult: number;
+    awakenTags: string[];
   };
   items: {
     rarityMult: Record<Rarity, number>;
@@ -266,7 +286,7 @@ export interface PlayerState {
   stats: Stats;
   formId: string;
   absorbedElements: Record<Element, number>;
-  skills: Record<string, { level: number; progress: number }>;
+  skills: Record<string, { level: number; progress: number; awakened?: string }>;
   activeSkills: (string | null)[];
   passiveSkills: (string | null)[];
   equipment: Partial<Record<Slot, string>>;

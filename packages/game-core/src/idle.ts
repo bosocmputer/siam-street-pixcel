@@ -2,7 +2,7 @@ import { evaluateFight, playerDps, type FightContext } from './combat';
 import { elementMult, elementThatBeats } from './elements';
 import { getBoss, getDistrict, getMonster } from './lookup';
 import { capacity, usedSlots } from './inventory';
-import { rarityIndex, rollItem, salvageYield } from './items';
+import { rarityIndex, rollItem, rollItemAtLeast, salvageYield } from './items';
 import { addExp } from './progression';
 import { createRng, pickWeighted, rollCount, type Rng } from './rng';
 import { computeDerived, type Derived } from './stats';
@@ -24,11 +24,13 @@ export interface Hint {
 export interface ClaimReport {
   elapsedSeconds: number;
   effectiveSeconds: number;
-  welcomeBackSeconds: number;
+  restedSeconds: number; // extra time credited for time spent away beyond the cap
   kills: number;
   targetStage: number;
   farmedStage: number; // 0 when stuck
   stagesCleared: number[];
+  milestones: { stage: number; final: boolean }[]; // guaranteed rewards for clearing every 5th stage
+  golden: { count: number; byMonster: Record<string, number> }; // lucky golden monsters met
   stuck: boolean;
   hint?: Hint;
   exp: number;
@@ -120,11 +122,10 @@ export function claim(
   if (raw < idle.minClaimIntervalSeconds) return { ok: false, reason: 'tooSoon' };
 
   const capped = Math.min(raw, idle.capSeconds);
-  const welcome =
-    raw >= idle.welcomeBackAfterSeconds
-      ? Math.min(raw - idle.capSeconds, idle.welcomeBackMaxBonusSeconds)
-      : 0;
-  const effective = capped + welcome;
+  // time beyond the cap is not lost: it still counts at a reduced rate ("พลังสะสมนอกเวลา")
+  const rested =
+    Math.min(Math.max(0, raw - idle.capSeconds), idle.restedMaxSeconds) * idle.restedRate;
+  const effective = capped + rested;
 
   const rng: Rng = createRng(seed);
   const st = structuredClone(state);
@@ -137,11 +138,13 @@ export function claim(
   const report: ClaimReport = {
     elapsedSeconds: raw,
     effectiveSeconds: effective,
-    welcomeBackSeconds: welcome,
+    restedSeconds: rested,
     kills: 0,
     targetStage: Math.min(st.farm.stage, (st.progress[district.id] ?? 0) + 1),
     farmedStage: 0,
     stagesCleared: [],
+    milestones: [],
+    golden: { count: 0, byMonster: {} },
     stuck: false,
     exp: 0,
     coins: 0,
@@ -230,7 +233,47 @@ export function claim(
         st.counters.item += 1;
         addDrop(rollItem(eff, cfg, rng, `i${st.counters.item}`));
       }
+      // lucky golden monsters: a burst of exp, coins, cores and sometimes a good item
+      const golden = rollCount(k * r.golden.chance, rng);
+      if (golden > 0) {
+        const baseExp = def.exp * Math.pow(r.expGrowth, eff - 1) * expMult;
+        const baseCoins = def.coins * Math.pow(r.coinGrowth, eff - 1) * coinMult;
+        report.exp += golden * baseExp * (r.golden.expMult - 1);
+        report.coins += golden * baseCoins * (r.golden.coinMult - 1);
+        bump(st.cores, def.id, golden * r.golden.cores);
+        bump(report.cores, def.id, golden * r.golden.cores);
+        report.golden.count += golden;
+        bump(report.golden.byMonster, def.id, golden);
+        for (let n = rollCount(golden * r.golden.itemChance, rng); n > 0; n--) {
+          st.counters.item += 1;
+          addDrop(rollItemAtLeast(eff, cfg, rng, `i${st.counters.item}`, 'good'));
+        }
+      }
     });
+  };
+
+  // guaranteed reward every few stages (and a bigger one for finishing the district)
+  const grantMilestone = (stage: number) => {
+    const m = cfg.balance.rewards.milestones;
+    const final = stage === district.stageCount;
+    if (!final && stage % m.everyStages !== 0) return;
+    report.milestones.push({ stage, final });
+    st.counters.item += 1;
+    const eff = stage + district.stageOffset;
+    addDrop(
+      rollItemAtLeast(
+        eff,
+        cfg,
+        rng,
+        `i${st.counters.item}`,
+        final ? m.finalMinRarity : m.minRarity,
+      ),
+    );
+    for (const mon of monsters) {
+      const n = final ? m.finalCores : m.cores;
+      bump(st.cores, mon.def.id, n);
+      bump(report.cores, mon.def.id, n);
+    }
   };
 
   // ---- main loop: spend the time window on stages ----
@@ -265,6 +308,7 @@ export function claim(
         remaining -= timeNeeded;
         st.progress[district.id] = eff;
         report.stagesCleared.push(eff);
+        grantMilestone(eff);
         st.farm.stage = Math.min(eff + 1, district.stageCount);
         st.frontierKills[district.id] = 0;
         st.farm.killCarry = 0;

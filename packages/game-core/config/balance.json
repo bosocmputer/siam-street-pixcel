@@ -3,7 +3,7 @@
   "statPointsPerLevel": 3,
   "startingStatPoints": 3,
   "exp": {
-    "base": 53,
+    "base": 62,
     "exponent": 1.86,
     "earlyLevels": 10,
     "earlyMult": 0.026
@@ -43,11 +43,11 @@
   "idle": {
     "capSeconds": 36000,
     "respawnSeconds": 6.4,
-    "killsPerStage": 235,
+    "killsPerStage": 270,
     "minClaimIntervalSeconds": 30,
-    "welcomeBackAfterSeconds": 259200,
-    "welcomeBackMaxBonusSeconds": 57600,
-    "killsPerStageGrowth": 1.12
+    "killsPerStageGrowth": 1.12,
+    "restedRate": 0.3,
+    "restedMaxSeconds": 86400
   },
   "rewards": {
     "expGrowth": 1.013,
@@ -73,6 +73,20 @@
       "good": 20,
       "rare": 80,
       "legend": 400
+    },
+    "golden": {
+      "chance": 0.0015,
+      "expMult": 6,
+      "coinMult": 6,
+      "cores": 2,
+      "itemChance": 0.2
+    },
+    "milestones": {
+      "everyStages": 5,
+      "minRarity": "good",
+      "cores": 4,
+      "finalMinRarity": "rare",
+      "finalCores": 10
     }
   },
   "skills": {
@@ -81,7 +95,12 @@
     "maxLevel": 10,
     "powerPerLevel": 0.12,
     "activeSlots": 3,
-    "passiveSlots": 2
+    "passiveSlots": 2,
+    "awakenCores": 30,
+    "awakenPowerMult": 1.4,
+    "awakenCooldownMult": 0.7,
+    "awakenPassiveMult": 1.5,
+    "awakenTags": ["crit", "slow", "lifesteal", "speed", "burn", "defense"]
   },
   "items": {
     "rarityMult": {
