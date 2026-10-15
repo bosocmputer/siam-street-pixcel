@@ -5,8 +5,12 @@ import { buildWorld } from './world';
 import { Minimap } from './minimap';
 import { CombatSimulation, SPIRIT_WAVE, type CombatPose } from './combat';
 import { CombatView } from './combat-view';
+import { CrowdSimulation } from './crowd';
+import { CrowdView } from './crowd-view';
+import { CrowdBenchmark, summarizeFrames, type FrameSample } from './frame-profiler';
 import './style.css';
 import './combat.css';
+import './crowd.css';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
 app.innerHTML = `
@@ -32,6 +36,8 @@ app.innerHTML = `
   <div id="touch-controls"><div id="joystick" aria-label="ลากเพื่อเดิน"><div id="stick"></div></div><button id="touch-run" aria-label="วิ่ง" aria-pressed="false">วิ่ง</button><span>ลากฝั่งขวาเพื่อมอง</span></div>
   <div class="attribution"><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">© OpenStreetMap contributors</a><button id="data-info">เกี่ยวกับฉากนี้</button></div>
   <div id="toast" role="status" aria-live="polite"></div>
+  <button id="crowd-toggle">จำลองนักดาบ 10 คน</button>
+  <aside id="farm-panel" hidden aria-label="ทดสอบประสิทธิภาพ"><div class="farm-heading"><strong>ลานฝึก · จำลองผู้เล่น</strong><span id="farm-population">10 นักดาบ / 30 สไลม์</span></div><p>เดินหาเป้าหมาย ฟัน ใช้คลื่นดาบ และเกิดใหม่<br>จำลองบนเครื่อง · ยังไม่ใช่การทดสอบเซิร์ฟเวอร์</p><div class="farm-buttons"><button id="farm-one">1 คน</button><button id="farm-ten">10 คน</button><button id="farm-benchmark">วัดเทียบ 1 ↔ 10 คน</button></div><strong id="farm-live">กำลังวัดเฟรม…</strong><div id="farm-metrics"></div><div id="farm-activity"></div><p id="benchmark-status" role="status">พร้อมวัด · อุ่นฉาก 3s + เก็บ 10s × 4 รอบ</p><div id="benchmark-results"></div><button id="export-benchmark" hidden>ดาวน์โหลดผล JSON</button></aside>
   <dialog id="help-dialog"><button class="close-dialog" aria-label="ปิด">×</button><h2>วิถีนักดาบ</h2><dl><dt>W A S D / ลูกศร</dt><dd>เดิน · Shift วิ่ง</dd><dt>F / คลิกซ้าย</dt><dd>ฟันดาบในระยะประมาณ 3 เมตร เล็งกลางจอไปที่สไลม์</dd><dt>E / ปุ่มจันทร์ผ่าวิญญาณ</dt><dd>รวมพลัง 0.9 วินาทีแล้วปล่อยคลื่นแนวราบตามทิศมอง ระยะ 30 เมตร ใช้พลังวิญญาณ 35 คูลดาวน์ 5 วินาที คลื่นหยุดเมื่อชนกำแพง</dd><dt>Q / คลิกขวาค้าง</dt><dd>ตั้งรับด้านหน้า ใช้ความอึดและลดความเสียหาย</dd><dt>ลากเมาส์ / คลิกฉาก</dt><dd>หันมอง / ล็อกเมาส์ · Esc ปล่อยและพักเกม</dd><dt>M / V / P</dt><dd>แผนที่ / มุมสูง / พักเกม</dd></dl><p>สไลม์สีเหลืองกำลังเตรียมโจมตี ถอยออกให้ทัน! ชนะแล้วได้ XP และเลเวล สไลม์จะเกิดใหม่ใน 8 วินาที</p><p>มือถือ: จอยซ้ายเดิน ลากฝั่งขวาหันมอง ปุ่มฟันและตั้งรับอยู่ด้านล่าง</p><label class="check"><input type="checkbox" id="bob" /> ขยับกล้องตามจังหวะเดิน</label><button class="primary close-action">กลับไปเล่น</button></dialog>
   <dialog id="data-dialog"><button class="close-dialog" aria-label="ปิด">×</button><h2>สร้างเมืองจากแผนที่จริง</h2><p>ถนน ทางเดิน คูน้ำ รูปทรงอาคาร และตำแหน่งสถานที่ นำเข้าจาก OpenStreetMap พร้อมเก็บ snapshot ในตัวแอป</p><div id="data-stats"></div><p>อาคารส่วนใหญ่ไม่มีข้อมูลความสูง จึงประเมินจำนวนชั้นและสร้างหลังคา หน้าต่าง ประตู และกันสาดเสริม โมเดลวัดและกำแพงเป็นการจำลองรูปแบบ ไม่ใช่โมเดลสแกนจากสถานที่จริง</p><p>ต้นไม้ริมถนนบางส่วน เสาไฟ และภูเขาฉากหลังสร้างเพื่อบรรยากาศ พื้นฉากยังเป็นระนาบ ไม่มีข้อมูลระดับความสูงที่สำรวจจริง ภายในอาคารยังเข้าไม่ได้</p><p>ฉากนี้เป็นต้นแบบต่อสู้นักดาบกับสไลม์ในเครื่องคนเดียว ยังไม่มีผู้เล่นออนไลน์หรือการบันทึกความคืบหน้า</p><p id="data-date"></p><a href="/data/old-city.json" download="chiangmai-old-city-odbl.json">ดาวน์โหลดข้อมูลแผนที่ ODbL</a><button class="primary close-action">กลับไปเล่น</button></dialog>
 `;
@@ -114,6 +120,9 @@ async function boot(): Promise<void> {
     ].map((p) => collision.nearestWalkable(p as Point)),
   );
   const combatView = new CombatView(scene, camera, combat, element('combat-labels'));
+  const crowd = new CrowdSimulation([891, 192], (point) => collision.nearestWalkable(point));
+  crowd.configure(10);
+  const crowdView = new CrowdView(scene, camera, crowd, element('combat-labels'));
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.dampingFactor = 0.08;
@@ -147,6 +156,70 @@ async function boot(): Promise<void> {
   let lastFrame = performance.now();
   let lastUi = 0;
   let toastTimer: ReturnType<typeof setTimeout>;
+  let farmActive = false;
+  const liveSamples: FrameSample[] = [];
+  const benchmark = new CrowdBenchmark((count) => {
+    crowd.configure(count);
+    liveSamples.length = 0;
+  });
+  const environment = () => ({
+    userAgent: navigator.userAgent,
+    viewport: [innerWidth, innerHeight],
+    devicePixelRatio,
+    renderPixelRatio: renderer.getPixelRatio(),
+    quality: highQuality ? 'high' : 'economy',
+    camera: [914, 18, 209],
+    shadows: sun.castShadow,
+    mapTimestamp: data.meta.osmTimestamp,
+    timing: 'rAF wall time; CPU timings exclude asynchronous GPU execution',
+    scenario: '1 vs 10 local AI swordsmen; 30 shared slimes; skills enabled; no network/server',
+  });
+  let measuredEnvironment: ReturnType<typeof environment> | null = null;
+  const report = () => ({
+    capturedAt: new Date().toISOString(),
+    environment: measuredEnvironment ?? environment(),
+    results: benchmark.results,
+  });
+  function enterFarm(count: 1 | 10 = 10): void {
+    benchmark.cancel('เปลี่ยนจำนวน');
+    crowd.configure(count);
+    liveSamples.length = 0;
+    farmActive = true;
+    combat.reset();
+    crowdView.setVisible(true);
+    position = [914, 209];
+    yaw = Math.atan2(23, 17);
+    pitch = -0.55;
+    battleStarted = true;
+    element('start-panel').hidden = true;
+    element('death-panel').hidden = true;
+    document.body.classList.add('farming');
+    element('farm-panel').hidden = false;
+    element('crowd-toggle').textContent = 'กลับไปเล่นนักดาบ';
+    toggleMap(false);
+    setMode('walk');
+    setPaused(false);
+  }
+  element('crowd-toggle').addEventListener('click', () =>
+    farmActive ? startBattle() : enterFarm(),
+  );
+  element('farm-one').addEventListener('click', () => enterFarm(1));
+  element('farm-ten').addEventListener('click', () => enterFarm(10));
+  element('farm-benchmark').addEventListener('click', () => {
+    enterFarm(1);
+    measuredEnvironment = environment();
+    benchmark.start();
+  });
+  element('export-benchmark').addEventListener('click', () => {
+    const url = URL.createObjectURL(
+      new Blob([JSON.stringify(report(), null, 2)], { type: 'application/json' }),
+    );
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'old-city-crowd-benchmark.json';
+    link.click();
+    URL.revokeObjectURL(url);
+  });
 
   const pose = (): CombatPose => ({
     position,
@@ -163,6 +236,7 @@ async function boot(): Promise<void> {
     !!document.querySelector('dialog[open]');
   function setPaused(value: boolean): void {
     manualPause = value;
+    if (value) benchmark.cancel('พักเกมหรือออกจากหน้าจอ');
     keys.clear();
     mouseBlocking = touchBlocking = false;
     touches.x = touches.y = 0;
@@ -172,10 +246,10 @@ async function boot(): Promise<void> {
     if (value && document.pointerLockElement) document.exitPointerLock();
   }
   function attack(): void {
-    if (!paused()) combat.attack(pose(), blocked);
+    if (!paused() && !farmActive) combat.attack(pose(), blocked);
   }
   function castSkill(): void {
-    if (paused()) return;
+    if (paused() || farmActive) return;
     if (!combat.castSkill(pose())) {
       if (combat.chargingAt !== null) return;
       notify(
@@ -188,6 +262,12 @@ async function boot(): Promise<void> {
     }
   }
   function startBattle(): void {
+    benchmark.cancel('กลับไปเล่น');
+    farmActive = false;
+    crowdView.setVisible(false);
+    document.body.classList.remove('farming');
+    element('farm-panel').hidden = true;
+    element('crowd-toggle').textContent = 'จำลองนักดาบ 10 คน';
     combat.reset();
     combatView.reset();
     position = [...spawn];
@@ -274,6 +354,7 @@ async function boot(): Promise<void> {
   }
   element('expand-map').addEventListener('click', () => toggleMap());
   function showDialog(id: string): void {
+    benchmark.cancel('เปิดหน้าต่างข้อมูล');
     if (document.pointerLockElement) document.exitPointerLock();
     keys.clear();
     touches.x = touches.y = 0;
@@ -296,6 +377,7 @@ async function boot(): Promise<void> {
     }
   });
   element('time').addEventListener('click', () => {
+    benchmark.cancel('เปลี่ยนแสง');
     golden = !golden;
     element('time-label').textContent = golden ? '17:30' : '09:00';
     sun.color.set(golden ? '#ffc086' : '#fff0d1');
@@ -305,6 +387,7 @@ async function boot(): Promise<void> {
     (scene.fog as THREE.Fog).color.set(golden ? '#d6c1a6' : '#c6d8d2');
   });
   element('quality').addEventListener('click', () => {
+    benchmark.cancel('เปลี่ยนคุณภาพภาพ');
     highQuality = !highQuality;
     renderer.setPixelRatio(Math.min(devicePixelRatio, highQuality ? 1.5 : 0.85));
     sun.castShadow = mode === 'walk' && highQuality;
@@ -326,7 +409,7 @@ async function boot(): Promise<void> {
       e.preventDefault();
     keys.add(key);
     if (e.repeat) return;
-    if (key === 'm') toggleMap();
+    if (key === 'm' && !farmActive) toggleMap();
     if (key === 'escape') {
       if (expanded) toggleMap(false);
       else setPaused(true);
@@ -334,7 +417,7 @@ async function boot(): Promise<void> {
     if (key === 'p') setPaused(!manualPause);
     if (key === 'f') attack();
     if (key === 'e') castSkill();
-    if (key === 'v') setMode(mode === 'walk' ? 'overview' : 'walk');
+    if (key === 'v' && !farmActive) setMode(mode === 'walk' ? 'overview' : 'walk');
   });
   document.addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
   window.addEventListener('blur', () => {
@@ -346,6 +429,7 @@ async function boot(): Promise<void> {
     }
   });
   const look = (dx: number, dy: number) => {
+    if (farmActive) return;
     yaw -= dx * 0.0027;
     pitch = Math.max(-1.24, Math.min(1.24, pitch - dy * 0.0027));
   };
@@ -467,6 +551,30 @@ async function boot(): Promise<void> {
     const degrees = ((((-viewYaw * 180) / Math.PI) % 360) + 360) % 360;
     element('heading').textContent = `${Math.round(degrees)}°`;
     map.draw(p, viewYaw);
+    if (farmActive) {
+      const live = summarizeFrames(liveSamples);
+      element('farm-population').textContent =
+        `${crowd.bots.length} นักดาบ / 30 สไลม์ (${crowd.world.slimes.filter((s) => s.hp > 0).length} มีชีวิต)`;
+      element('farm-live').textContent = live
+        ? `${live.fps.toFixed(1)} FPS · p95 ${live.p95FrameMs.toFixed(1)} ms`
+        : 'กำลังเก็บเฟรม…';
+      element('farm-metrics').textContent = live
+        ? `CPU จำลอง ${live.simulationMs.toFixed(2)} · ภาพ ${live.viewMs.toFixed(2)} · ส่งเรนเดอร์ ${live.renderSubmitMs.toFixed(2)} ms\nDraw calls ${Math.round(live.drawcalls)} · ${(live.triangles / 1e6).toFixed(2)}M triangles`
+        : '';
+      element('farm-activity').textContent =
+        `ฟัน ${crowd.totals.swings} · สกิล ${crowd.totals.casts} · สังหาร ${crowd.totals.kills} · ตาย ${crowd.totals.deaths}`;
+      element('benchmark-status').textContent = benchmark.status;
+      element('benchmark-results').innerHTML = benchmark.results
+        .map(
+          (r) =>
+            `<div>${r.bots} คน · รอบ ${r.round}<strong>${r.stats.fps.toFixed(1)} FPS</strong><span>p95 ${r.stats.p95FrameMs.toFixed(1)} ms</span></div>`,
+        )
+        .join('');
+      element('export-benchmark').hidden = benchmark.results.length === 0;
+      element<HTMLButtonElement>('farm-one').disabled = benchmark.active;
+      element<HTMLButtonElement>('farm-ten').disabled = benchmark.active;
+      element<HTMLButtonElement>('farm-benchmark').disabled = benchmark.active;
+    }
     const player = combat.player;
     element('player-level').textContent = `นักดาบ Lv.${player.level}`;
     element('hp-text').textContent = `${player.hp} / ${player.maxHp}`;
@@ -514,6 +622,11 @@ async function boot(): Promise<void> {
       combat.slimes.map(({ id, hp, mode, position }) => ({ id, hp, mode, position })),
     );
     document.documentElement.dataset.fps = String(fps);
+    document.documentElement.dataset.farmActive = String(farmActive);
+    document.documentElement.dataset.farmBots = String(crowd.bots.length);
+    document.documentElement.dataset.farmActivity = JSON.stringify(crowd.totals);
+    document.documentElement.dataset.benchmark = JSON.stringify(report());
+    document.documentElement.dataset.benchmarkActive = String(benchmark.active);
     document.documentElement.dataset.drawcalls = String(renderer.info.render.calls);
     document.documentElement.dataset.triangles = String(renderer.info.render.triangles);
     document.documentElement.dataset.depthBuffer = renderer.capabilities.logarithmicDepthBuffer
@@ -521,7 +634,8 @@ async function boot(): Promise<void> {
       : 'standard';
   }
   function frame(now: number): void {
-    const dt = Math.min((now - lastFrame) / 1000, 0.1);
+    const frameMs = now - lastFrame;
+    const dt = Math.min(frameMs / 1000, 0.1);
     lastFrame = now;
     frames++;
     if (now - lastFpsTime > 1000) {
@@ -532,7 +646,7 @@ async function boot(): Promise<void> {
     const isPaused = paused() || combat.player.hp <= 0;
     let moving = false;
     if (mode === 'walk') {
-      if (!isPaused) {
+      if (!isPaused && !farmActive) {
         let forward =
           Number(keys.has('w') || keys.has('arrowup')) -
           Number(keys.has('s') || keys.has('arrowdown')) -
@@ -573,13 +687,18 @@ async function boot(): Promise<void> {
         if (length > 0 && !bob) clockPosition.y = 0;
         else clockPosition.y = bob && length > 0 ? Math.sin(now * 0.011) * 0.035 : 0;
       }
-      camera.position.set(position[0], 1.78 + clockPosition.y, position[1]);
+      camera.position.set(position[0], farmActive ? 18 : 1.78 + clockPosition.y, position[1]);
       camera.rotation.order = 'YXZ';
       camera.rotation.set(pitch, yaw, 0);
       sun.position.set(position[0] - 650, golden ? 460 : 950, position[1] + 400);
       sun.target.position.set(position[0], 0, position[1]);
     } else controls.update();
-    if (!isPaused) combat.step(dt, pose(), blocked);
+    const simulationStart = performance.now();
+    if (!isPaused) {
+      if (farmActive) crowd.step(dt, blocked);
+      else combat.step(dt, pose(), blocked);
+    }
+    const simulationMs = performance.now() - simulationStart;
     const events = combat.drainEvents();
     combatView.handle(events, now / 1000);
     for (const event of events) {
@@ -590,7 +709,11 @@ async function boot(): Promise<void> {
     }
     if (combat.player.hp <= 0 && document.pointerLockElement) document.exitPointerLock();
     camera.updateMatrixWorld();
-    combatView.update(dt, now / 1000, pose(), mode === 'walk' && !expanded, moving);
+    const viewStart = performance.now();
+    combatView.update(dt, now / 1000, pose(), !farmActive && mode === 'walk' && !expanded, moving);
+    combatView.enemies.visible = !farmActive;
+    if (farmActive) crowdView.update();
+    const viewMs = performance.now() - viewStart;
     for (const child of world.group.children) {
       if (child.userData.detail && child instanceof THREE.InstancedMesh && child.boundingSphere) {
         const center = child.boundingSphere.center;
@@ -600,10 +723,27 @@ async function boot(): Promise<void> {
             (highQuality ? 340 : 170) + child.boundingSphere.radius;
       }
     }
+    const renderStart = performance.now();
     renderer.render(scene, camera);
+    if (farmActive && !isPaused) {
+      const sample: FrameSample = {
+        frameMs,
+        simulationMs,
+        viewMs,
+        renderMs: performance.now() - renderStart,
+        drawcalls: renderer.info.render.calls,
+        triangles: renderer.info.render.triangles,
+        geometries: renderer.info.memory.geometries,
+        textures: renderer.info.memory.textures,
+      };
+      liveSamples.push(sample);
+      if (liveSamples.length > 120) liveSamples.shift();
+      benchmark.record(sample, crowd.totals);
+    }
     updateHud(now);
   }
   window.addEventListener('resize', () => {
+    benchmark.cancel('ขนาดหน้าจอเปลี่ยน');
     const oldFit = Math.max(1, 0.9 / camera.aspect);
     camera.aspect = innerWidth / innerHeight;
     if (mode === 'overview') {

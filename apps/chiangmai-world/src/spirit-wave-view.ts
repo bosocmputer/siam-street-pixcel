@@ -77,6 +77,7 @@ export class SpiritWaveView {
     private scene: THREE.Scene,
     weapon: THREE.Group,
     private simulation: CombatSimulation,
+    private firstPerson = true,
   ) {
     weapon.add(this.charge);
     this.flash = document.getElementById('spirit-flash')!;
@@ -113,6 +114,18 @@ export class SpiritWaveView {
       this.charge.add(ring);
       this.auraRings.push(ring);
     }
+    if (!firstPerson)
+      this.charge.traverse((object) => {
+        if (object instanceof THREE.Mesh) {
+          object.material.depthTest = true;
+          object.renderOrder = 2;
+        }
+      });
+  }
+
+  bind(simulation: CombatSimulation): void {
+    this.reset();
+    this.simulation = simulation;
   }
 
   handle(events: CombatEvent[]): void {
@@ -138,7 +151,7 @@ export class SpiritWaveView {
     }
     this.bursts = [];
     this.charge.visible = false;
-    this.flash.style.opacity = '0';
+    if (this.firstPerson) this.flash.style.opacity = '0';
   }
 
   update(visible: boolean): void {
@@ -168,8 +181,9 @@ export class SpiritWaveView {
       ring.scale.setScalar(1.4 - progress * 0.65);
       ring.material.opacity = charging ? 0.3 + progress * 0.4 : 0;
     });
-    this.flash.style.opacity =
-      visible && after >= 0 && after < 0.22 ? String((1 - after / 0.22) * 0.14) : '0';
+    if (this.firstPerson)
+      this.flash.style.opacity =
+        visible && after >= 0 && after < 0.22 ? String((1 - after / 0.22) * 0.14) : '0';
     const living = new Set(sim.waves.map((wave) => wave.id));
     for (const [id, view] of this.waves) {
       if (living.has(id)) continue;

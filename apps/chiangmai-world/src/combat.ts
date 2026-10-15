@@ -54,6 +54,14 @@ export interface SpiritWave {
   damage: number;
   hits: Set<number>;
 }
+export interface CombatTarget {
+  simulation: CombatSimulation;
+  pose: CombatPose;
+}
+export interface CombatStepOptions {
+  enemyAI?: boolean;
+  targets?: CombatTarget[];
+}
 const copy = (p: Point): Point => [...p];
 const distance = (a: Point, b: Point) => Math.hypot(a[0] - b[0], a[1] - b[1]);
 
@@ -165,7 +173,12 @@ export class CombatSimulation {
       )
       .sort((a, b) => distance(a.position, pose.position) - distance(b.position, pose.position))[0];
   }
-  step(seconds: number, pose: CombatPose, blocked: ObstacleCheck): void {
+  step(
+    seconds: number,
+    pose: CombatPose,
+    blocked: ObstacleCheck,
+    options: CombatStepOptions = {},
+  ): void {
     if (this.player.hp <= 0) {
       this.chargingAt = null;
       this.waves = [];
@@ -207,6 +220,10 @@ export class CombatSimulation {
       }
     }
     this.stepWaves(dt, pose, blocked);
+    if (options.enemyAI === false) return;
+    const targets = (options.targets ?? [{ simulation: this, pose }]).filter(
+      (target) => target.simulation.player.hp > 0,
+    );
     for (const slime of this.slimes) {
       if (slime.mode === 'dead') {
         if (this.time >= slime.until) {
@@ -223,26 +240,42 @@ export class CombatSimulation {
         }
         continue;
       }
+      const target = targets.reduce<CombatTarget | undefined>(
+        (nearest, candidate) =>
+          !nearest ||
+          distance(candidate.pose.position, slime.position) <
+            distance(nearest.pose.position, slime.position)
+            ? candidate
+            : nearest,
+        undefined,
+      );
+      if (!target) {
+        slime.mode = 'idle';
+        continue;
+      }
+      const enemyPose = target.pose;
+      const defender = target.simulation;
       if (slime.mode === 'windup') {
         if (this.time >= slime.until) {
           if (
-            distance(slime.position, pose.position) < 1.85 &&
-            this.time >= this.immuneUntil &&
-            clearSight(slime.position, pose.position, blocked)
+            distance(slime.position, enemyPose.position) < 1.85 &&
+            this.time >= defender.immuneUntil &&
+            defender.player.hp > 0 &&
+            clearSight(slime.position, enemyPose.position, blocked)
           ) {
             const defended =
-              pose.blocking &&
-              this.chargingAt === null &&
-              this.player.stamina >= 14 &&
-              inSwordArc(pose, slime.position);
+              enemyPose.blocking &&
+              defender.chargingAt === null &&
+              defender.player.stamina >= 14 &&
+              inSwordArc(enemyPose, slime.position);
             const damage = defended ? 3 : 12;
-            if (defended) this.player.stamina -= 14;
-            this.player.hp = Math.max(0, this.player.hp - damage);
-            this.immuneUntil = this.time + 0.6;
-            this.hurtAt = this.time;
-            this.events.push({
+            if (defended) defender.player.stamina -= 14;
+            defender.player.hp = Math.max(0, defender.player.hp - damage);
+            defender.immuneUntil = this.time + 0.6;
+            defender.hurtAt = this.time;
+            defender.events.push({
               kind: defended ? 'block' : 'hurt',
-              position: copy(pose.position),
+              position: copy(enemyPose.position),
               amount: damage,
               slimeId: slime.id,
             });
@@ -256,14 +289,14 @@ export class CombatSimulation {
         if (this.time >= slime.until) slime.mode = 'idle';
         continue;
       }
-      const d = distance(slime.position, pose.position);
-      const leashed = distance(slime.home, pose.position) > 24;
-      if (!leashed && d < 1.5 && clearSight(slime.position, pose.position, blocked)) {
+      const d = distance(slime.position, enemyPose.position);
+      const leashed = distance(slime.home, enemyPose.position) > 24;
+      if (!leashed && d < 1.5 && clearSight(slime.position, enemyPose.position, blocked)) {
         slime.mode = 'windup';
         slime.until = this.time + 0.65;
         continue;
       }
-      const destination = leashed ? slime.home : pose.position;
+      const destination = leashed ? slime.home : enemyPose.position;
       if ((!leashed && d > 12) || (leashed && distance(slime.position, slime.home) < 0.15)) {
         slime.mode = 'idle';
         continue;
@@ -282,6 +315,12 @@ export class CombatSimulation {
     if (this.player.hp <= 0) {
       this.chargingAt = null;
       this.waves = [];
+    }
+    for (const target of targets) {
+      if (target.simulation.player.hp <= 0) {
+        target.simulation.chargingAt = null;
+        target.simulation.waves = [];
+      }
     }
   }
 

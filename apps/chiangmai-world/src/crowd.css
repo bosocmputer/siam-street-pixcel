@@ -1,0 +1,149 @@
+#crowd-toggle {
+  position: absolute;
+  z-index: 21;
+  left: 28px;
+  top: 108px;
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  font-size: 11px;
+}
+.quest {
+  top: 153px;
+}
+#farm-panel {
+  position: absolute;
+  top: 107px;
+  right: 28px;
+  width: 330px;
+  z-index: 8;
+  background: var(--surface);
+  padding: 18px;
+  border-radius: 6px;
+  font-size: 11px;
+}
+.farm-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.farm-heading strong {
+  font-size: 16px;
+  font-weight: 500;
+}
+.farm-heading span {
+  color: var(--accent);
+}
+#farm-panel p {
+  color: var(--muted);
+  line-height: 1.7;
+  margin: 10px 0;
+}
+.farm-buttons {
+  display: flex;
+  gap: 6px;
+  margin: 14px 0;
+}
+.farm-buttons button,
+#export-benchmark {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  font-size: 10px;
+}
+#farm-live {
+  display: block;
+  font: 500 20px system-ui;
+  color: var(--accent);
+  margin: 12px 0 9px;
+}
+#farm-metrics {
+  white-space: pre-line;
+  font: 10px/1.8 system-ui;
+  color: var(--muted);
+}
+#farm-activity {
+  margin-top: 10px;
+}
+#benchmark-results > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 0;
+  border-top: 1px solid var(--line);
+  gap: 10px;
+  font-size: 10px;
+}
+#benchmark-results strong {
+  color: var(--accent);
+  font: 12px system-ui;
+}
+#benchmark-results span {
+  font: 9px system-ui;
+  color: var(--muted);
+}
+#export-benchmark {
+  margin-top: 10px;
+}
+.farm-label {
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: white;
+  font-size: 9px;
+  background: oklch(0.2 0.02 175 / 0.8);
+  padding: 3px 6px;
+  white-space: nowrap;
+}
+.farming .player-status,
+.farming .combat-actions,
+.farming .quest,
+.farming .reticle,
+.farming .map-panel,
+.farming .view-switch,
+.farming #touch-controls {
+  display: none !important;
+}
+.farming .keyboard-hint {
+  font-size: 0;
+}
+.farming .keyboard-hint::after {
+  content: 'กล้องสังเกตการณ์คงที่ · P พัก · กลับไปเล่นนักดาบเพื่อควบคุมเอง';
+  font-size: 11px;
+}
+@media (max-width: 680px) {
+  #crowd-toggle {
+    top: 68px;
+    left: 12px;
+    font-size: 10px;
+    padding: 7px;
+  }
+  .quest {
+    top: 108px;
+  }
+  #farm-panel {
+    top: 110px;
+    right: 12px;
+    width: 260px;
+    padding: 12px;
+  }
+  .farm-heading strong {
+    font-size: 14px;
+  }
+  #farm-live {
+    font-size: 17px;
+  }
+  #farm-panel p {
+    font-size: 9px;
+  }
+  .farm-buttons {
+    flex-wrap: wrap;
+    margin: 9px 0;
+  }
+  .farming #farm-panel {
+    max-height: calc(100vh - 175px);
+    overflow: auto;
+    touch-action: pan-y;
+  }
+}
