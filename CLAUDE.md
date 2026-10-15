@@ -1,4 +1,19 @@
-# CLAUDE.md — SLIME HOOD (สไลม์คุมย่าน)
+# Active project: Chiang Mai Old City Walk (15 October 2026)
+
+The user abandoned SLIME HOOD and all earlier gameplay concepts. The active request is
+a detailed, walkable 3D reconstruction of Chiang Mai's Old City using real map geometry.
+Read `README.md` and `apps/chiangmai-world/README.md` first. The new app is in
+`apps/chiangmai-world`, using Three.js and a cached OpenStreetMap extract.
+
+Run `pnpm dev:world`, `pnpm test:world`, and `pnpm build:world`. Keep real OSM geometry
+separate from estimated architecture. Never claim that generic facades or landmark models
+are scans, photogrammetry, or verified reconstructions. Public deployment is not requested.
+Preserve old files for Git history; do not continue the abandoned game's roadmap.
+
+The rules below describe the legacy SLIME HOOD implementation only. Its Phaser, idle,
+PixelLab, UI mockup, and GDD approval requirements do not govern the new 3D application.
+
+# Legacy: SLIME HOOD (สไลม์คุมย่าน)
 
 Idle RPG บนแผนที่จริงของเชียงใหม่ ผู้เล่นเป็นสไลม์ที่กลืนมอนแล้วงอกส่วนต่าง ๆ และแข่งกันเป็นย่าน
 

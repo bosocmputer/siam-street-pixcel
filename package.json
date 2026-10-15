@@ -8,6 +8,9 @@
     "node": ">=22"
   },
   "scripts": {
+    "dev:world": "pnpm --filter @siam/chiangmai-world dev",
+    "build:world": "pnpm --filter @siam/chiangmai-world build",
+    "test:world": "pnpm --filter @siam/chiangmai-world test",
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
     "typecheck": "pnpm -r --if-present typecheck",

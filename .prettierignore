@@ -9,3 +9,6 @@ pnpm-lock.yaml
 *.txt
 .github
 docs/ui/mockup.html
+apps/chiangmai-world/public/data/
+apps/chiangmai-world/.cache/
+apps/chiangmai-world/artifacts/
