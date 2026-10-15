@@ -3,7 +3,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CityCollision, project, type CityData, type Point } from './geo';
 import { buildWorld } from './world';
 import { Minimap } from './minimap';
-import { CombatSimulation, type CombatPose } from './combat';
+import { CombatSimulation, SPIRIT_WAVE, type CombatPose } from './combat';
 import { CombatView } from './combat-view';
 import './style.css';
 import './combat.css';
@@ -22,16 +22,17 @@ app.innerHTML = `
   <nav class="view-switch" aria-label="มุมมอง"><button id="view-overview" aria-pressed="false">◈ มุมสูง</button><button id="view-walk" class="active" aria-pressed="true">⚔ กลับไปเล่น</button></nav>
   <div class="keyboard-hint" id="hint">ลากเพื่อหมุน · เลื่อนเพื่อซูม · คลิกขวาลากเพื่อเลื่อน</div>
   <div class="reticle" id="reticle" aria-hidden="true"></div>
-  <div id="combat-labels" aria-hidden="true"></div><div id="damage-overlay" aria-hidden="true"></div>
-  <section class="player-status" aria-label="สถานะนักดาบ"><div><strong id="player-level">นักดาบ Lv.1</strong><span id="hp-text">100 / 100</span></div><div class="meter health"><i id="hp-bar"></i></div><div class="meter stamina"><i id="stamina-bar"></i></div><div class="status-bottom"><span>พลังชีวิต / ความอึด</span><span id="xp-text">0 / 60 XP</span></div><div class="meter experience"><i id="xp-bar"></i></div></section>
-  <div class="combat-actions"><button id="block" aria-pressed="false"><span>ตั้งรับ</span><kbd>Q / คลิกขวาค้าง</kbd></button><button id="attack"><span>ฟันดาบ</span><kbd>F / คลิกซ้าย</kbd></button></div>
-  <div id="start-panel" class="battle-screen"><div><span class="eyebrow">FIRST-PERSON COMBAT</span><h2>จับดาบ แล้วออกไปลุย</h2><p>สไลม์ 3 ตัวรออยู่ด้านหน้า<br>เข้าใกล้เพื่อฟัน ถอยหลบตอนตัวมันเปลี่ยนเป็นสีเหลือง</p><p class="control-summary">WASD เดิน · Shift วิ่ง · ลากเมาส์มอง<br>F ฟันดาบ · Q ค้างเพื่อตั้งรับ</p><button id="start-game" class="primary">เริ่มต่อสู้ →</button><small>ต้นแบบเล่นคนเดียว · ยังไม่มีระบบออนไลน์</small></div></div>
+  <div id="combat-labels" aria-hidden="true"></div><div id="damage-overlay" aria-hidden="true"></div><div id="spirit-flash" aria-hidden="true"></div>
+  <section class="player-status" aria-label="สถานะนักดาบ"><div><strong id="player-level">นักดาบ Lv.1</strong><span id="hp-text">100 / 100</span></div><div class="meter health"><i id="hp-bar"></i></div><div class="meter stamina"><i id="stamina-bar"></i></div><div class="status-bottom"><span>พลังวิญญาณ</span><span id="spirit-text">100 / 100</span></div><div class="meter spirit"><i id="spirit-bar"></i></div><div class="status-bottom"><span>ประสบการณ์</span><span id="xp-text">0 / 60 XP</span></div><div class="meter experience"><i id="xp-bar"></i></div></section>
+  <div class="combat-actions"><button id="block" aria-pressed="false"><span>ตั้งรับ</span><kbd>Q / คลิกขวาค้าง</kbd></button><button id="attack"><span>ฟันดาบ</span><kbd>F / คลิกซ้าย</kbd></button><button id="spirit-skill" aria-label="จันทร์ผ่าวิญญาณ ใช้สกิล E"><span>จันทร์ผ่าวิญญาณ</span><small id="skill-state">พร้อมใช้ · 35 พลัง</small><kbd>E</kbd></button></div>
+  <div id="skill-charge" hidden role="status"><span>กำลังรวมพลังวิญญาณ</span><div class="meter spirit"><i id="charge-bar"></i></div></div>
+  <div id="start-panel" class="battle-screen"><div><span class="eyebrow">FIRST-PERSON COMBAT</span><h2>จับดาบ แล้วออกไปลุย</h2><p>สไลม์ 3 ตัวรออยู่ด้านหน้า<br>เข้าใกล้เพื่อฟัน ถอยหลบตอนตัวมันเปลี่ยนเป็นสีเหลือง</p><p class="control-summary">WASD เดิน · Shift วิ่ง · ลากเมาส์มอง<br>F ฟันดาบ · Q ค้างเพื่อตั้งรับ<br>E ชาร์จและปล่อยคลื่นดาบระยะไกล</p><button id="start-game" class="primary">เริ่มต่อสู้ →</button><small>ต้นแบบเล่นคนเดียว · ยังไม่มีระบบออนไลน์</small></div></div>
   <div id="death-panel" class="battle-screen" hidden><div><span class="eyebrow">TRY AGAIN</span><h2>นักดาบล้มลงแล้ว</h2><p>รอจังหวะฟัน แล้วถอยหลบก่อนสไลม์กระโดด</p><button id="restart" class="primary">เริ่มใหม่ →</button></div></div>
   <button id="pause" aria-pressed="false">พักเกม</button>
   <div id="touch-controls"><div id="joystick" aria-label="ลากเพื่อเดิน"><div id="stick"></div></div><button id="touch-run" aria-label="วิ่ง" aria-pressed="false">วิ่ง</button><span>ลากฝั่งขวาเพื่อมอง</span></div>
   <div class="attribution"><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">© OpenStreetMap contributors</a><button id="data-info">เกี่ยวกับฉากนี้</button></div>
   <div id="toast" role="status" aria-live="polite"></div>
-  <dialog id="help-dialog"><button class="close-dialog" aria-label="ปิด">×</button><h2>วิถีนักดาบ</h2><dl><dt>W A S D / ลูกศร</dt><dd>เดิน · Shift วิ่ง</dd><dt>F / คลิกซ้าย</dt><dd>ฟันดาบในระยะประมาณ 3 เมตร เล็งกลางจอไปที่สไลม์</dd><dt>Q / คลิกขวาค้าง</dt><dd>ตั้งรับด้านหน้า ใช้ความอึดและลดความเสียหาย</dd><dt>ลากเมาส์ / คลิกฉาก</dt><dd>หันมอง / ล็อกเมาส์ · Esc ปล่อยและพักเกม</dd><dt>M / V / P</dt><dd>แผนที่ / มุมสูง / พักเกม</dd></dl><p>สไลม์สีเหลืองกำลังเตรียมโจมตี ถอยออกให้ทัน! ชนะแล้วได้ XP และเลเวล สไลม์จะเกิดใหม่ใน 8 วินาที</p><p>มือถือ: จอยซ้ายเดิน ลากฝั่งขวาหันมอง ปุ่มฟันและตั้งรับอยู่ด้านล่าง</p><label class="check"><input type="checkbox" id="bob" /> ขยับกล้องตามจังหวะเดิน</label><button class="primary close-action">กลับไปเล่น</button></dialog>
+  <dialog id="help-dialog"><button class="close-dialog" aria-label="ปิด">×</button><h2>วิถีนักดาบ</h2><dl><dt>W A S D / ลูกศร</dt><dd>เดิน · Shift วิ่ง</dd><dt>F / คลิกซ้าย</dt><dd>ฟันดาบในระยะประมาณ 3 เมตร เล็งกลางจอไปที่สไลม์</dd><dt>E / ปุ่มจันทร์ผ่าวิญญาณ</dt><dd>รวมพลัง 0.9 วินาทีแล้วปล่อยคลื่นแนวราบตามทิศมอง ระยะ 30 เมตร ใช้พลังวิญญาณ 35 คูลดาวน์ 5 วินาที คลื่นหยุดเมื่อชนกำแพง</dd><dt>Q / คลิกขวาค้าง</dt><dd>ตั้งรับด้านหน้า ใช้ความอึดและลดความเสียหาย</dd><dt>ลากเมาส์ / คลิกฉาก</dt><dd>หันมอง / ล็อกเมาส์ · Esc ปล่อยและพักเกม</dd><dt>M / V / P</dt><dd>แผนที่ / มุมสูง / พักเกม</dd></dl><p>สไลม์สีเหลืองกำลังเตรียมโจมตี ถอยออกให้ทัน! ชนะแล้วได้ XP และเลเวล สไลม์จะเกิดใหม่ใน 8 วินาที</p><p>มือถือ: จอยซ้ายเดิน ลากฝั่งขวาหันมอง ปุ่มฟันและตั้งรับอยู่ด้านล่าง</p><label class="check"><input type="checkbox" id="bob" /> ขยับกล้องตามจังหวะเดิน</label><button class="primary close-action">กลับไปเล่น</button></dialog>
   <dialog id="data-dialog"><button class="close-dialog" aria-label="ปิด">×</button><h2>สร้างเมืองจากแผนที่จริง</h2><p>ถนน ทางเดิน คูน้ำ รูปทรงอาคาร และตำแหน่งสถานที่ นำเข้าจาก OpenStreetMap พร้อมเก็บ snapshot ในตัวแอป</p><div id="data-stats"></div><p>อาคารส่วนใหญ่ไม่มีข้อมูลความสูง จึงประเมินจำนวนชั้นและสร้างหลังคา หน้าต่าง ประตู และกันสาดเสริม โมเดลวัดและกำแพงเป็นการจำลองรูปแบบ ไม่ใช่โมเดลสแกนจากสถานที่จริง</p><p>ต้นไม้ริมถนนบางส่วน เสาไฟ และภูเขาฉากหลังสร้างเพื่อบรรยากาศ พื้นฉากยังเป็นระนาบ ไม่มีข้อมูลระดับความสูงที่สำรวจจริง ภายในอาคารยังเข้าไม่ได้</p><p>ฉากนี้เป็นต้นแบบต่อสู้นักดาบกับสไลม์ในเครื่องคนเดียว ยังไม่มีผู้เล่นออนไลน์หรือการบันทึกความคืบหน้า</p><p id="data-date"></p><a href="/data/old-city.json" download="chiangmai-old-city-odbl.json">ดาวน์โหลดข้อมูลแผนที่ ODbL</a><button class="primary close-action">กลับไปเล่น</button></dialog>
 `;
 
@@ -151,7 +152,7 @@ async function boot(): Promise<void> {
     position,
     yaw,
     pitch,
-    blocking: keys.has('q') || mouseBlocking || touchBlocking,
+    blocking: combat.chargingAt === null && (keys.has('q') || mouseBlocking || touchBlocking),
   });
   const paused = () =>
     manualPause ||
@@ -173,6 +174,19 @@ async function boot(): Promise<void> {
   function attack(): void {
     if (!paused()) combat.attack(pose(), blocked);
   }
+  function castSkill(): void {
+    if (paused()) return;
+    if (!combat.castSkill(pose())) {
+      if (combat.chargingAt !== null) return;
+      notify(
+        pose().blocking
+          ? 'ปล่อยตั้งรับก่อนใช้สกิล'
+          : combat.player.spirit < SPIRIT_WAVE.cost
+            ? 'พลังวิญญาณไม่พอ รอฟื้นพลังสักครู่'
+            : 'สกิลยังไม่พร้อม รอจังหวะดาบหรือคูลดาวน์',
+      );
+    }
+  }
   function startBattle(): void {
     combat.reset();
     combatView.reset();
@@ -189,6 +203,7 @@ async function boot(): Promise<void> {
   element('start-game').addEventListener('click', startBattle);
   element('restart').addEventListener('click', startBattle);
   element('attack').addEventListener('click', attack);
+  element('spirit-skill').addEventListener('click', castSkill);
   element('block').addEventListener('click', () => {
     if (!paused()) touchBlocking = !touchBlocking;
   });
@@ -212,7 +227,7 @@ async function boot(): Promise<void> {
     camera.updateProjectionMatrix();
     element('hint').textContent =
       mode === 'walk'
-        ? 'WASD เดิน · F ฟัน · Q ตั้งรับ · Shift วิ่ง · P พัก'
+        ? 'WASD เดิน · F ฟัน · E คลื่นดาบ · Q ตั้งรับ · P พัก'
         : 'ลากเพื่อหมุน · เลื่อนเพื่อซูม · คลิกขวาลากเพื่อเลื่อน';
     sun.castShadow = mode === 'walk' && highQuality;
     if (mode === 'overview') {
@@ -318,6 +333,7 @@ async function boot(): Promise<void> {
     }
     if (key === 'p') setPaused(!manualPause);
     if (key === 'f') attack();
+    if (key === 'e') castSkill();
     if (key === 'v') setMode(mode === 'walk' ? 'overview' : 'walk');
   });
   document.addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
@@ -456,6 +472,23 @@ async function boot(): Promise<void> {
     element('hp-text').textContent = `${player.hp} / ${player.maxHp}`;
     element('hp-bar').style.width = `${(player.hp / player.maxHp) * 100}%`;
     element('stamina-bar').style.width = `${player.stamina}%`;
+    element('spirit-bar').style.width = `${player.spirit}%`;
+    element('spirit-text').textContent = `${Math.floor(player.spirit)} / 100`;
+    const charging = combat.chargingAt !== null;
+    const skillCooldown = Math.max(0, SPIRIT_WAVE.cooldown - combat.time + combat.lastSkillAt);
+    element('skill-state').textContent = charging
+      ? 'กำลังรวมพลัง…'
+      : skillCooldown > 0
+        ? `รอ ${skillCooldown.toFixed(1)} วินาที`
+        : player.spirit < SPIRIT_WAVE.cost
+          ? 'พลังไม่พอ'
+          : 'พร้อมใช้ · 35 พลัง';
+    element('spirit-skill').classList.toggle('charging', charging);
+    element('spirit-skill').classList.toggle('cooldown', !charging && skillCooldown > 0);
+    element('skill-charge').hidden = !charging || mode !== 'walk' || expanded;
+    element('charge-bar').style.width = charging
+      ? `${((combat.time - combat.chargingAt!) / SPIRIT_WAVE.charge) * 100}%`
+      : '0%';
     element('xp-bar').style.width = `${(player.xp / (player.level * 60)) * 100}%`;
     element('xp-text').textContent = `${player.xp} / ${player.level * 60} XP`;
     element('kill-count').textContent = `${Math.min(3, combat.kills)} / 3`;
@@ -472,6 +505,11 @@ async function boot(): Promise<void> {
     document.documentElement.dataset.hp = String(player.hp);
     document.documentElement.dataset.kills = String(combat.kills);
     document.documentElement.dataset.paused = String(paused());
+    document.documentElement.dataset.spirit = player.spirit.toFixed(1);
+    document.documentElement.dataset.charging = String(charging);
+    document.documentElement.dataset.waves = JSON.stringify(
+      combat.waves.map(({ id, position, travelled }) => ({ id, position, travelled })),
+    );
     document.documentElement.dataset.slimes = JSON.stringify(
       combat.slimes.map(({ id, hp, mode, position }) => ({ id, hp, mode, position })),
     );
@@ -509,7 +547,7 @@ async function boot(): Promise<void> {
           forward /= length;
           strafe /= length;
         }
-        const speed = keys.has('shift') || running ? 8.4 : 3.2;
+        const speed = combat.chargingAt !== null ? 1.2 : keys.has('shift') || running ? 8.4 : 3.2;
         const dx = (-Math.sin(yaw) * forward + Math.cos(yaw) * strafe) * speed * dt;
         const dz = (-Math.cos(yaw) * forward - Math.sin(yaw) * strafe) * speed * dt;
         // Substeps prevent crossing thin mapped walls during slow frames or sprinting.

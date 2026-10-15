@@ -6,6 +6,8 @@ with first-person swordsman combat against three slimes at the eastern gate plaz
 Remove real place/road labels and POI pins from gameplay and the minimap. Keep map data
 and attribution intact. Combat is local, real-time, with blocking, HP/stamina, XP/levels,
 enemy respawn and player restart. No networked MMO or persistence is implemented yet.
+E casts a charged spirit crescent: 0.9 s charge, 30 m horizontal projectile, 35 spirit,
+5 s cooldown, piercing enemies but stopping at mapped obstacles. See `docs/chiangmai_combat.md`.
 Read `README.md` and `apps/chiangmai-world/README.md` first. The new app is in
 `apps/chiangmai-world`, using Three.js and a cached OpenStreetMap extract.
 

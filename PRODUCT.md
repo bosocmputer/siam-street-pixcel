@@ -37,5 +37,7 @@ This visual walking prototype does not claim full screen-reader navigation of th
 ## Scope
 
 Build locally in `apps/chiangmai-world`. Local real-time melee combat, blocking, enemy
-respawn, defeat/restart, XP and levels. No public deployment, accounts, persistence,
+respawn, defeat/restart, XP and levels. A charged spirit crescent skill adds ranged combat:
+visible absorption into the blade, then a travelling wave that hits enemies and stops at walls.
+No public deployment, accounts, persistence,
 VR headset support, or networked players in this prototype.

@@ -90,6 +90,57 @@
 .stamina i {
   background: oklch(0.83 0.12 85);
 }
+.spirit {
+  height: 5px;
+  margin-top: 5px;
+}
+.spirit i {
+  background: oklch(0.8 0.13 220);
+}
+#spirit-skill {
+  border-color: oklch(0.74 0.12 220);
+  min-width: 150px;
+}
+#spirit-skill span {
+  font-size: 13px;
+}
+#spirit-skill small {
+  display: block;
+  color: oklch(0.87 0.07 220);
+  font-size: 9px;
+  margin-top: 3px;
+}
+#spirit-skill kbd {
+  margin-top: 2px;
+}
+#spirit-skill.charging {
+  background: oklch(0.35 0.08 225);
+  box-shadow: 0 0 20px oklch(0.7 0.12 220 / 0.25);
+}
+#spirit-skill.cooldown {
+  opacity: 0.7;
+}
+#skill-charge {
+  position: absolute;
+  bottom: 150px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  width: 220px;
+  padding: 12px 15px;
+  background: var(--surface);
+  color: oklch(0.91 0.05 220);
+  font-size: 11px;
+  text-align: center;
+}
+#spirit-flash {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background: oklch(0.85 0.12 220);
+  opacity: 0;
+}
 .experience {
   height: 3px;
   margin-top: 7px;
@@ -378,6 +429,22 @@ body:not(.walking) .player-status {
   .combat-actions kbd {
     display: none;
   }
+  #spirit-skill {
+    min-width: 96px;
+  }
+  #spirit-skill span {
+    font-size: 11px;
+  }
+  #spirit-skill small {
+    font-size: 8px;
+  }
+  #skill-charge {
+    left: auto;
+    right: 12px;
+    bottom: 370px;
+    transform: none;
+    width: 180px;
+  }
   #pause {
     top: auto;
     bottom: 41px;
@@ -444,6 +511,9 @@ body:not(.walking) .player-status {
   .combat-actions button {
     min-width: 78px;
     min-height: 50px;
+  }
+  #spirit-skill {
+    min-width: 115px;
   }
   #joystick {
     bottom: 143px;

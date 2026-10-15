@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import { CombatSimulation, type CombatEvent, type CombatPose } from './combat';
+import { CombatSimulation, SPIRIT_WAVE, type CombatEvent, type CombatPose } from './combat';
+import { SpiritWaveView } from './spirit-wave-view';
 
 const metal = (color: string) =>
   new THREE.MeshStandardMaterial({ color, roughness: 0.28, metalness: 0.6 });
@@ -57,6 +58,7 @@ export class CombatView {
   private damageOverlay: HTMLElement;
   private reticle: HTMLElement;
   private confirmUntil = 0;
+  private spiritEffects: SpiritWaveView;
 
   constructor(
     private scene: THREE.Scene,
@@ -67,6 +69,7 @@ export class CombatView {
     scene.add(this.enemies, camera);
     camera.add(this.hands);
     this.buildHands();
+    this.spiritEffects = new SpiritWaveView(scene, this.right, simulation);
     this.damageOverlay = document.getElementById('damage-overlay')!;
     this.reticle = document.getElementById('reticle')!;
     const sphere = new THREE.SphereGeometry(0.76, 30, 20);
@@ -339,6 +342,7 @@ export class CombatView {
   }
 
   handle(events: CombatEvent[], visualTime: number): void {
+    this.spiritEffects.handle(events);
     for (const event of events) {
       if (event.kind === 'hit') {
         this.confirmUntil = visualTime + 0.15;
@@ -390,6 +394,7 @@ export class CombatView {
     this.floats.push({ div, position: new THREE.Vector3(p[0], 1.2, p[1]), created, duration });
   }
   reset(): void {
+    this.spiritEffects.reset();
     for (const item of this.floats) item.div.remove();
     this.floats = [];
     for (const p of this.particles) {
@@ -428,6 +433,18 @@ export class CombatView {
     );
     this.left.rotation.set(pose.blocking ? 0.7 : -0.2, 0.3, pose.blocking ? -1.1 : 0.3);
     if (pose.blocking) this.right.rotation.z = 1.05;
+    if (this.simulation.chargingAt !== null) {
+      const charge = Math.min(
+        1,
+        (this.simulation.time - this.simulation.chargingAt) / SPIRIT_WAVE.charge,
+      );
+      this.right.position.x = 0.25 * horizontalFit;
+      this.right.position.y += 0.06 * charge;
+      this.right.rotation.set(-0.2, -0.2, 0.55 + charge * 0.3);
+      this.left.position.set(-0.12 * horizontalFit, -0.14, -1.1);
+      this.left.rotation.set(0.1, -0.5, -0.5);
+    }
+    this.spiritEffects.update(visible);
     for (let i = 0; i < this.simulation.slimes.length; i++) {
       const slime = this.simulation.slimes[i],
         view = this.visuals[i];
