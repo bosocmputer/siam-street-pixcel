@@ -1,45 +1,38 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import {
-  CityCollision,
-  displayName,
-  distanceToLine,
-  project,
-  unproject,
-  type CityData,
-  type Point,
-} from './geo';
-import { buildWorld, type Landmark } from './world';
+import { CityCollision, project, type CityData, type Point } from './geo';
+import { buildWorld } from './world';
 import { Minimap } from './minimap';
+import { CombatSimulation, type CombatPose } from './combat';
+import { CombatView } from './combat-view';
 import './style.css';
+import './combat.css';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
 app.innerHTML = `
   <main id="world" aria-label="โลกสามมิติเมืองเก่าเชียงใหม่"></main>
   <div id="loading" role="status"><div class="loading-mark">เชียงใหม่</div><p id="loading-text">กำลังเปิดแผนที่เมืองเก่า</p><div class="loading-line"></div></div>
   <header class="topbar">
-    <div class="identity"><span class="city-symbol" aria-hidden="true">▤</span><div><h1>เชียงใหม่<span>OLD CITY WALK</span></h1><p>เมืองเก่า · โลก 3 มิติ</p></div></div>
+    <div class="identity"><span class="city-symbol" aria-hidden="true">⚔</span><div><h1>OLD CITY<span>SWORDSMAN PROTOTYPE</span></h1><p>นักดาบ · มุมมองบุคคลที่หนึ่ง</p></div></div>
     <div class="tools"><button id="time" title="เปลี่ยนแสงในเมือง">◷ <span id="time-label">09:00</span></button><button id="quality" title="เปลี่ยนคุณภาพภาพ">ภาพละเอียด</button><button id="help" aria-label="วิธีควบคุม">?</button><button id="fullscreen" aria-label="เต็มหน้าจอ">⛶</button></div>
   </header>
-  <aside class="place-panel">
-    <div class="panel-top"><span class="live-dot"></span><span id="mode-caption">สำรวจจากมุมสูง</span><span class="province">THAILAND</span></div>
-    <h2 id="place-title">ภายในคูเมือง</h2>
-    <p id="place-description">ถนน ซอย และรูปทรงอาคารจากแผนที่จริง เลือกจุดหมายแล้วลงไปเดินสำรวจได้เลย</p>
-    <label for="destination">เลือกจุดเริ่มสำรวจ</label><div class="destination-row"><select id="destination" aria-label="เลือกจุดสำคัญ"></select><button id="go" aria-label="เดินที่จุดหมายที่เลือก">↗</button></div>
-    <button id="start-walking" class="primary">ลงไปเดินที่ประตูท่าแพ <span>↗</span></button>
-    <div class="place-bottom"><span id="street-name">เมืองเก่าเชียงใหม่</span><span id="coordinates">18.7895° N · 98.9850° E</span></div>
-  </aside>
+  <aside class="quest"><span>ฝึกฝนนักดาบ</span><strong>ปราบสไลม์ <b id="kill-count">0 / 3</b></strong><small id="quest-note">เข้าใกล้ · เล็ง · ฟันดาบ</small></aside>
   <div class="compass" aria-label="เข็มทิศ"><span>W</span><span id="heading">N</span><span>E</span><div class="compass-notch"></div></div>
-  <section class="map-panel" aria-label="แผนที่นำทาง"><div class="map-top"><span>แผนที่เมืองเก่า</span><button id="expand-map" aria-label="ขยายแผนที่" aria-expanded="false">⤢</button></div><canvas id="minimap" aria-label="แผนที่ถนนจริงและตำแหน่งของคุณ"></canvas><div class="map-bottom"><span>↑ N</span><span id="map-hint">คูเมืองเชียงใหม่</span><span>200 m</span></div></section>
-  <nav class="view-switch" aria-label="มุมมอง"><button id="view-overview" class="active" aria-pressed="true">◈ มุมสูง</button><button id="view-walk" aria-pressed="false">♙ เดินสำรวจ</button></nav>
+  <section class="map-panel" aria-label="แผนที่นำทาง"><div class="map-top"><span>แผนที่โลก</span><button id="expand-map" aria-label="ขยายแผนที่" aria-expanded="false">⤢</button></div><canvas id="minimap" aria-label="แผนที่เส้นทางและตำแหน่งของคุณ"></canvas><div class="map-bottom"><span>↑ N</span><span id="map-hint">M เปิดแผนที่</span><span>200 m</span></div></section>
+  <nav class="view-switch" aria-label="มุมมอง"><button id="view-overview" aria-pressed="false">◈ มุมสูง</button><button id="view-walk" class="active" aria-pressed="true">⚔ กลับไปเล่น</button></nav>
   <div class="keyboard-hint" id="hint">ลากเพื่อหมุน · เลื่อนเพื่อซูม · คลิกขวาลากเพื่อเลื่อน</div>
-  <div class="reticle" aria-hidden="true"></div>
-  <div id="scene-labels" aria-hidden="true"></div>
+  <div class="reticle" id="reticle" aria-hidden="true"></div>
+  <div id="combat-labels" aria-hidden="true"></div><div id="damage-overlay" aria-hidden="true"></div>
+  <section class="player-status" aria-label="สถานะนักดาบ"><div><strong id="player-level">นักดาบ Lv.1</strong><span id="hp-text">100 / 100</span></div><div class="meter health"><i id="hp-bar"></i></div><div class="meter stamina"><i id="stamina-bar"></i></div><div class="status-bottom"><span>พลังชีวิต / ความอึด</span><span id="xp-text">0 / 60 XP</span></div><div class="meter experience"><i id="xp-bar"></i></div></section>
+  <div class="combat-actions"><button id="block" aria-pressed="false"><span>ตั้งรับ</span><kbd>Q / คลิกขวาค้าง</kbd></button><button id="attack"><span>ฟันดาบ</span><kbd>F / คลิกซ้าย</kbd></button></div>
+  <div id="start-panel" class="battle-screen"><div><span class="eyebrow">FIRST-PERSON COMBAT</span><h2>จับดาบ แล้วออกไปลุย</h2><p>สไลม์ 3 ตัวรออยู่ด้านหน้า<br>เข้าใกล้เพื่อฟัน ถอยหลบตอนตัวมันเปลี่ยนเป็นสีเหลือง</p><p class="control-summary">WASD เดิน · Shift วิ่ง · ลากเมาส์มอง<br>F ฟันดาบ · Q ค้างเพื่อตั้งรับ</p><button id="start-game" class="primary">เริ่มต่อสู้ →</button><small>ต้นแบบเล่นคนเดียว · ยังไม่มีระบบออนไลน์</small></div></div>
+  <div id="death-panel" class="battle-screen" hidden><div><span class="eyebrow">TRY AGAIN</span><h2>นักดาบล้มลงแล้ว</h2><p>รอจังหวะฟัน แล้วถอยหลบก่อนสไลม์กระโดด</p><button id="restart" class="primary">เริ่มใหม่ →</button></div></div>
+  <button id="pause" aria-pressed="false">พักเกม</button>
   <div id="touch-controls"><div id="joystick" aria-label="ลากเพื่อเดิน"><div id="stick"></div></div><button id="touch-run" aria-label="วิ่ง" aria-pressed="false">วิ่ง</button><span>ลากฝั่งขวาเพื่อมอง</span></div>
   <div class="attribution"><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">© OpenStreetMap contributors</a><button id="data-info">เกี่ยวกับฉากนี้</button></div>
   <div id="toast" role="status" aria-live="polite"></div>
-  <dialog id="help-dialog"><button class="close-dialog" aria-label="ปิด">×</button><h2>ออกไปเดินเล่นกัน</h2><p>เลือกจุดหมายแล้วกด “ลงไปเดิน” เพื่อสำรวจเมืองในระดับสายตา</p><dl><dt>W A S D / ลูกศร</dt><dd>เดินหน้า ถอยหลัง และเดินด้านข้าง</dd><dt>ลากเมาส์บนฉาก</dt><dd>หันมองรอบตัว</dd><dt>คลิกบนฉาก</dt><dd>ล็อกเมาส์ให้มองได้อิสระ · กด Esc เพื่อปล่อย</dd><dt>Shift</dt><dd>วิ่ง</dd><dt>M</dt><dd>เปิดหรือย่อแผนที่ · คลิกแผนที่ที่ขยายเพื่อย้ายจุด</dd><dt>V</dt><dd>สลับมุมสูงกับเดิน</dd><dt>R</dt><dd>กลับจุดเริ่มเดิน</dd></dl><p>มือถือ: ลากวงกลมซ้ายเพื่อเดิน และลากฝั่งขวาของฉากเพื่อหันมอง</p><label class="check"><input type="checkbox" id="bob" /> ขยับกล้องตามจังหวะเดิน</label><button class="primary close-action">เริ่มสำรวจ</button></dialog>
-  <dialog id="data-dialog"><button class="close-dialog" aria-label="ปิด">×</button><h2>สร้างเมืองจากแผนที่จริง</h2><p>ถนน ทางเดิน คูน้ำ รูปทรงอาคาร และตำแหน่งสถานที่ นำเข้าจาก OpenStreetMap พร้อมเก็บ snapshot ในตัวแอป</p><div id="data-stats"></div><p>อาคารส่วนใหญ่ไม่มีข้อมูลความสูง จึงประเมินจำนวนชั้นและสร้างหลังคา หน้าต่าง ประตู และกันสาดเสริม โมเดลวัดและกำแพงเป็นการจำลองรูปแบบ ไม่ใช่โมเดลสแกนจากสถานที่จริง</p><p>ต้นไม้ริมถนนบางส่วน เสาไฟ และภูเขาฉากหลังสร้างเพื่อบรรยากาศ พื้นฉากยังเป็นระนาบ ไม่มีข้อมูลระดับความสูงที่สำรวจจริง ภายในอาคารยังเข้าไม่ได้</p><p>ฉากนี้เป็นต้นแบบเดินคนเดียวบนคอม/มือถือ ยังไม่มีผู้เล่นออนไลน์หรือระบบ MMORPG</p><p id="data-date"></p><a href="/data/old-city.json" download="chiangmai-old-city-odbl.json">ดาวน์โหลดข้อมูลแผนที่ ODbL</a><button class="primary close-action">กลับไปสำรวจ</button></dialog>
+  <dialog id="help-dialog"><button class="close-dialog" aria-label="ปิด">×</button><h2>วิถีนักดาบ</h2><dl><dt>W A S D / ลูกศร</dt><dd>เดิน · Shift วิ่ง</dd><dt>F / คลิกซ้าย</dt><dd>ฟันดาบในระยะประมาณ 3 เมตร เล็งกลางจอไปที่สไลม์</dd><dt>Q / คลิกขวาค้าง</dt><dd>ตั้งรับด้านหน้า ใช้ความอึดและลดความเสียหาย</dd><dt>ลากเมาส์ / คลิกฉาก</dt><dd>หันมอง / ล็อกเมาส์ · Esc ปล่อยและพักเกม</dd><dt>M / V / P</dt><dd>แผนที่ / มุมสูง / พักเกม</dd></dl><p>สไลม์สีเหลืองกำลังเตรียมโจมตี ถอยออกให้ทัน! ชนะแล้วได้ XP และเลเวล สไลม์จะเกิดใหม่ใน 8 วินาที</p><p>มือถือ: จอยซ้ายเดิน ลากฝั่งขวาหันมอง ปุ่มฟันและตั้งรับอยู่ด้านล่าง</p><label class="check"><input type="checkbox" id="bob" /> ขยับกล้องตามจังหวะเดิน</label><button class="primary close-action">กลับไปเล่น</button></dialog>
+  <dialog id="data-dialog"><button class="close-dialog" aria-label="ปิด">×</button><h2>สร้างเมืองจากแผนที่จริง</h2><p>ถนน ทางเดิน คูน้ำ รูปทรงอาคาร และตำแหน่งสถานที่ นำเข้าจาก OpenStreetMap พร้อมเก็บ snapshot ในตัวแอป</p><div id="data-stats"></div><p>อาคารส่วนใหญ่ไม่มีข้อมูลความสูง จึงประเมินจำนวนชั้นและสร้างหลังคา หน้าต่าง ประตู และกันสาดเสริม โมเดลวัดและกำแพงเป็นการจำลองรูปแบบ ไม่ใช่โมเดลสแกนจากสถานที่จริง</p><p>ต้นไม้ริมถนนบางส่วน เสาไฟ และภูเขาฉากหลังสร้างเพื่อบรรยากาศ พื้นฉากยังเป็นระนาบ ไม่มีข้อมูลระดับความสูงที่สำรวจจริง ภายในอาคารยังเข้าไม่ได้</p><p>ฉากนี้เป็นต้นแบบต่อสู้นักดาบกับสไลม์ในเครื่องคนเดียว ยังไม่มีผู้เล่นออนไลน์หรือการบันทึกความคืบหน้า</p><p id="data-date"></p><a href="/data/old-city.json" download="chiangmai-old-city-odbl.json">ดาวน์โหลดข้อมูลแผนที่ ODbL</a><button class="primary close-action">กลับไปเล่น</button></dialog>
 `;
 
 function element<T extends HTMLElement = HTMLElement>(id: string): T {
@@ -52,8 +45,6 @@ const buttons = [
   'quality',
   'help',
   'fullscreen',
-  'go',
-  'start-walking',
   'expand-map',
   'view-overview',
   'view-walk',
@@ -111,7 +102,17 @@ async function boot(): Promise<void> {
   });
   scene.add(world.group);
   const collision = new CityCollision(data);
-  const map = new Minimap(element<HTMLCanvasElement>('minimap'), data, world.landmarks);
+  const map = new Minimap(element<HTMLCanvasElement>('minimap'), data);
+  const spawn = collision.nearestWalkable(world.landmarks[0].spawn);
+  const blocked = (point: Point, radius?: number) => collision.blocked(point, radius);
+  const combat = new CombatSimulation(
+    [
+      [886, 192],
+      [884, 185],
+      [885, 200],
+    ].map((p) => collision.nearestWalkable(p as Point)),
+  );
+  const combatView = new CombatView(scene, camera, combat, element('combat-labels'));
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.dampingFactor = 0.08;
@@ -124,11 +125,13 @@ async function boot(): Promise<void> {
   controls.update();
 
   let mode: 'walk' | 'overview' = 'overview';
-  let position: Point = collision.nearestWalkable(world.landmarks[0].spawn);
+  let position: Point = [...spawn];
   let yaw = Math.PI / 2;
-  let pitch = 0;
-  let lastSpawn = [...position] as Point;
-  let selected = world.landmarks[0];
+  let pitch = -0.16;
+  let battleStarted = false;
+  let manualPause = false;
+  let mouseBlocking = false;
+  let touchBlocking = false;
   let expanded = false;
   let golden = false;
   let highQuality = true;
@@ -144,24 +147,52 @@ async function boot(): Promise<void> {
   let lastUi = 0;
   let toastTimer: ReturnType<typeof setTimeout>;
 
-  const destination = element<HTMLSelectElement>('destination');
-  for (const [index, landmark] of world.landmarks.entries()) {
-    const option = document.createElement('option');
-    option.value = landmark.id;
-    option.textContent = `${index + 1}. ${landmark.name}`;
-    destination.appendChild(option);
-  }
-  const labelElements = world.landmarks.map((landmark) => {
-    const div = document.createElement('div');
-    div.className = 'landmark-label';
-    const dot = document.createElement('span');
-    dot.className = 'landmark-dot';
-    const text = document.createElement('span');
-    text.textContent = landmark.name;
-    div.append(dot, text);
-    element('scene-labels').append(div);
-    return { landmark, div };
+  const pose = (): CombatPose => ({
+    position,
+    yaw,
+    pitch,
+    blocking: keys.has('q') || mouseBlocking || touchBlocking,
   });
+  const paused = () =>
+    manualPause ||
+    !battleStarted ||
+    expanded ||
+    mode !== 'walk' ||
+    document.hidden ||
+    !!document.querySelector('dialog[open]');
+  function setPaused(value: boolean): void {
+    manualPause = value;
+    keys.clear();
+    mouseBlocking = touchBlocking = false;
+    touches.x = touches.y = 0;
+    element('pause').textContent = value ? 'เล่นต่อ ▶' : 'พักเกม';
+    element('pause').setAttribute('aria-pressed', String(value));
+    document.body.classList.toggle('battle-paused', value);
+    if (value && document.pointerLockElement) document.exitPointerLock();
+  }
+  function attack(): void {
+    if (!paused()) combat.attack(pose(), blocked);
+  }
+  function startBattle(): void {
+    combat.reset();
+    combatView.reset();
+    position = [...spawn];
+    yaw = Math.PI / 2;
+    pitch = -0.16;
+    battleStarted = true;
+    element('start-panel').hidden = true;
+    element('death-panel').hidden = true;
+    toggleMap(false);
+    setMode('walk');
+    setPaused(false);
+  }
+  element('start-game').addEventListener('click', startBattle);
+  element('restart').addEventListener('click', startBattle);
+  element('attack').addEventListener('click', attack);
+  element('block').addEventListener('click', () => {
+    if (!paused()) touchBlocking = !touchBlocking;
+  });
+  element('pause').addEventListener('click', () => setPaused(!manualPause));
 
   function notify(message: string): void {
     element('toast').textContent = message;
@@ -177,10 +208,11 @@ async function boot(): Promise<void> {
     element('view-walk').classList.toggle('active', mode === 'walk');
     element('view-overview').setAttribute('aria-pressed', String(mode === 'overview'));
     element('view-walk').setAttribute('aria-pressed', String(mode === 'walk'));
-    element('mode-caption').textContent = mode === 'walk' ? 'เดินสำรวจเมือง' : 'สำรวจจากมุมสูง';
+    camera.fov = mode === 'walk' ? 68 : 48;
+    camera.updateProjectionMatrix();
     element('hint').textContent =
       mode === 'walk'
-        ? 'W A S D เดิน · ลากเพื่อมอง · Shift วิ่ง · Esc ปล่อยเมาส์'
+        ? 'WASD เดิน · F ฟัน · Q ตั้งรับ · Shift วิ่ง · P พัก'
         : 'ลากเพื่อหมุน · เลื่อนเพื่อซูม · คลิกขวาลากเพื่อเลื่อน';
     sun.castShadow = mode === 'walk' && highQuality;
     if (mode === 'overview') {
@@ -195,14 +227,7 @@ async function boot(): Promise<void> {
       (scene.fog as THREE.Fog).far = 2200;
     }
   }
-  function showPlace(landmark: Landmark): void {
-    selected = landmark;
-    element('place-title').textContent = landmark.name;
-    element('place-description').textContent = landmark.description;
-    element('start-walking').firstChild!.textContent = `ลงไปเดินที่${landmark.name} `;
-    destination.value = landmark.id;
-  }
-  function teleport(point: Point, landmark?: Landmark): void {
+  function teleport(point: Point): void {
     const min = project(data.meta.bbox[1], data.meta.bbox[2], data.meta.origin);
     const max = project(data.meta.bbox[3], data.meta.bbox[0], data.meta.origin);
     const bounded: Point = [
@@ -210,36 +235,14 @@ async function boot(): Promise<void> {
       Math.max(min[1] + 4, Math.min(max[1] - 4, point[1])),
     ];
     position = collision.nearestWalkable(bounded);
-    lastSpawn = [...position];
-    yaw =
-      landmark?.id === 'thaphae'
-        ? Math.PI / 2
-        : landmark
-          ? Math.atan2(position[0] - landmark.position[0], position[1] - landmark.position[1])
-          : yaw;
-    pitch = landmark && ['chediluang', 'phrasingh'].includes(landmark.id) ? 0.26 : 0;
-    if (landmark) showPlace(landmark);
     setMode('walk');
-    notify(landmark ? `เริ่มสำรวจที่${landmark.name}` : 'ย้ายไปจุดที่เลือกบนแผนที่แล้ว');
+    notify('ย้ายไปจุดที่เลือกบนแผนที่แล้ว');
   }
-  element('start-walking').addEventListener('click', () => teleport(selected.spawn, selected));
-  element('go').addEventListener('click', () => teleport(selected.spawn, selected));
-  destination.addEventListener('change', () => {
-    const landmark = world.landmarks.find((p) => p.id === destination.value)!;
-    showPlace(landmark);
-    if (mode === 'overview') {
-      controls.target.set(
-        ...([landmark.position[0], 0, landmark.position[1]] as [number, number, number]),
-      );
-      camera.position.set(landmark.position[0] + 150, 260, landmark.position[1] + 270);
-      controls.update();
-    }
-  });
   element('view-overview').addEventListener('click', () => {
     if (mode !== 'overview') setMode('overview');
   });
   element('view-walk').addEventListener('click', () => {
-    if (mode !== 'walk') teleport(lastSpawn, selected);
+    if (mode !== 'walk') setMode('walk');
   });
   map.onTeleport = (point) => {
     teleport(point);
@@ -250,7 +253,7 @@ async function boot(): Promise<void> {
     document.body.classList.toggle('map-expanded', expanded);
     element('expand-map').setAttribute('aria-expanded', String(expanded));
     element('expand-map').textContent = expanded ? '×' : '⤢';
-    element('map-hint').textContent = expanded ? 'คลิกบนแผนที่เพื่อย้ายจุด' : 'คูเมืองเชียงใหม่';
+    element('map-hint').textContent = expanded ? 'คลิกเพื่อย้ายจุด · พักการต่อสู้' : 'M เปิดแผนที่';
     map.setExpanded(expanded);
     if (expanded && document.pointerLockElement) document.exitPointerLock();
   }
@@ -309,19 +312,21 @@ async function boot(): Promise<void> {
     keys.add(key);
     if (e.repeat) return;
     if (key === 'm') toggleMap();
-    if (key === 'escape' && expanded) toggleMap(false);
+    if (key === 'escape') {
+      if (expanded) toggleMap(false);
+      else setPaused(true);
+    }
+    if (key === 'p') setPaused(!manualPause);
+    if (key === 'f') attack();
     if (key === 'v') setMode(mode === 'walk' ? 'overview' : 'walk');
-    if (key === 'r') teleport(lastSpawn);
   });
   document.addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
   window.addEventListener('blur', () => {
-    keys.clear();
-    touches.x = touches.y = 0;
+    if (battleStarted) setPaused(true);
   });
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
-      keys.clear();
-      touches.x = touches.y = 0;
+      if (battleStarted) setPaused(true);
     }
   });
   const look = (dx: number, dy: number) => {
@@ -330,7 +335,20 @@ async function boot(): Promise<void> {
   };
   let drag: { x: number; y: number; moved: boolean; id: number } | undefined;
   renderer.domElement.addEventListener('pointerdown', (e) => {
-    if (mode !== 'walk' || (e.pointerType === 'touch' && e.clientX < innerWidth * 0.35)) return;
+    if (
+      paused() ||
+      combat.player.hp <= 0 ||
+      (e.pointerType === 'touch' && e.clientX < innerWidth * 0.35)
+    )
+      return;
+    if (e.button === 2) {
+      mouseBlocking = true;
+      return;
+    }
+    if (document.pointerLockElement === renderer.domElement) {
+      attack();
+      return;
+    }
     drag = { x: e.clientX, y: e.clientY, moved: false, id: e.pointerId };
     renderer.domElement.setPointerCapture(e.pointerId);
   });
@@ -350,7 +368,9 @@ async function boot(): Promise<void> {
     drag.y = e.clientY;
   });
   renderer.domElement.addEventListener('pointerup', (e) => {
-    if (drag && !drag.moved && e.pointerType === 'mouse' && mode === 'walk') {
+    if (e.button === 2) mouseBlocking = false;
+    if (drag && !drag.moved && e.pointerType === 'mouse' && !paused()) {
+      attack();
       try {
         const request = renderer.domElement.requestPointerLock();
         if (request && typeof request.catch === 'function')
@@ -363,10 +383,21 @@ async function boot(): Promise<void> {
   });
   renderer.domElement.addEventListener('pointercancel', () => {
     drag = undefined;
+    mouseBlocking = false;
+  });
+  renderer.domElement.addEventListener('contextmenu', (e) => e.preventDefault());
+  document.addEventListener('pointerup', (e) => {
+    if (e.button === 2) mouseBlocking = false;
   });
   document.addEventListener('mousemove', (e) => {
     if (mode === 'walk' && document.pointerLockElement === renderer.domElement)
       look(e.movementX, e.movementY);
+  });
+  let hadPointerLock = false;
+  document.addEventListener('pointerlockchange', () => {
+    const locked = document.pointerLockElement === renderer.domElement;
+    if (hadPointerLock && !locked && battleStarted) setPaused(true);
+    hadPointerLock = locked;
   });
   const joystick = element('joystick'),
     stick = element('stick');
@@ -408,41 +439,11 @@ async function boot(): Promise<void> {
     `ข้อมูลแผนที่ ณ ${new Date(data.meta.osmTimestamp).toLocaleDateString('th-TH')} · ขอบเขตรวมแนวถนนรอบนอกคูเมือง`;
   const boundsMin = project(data.meta.bbox[1], data.meta.bbox[2], data.meta.origin);
   const boundsMax = project(data.meta.bbox[3], data.meta.bbox[0], data.meta.origin);
-  const projected = new THREE.Vector3();
   const clockPosition = new THREE.Vector3();
-
-  function updateLabels(): void {
-    for (const { landmark, div } of labelElements) {
-      const distance = Math.hypot(
-        camera.position.x - landmark.position[0],
-        camera.position.z - landmark.position[1],
-      );
-      projected.set(
-        landmark.position[0],
-        landmark.id === 'chediluang' ? 45 : 20,
-        landmark.position[1],
-      );
-      const facing =
-        projected.clone().sub(camera.position).dot(camera.getWorldDirection(new THREE.Vector3())) >
-        0;
-      projected.project(camera);
-      const visible =
-        facing &&
-        projected.z < 1 &&
-        (mode === 'overview' || distance < 190) &&
-        Math.abs(projected.x) < 0.95 &&
-        Math.abs(projected.y) < 0.85;
-      div.style.display = visible ? 'flex' : 'none';
-      if (visible)
-        div.style.transform = `translate(${(projected.x * 0.5 + 0.5) * innerWidth}px, ${(-projected.y * 0.5 + 0.5) * innerHeight}px) translate(-50%, -100%)`;
-    }
-  }
   function updateHud(now: number): void {
     if (now - lastUi < 120) return;
     lastUi = now;
     const p: Point = mode === 'walk' ? position : [controls.target.x, controls.target.z];
-    const ll = unproject(...p, data.meta.origin);
-    element('coordinates').textContent = `${ll[1].toFixed(5)}° N · ${ll[0].toFixed(5)}° E`;
     const viewYaw =
       mode === 'walk'
         ? yaw
@@ -450,21 +451,30 @@ async function boot(): Promise<void> {
     const degrees = ((((-viewYaw * 180) / Math.PI) % 360) + 360) % 360;
     element('heading').textContent = `${Math.round(degrees)}°`;
     map.draw(p, viewYaw);
-    updateLabels();
-    if (mode === 'walk') {
-      let nearest = { distance: 35, name: 'ตรอกในเมืองเก่า' };
-      for (const road of data.roads) {
-        const name = displayName(road.tags);
-        if (!name) continue;
-        const distance = distanceToLine(position, road.points);
-        if (distance < nearest.distance) nearest = { distance, name };
-      }
-      element('street-name').textContent = nearest.name;
-    }
+    const player = combat.player;
+    element('player-level').textContent = `นักดาบ Lv.${player.level}`;
+    element('hp-text').textContent = `${player.hp} / ${player.maxHp}`;
+    element('hp-bar').style.width = `${(player.hp / player.maxHp) * 100}%`;
+    element('stamina-bar').style.width = `${player.stamina}%`;
+    element('xp-bar').style.width = `${(player.xp / (player.level * 60)) * 100}%`;
+    element('xp-text').textContent = `${player.xp} / ${player.level * 60} XP`;
+    element('kill-count').textContent = `${Math.min(3, combat.kills)} / 3`;
+    element('quest-note').textContent =
+      combat.kills >= 3 ? 'สำเร็จ! ฝึกต่อเพื่อเพิ่มเลเวลได้' : 'เข้าใกล้ · เล็ง · ฟันดาบ';
+    element('reticle').classList.toggle('in-range', !!combat.target(pose(), blocked));
+    element('block').setAttribute('aria-pressed', String(pose().blocking));
+    element('attack').classList.toggle('cooldown', combat.time - combat.lastSwingAt < 0.6);
+    element('death-panel').hidden = player.hp > 0;
     // Read-only diagnostics for tests and profiling; no mutation/debug commands are exposed.
     document.documentElement.dataset.mode = mode;
     document.documentElement.dataset.position = `${position[0].toFixed(3)},${position[1].toFixed(3)}`;
     document.documentElement.dataset.walked = walked.toFixed(2);
+    document.documentElement.dataset.hp = String(player.hp);
+    document.documentElement.dataset.kills = String(combat.kills);
+    document.documentElement.dataset.paused = String(paused());
+    document.documentElement.dataset.slimes = JSON.stringify(
+      combat.slimes.map(({ id, hp, mode, position }) => ({ id, hp, mode, position })),
+    );
     document.documentElement.dataset.fps = String(fps);
     document.documentElement.dataset.drawcalls = String(renderer.info.render.calls);
     document.documentElement.dataset.triangles = String(renderer.info.render.triangles);
@@ -481,9 +491,10 @@ async function boot(): Promise<void> {
       frames = 0;
       lastFpsTime = now;
     }
-    const paused = !!document.querySelector('dialog[open]') || expanded || document.hidden;
+    const isPaused = paused() || combat.player.hp <= 0;
+    let moving = false;
     if (mode === 'walk') {
-      if (!paused) {
+      if (!isPaused) {
         let forward =
           Number(keys.has('w') || keys.has('arrowup')) -
           Number(keys.has('s') || keys.has('arrowdown')) -
@@ -493,6 +504,7 @@ async function boot(): Promise<void> {
           Number(keys.has('a') || keys.has('arrowleft')) +
           touches.x;
         const length = Math.hypot(forward, strafe);
+        moving = length > 0;
         if (length > 1) {
           forward /= length;
           strafe /= length;
@@ -529,6 +541,18 @@ async function boot(): Promise<void> {
       sun.position.set(position[0] - 650, golden ? 460 : 950, position[1] + 400);
       sun.target.position.set(position[0], 0, position[1]);
     } else controls.update();
+    if (!isPaused) combat.step(dt, pose(), blocked);
+    const events = combat.drainEvents();
+    combatView.handle(events, now / 1000);
+    for (const event of events) {
+      if (event.kind === 'level')
+        notify(`เลเวล ${combat.player.level}! ดาบแรงขึ้นและพลังชีวิตเพิ่ม`);
+      if (event.kind === 'kill' && combat.kills === 3)
+        notify('ปราบสไลม์ครบ 3 ตัวแล้ว! ฝึกต่อเพื่อเพิ่มเลเวลได้');
+    }
+    if (combat.player.hp <= 0 && document.pointerLockElement) document.exitPointerLock();
+    camera.updateMatrixWorld();
+    combatView.update(dt, now / 1000, pose(), mode === 'walk' && !expanded, moving);
     for (const child of world.group.children) {
       if (child.userData.detail && child instanceof THREE.InstancedMesh && child.boundingSphere) {
         const center = child.boundingSphere.center;
@@ -559,6 +583,7 @@ async function boot(): Promise<void> {
     element<HTMLButtonElement>(id).disabled = false;
   });
   element('loading').remove();
+  setMode('walk');
   renderer.setAnimationLoop(frame);
   document.documentElement.dataset.ready = 'true';
 }

@@ -1,5 +1,4 @@
-import { centroid, displayName, roadWidth, type CityData, type Point } from './geo';
-import type { Landmark } from './world';
+import { roadWidth, type CityData, type Point } from './geo';
 
 export class Minimap {
   private ctx: CanvasRenderingContext2D;
@@ -8,15 +7,12 @@ export class Minimap {
   private minX = -950;
   private minZ = -850;
   private span = 2100;
-  private landmarks: Landmark[];
   private mapOpen = false;
   onTeleport: (point: Point) => void = () => {};
   constructor(
     private canvas: HTMLCanvasElement,
     data: CityData,
-    landmarks: Landmark[],
   ) {
-    this.landmarks = landmarks;
     this.canvas.width = this.canvas.height = this.size;
     this.ctx = canvas.getContext('2d')!;
     this.background.width = this.background.height = this.size;
@@ -61,27 +57,6 @@ export class Minimap {
       c.lineWidth = Math.max(0.65, (roadWidth(f.tags) * this.size) / this.span);
       c.stroke();
     }
-    c.fillStyle = '#67736a';
-    c.font = '13px system-ui';
-    c.textAlign = 'center';
-    const named = new Set<string>();
-    for (const f of data.roads) {
-      const name = displayName(f.tags);
-      if (
-        !name ||
-        named.has(name) ||
-        !['primary', 'secondary', 'tertiary'].includes(f.tags.highway)
-      )
-        continue;
-      named.add(name);
-      const [x, y] = this.toMap(centroid(f.points));
-      c.save();
-      c.strokeStyle = '#e8e7dd';
-      c.lineWidth = 4;
-      c.strokeText(name, x, y);
-      c.fillText(name, x, y);
-      c.restore();
-    }
     this.canvas.addEventListener('click', (e) => {
       if (!this.mapOpen) return;
       const rect = canvas.getBoundingClientRect();
@@ -102,27 +77,6 @@ export class Minimap {
   draw(p: Point, yaw: number): void {
     const c = this.ctx;
     c.drawImage(this.background, 0, 0);
-    for (let i = 0; i < this.landmarks.length; i++) {
-      const [x, y] = this.toMap(this.landmarks[i].position);
-      c.fillStyle = '#4d625b';
-      c.beginPath();
-      c.arc(x, y, 6, 0, Math.PI * 2);
-      c.fill();
-      c.fillStyle = '#ffffff';
-      c.font = 'bold 10px system-ui';
-      c.textAlign = 'center';
-      c.textBaseline = 'middle';
-      c.fillText(String(i + 1), x, y);
-      if (this.mapOpen) {
-        c.font = '12px system-ui';
-        c.textBaseline = 'alphabetic';
-        c.lineWidth = 4;
-        c.strokeStyle = '#e8e7dd';
-        c.strokeText(this.landmarks[i].name, x, y - 12);
-        c.fillStyle = '#253c38';
-        c.fillText(this.landmarks[i].name, x, y - 12);
-      }
-    }
     const [x, y] = this.toMap(p);
     const scaleWidth = (200 / this.span) * this.size;
     c.strokeStyle = '#263e38';

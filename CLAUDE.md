@@ -1,7 +1,11 @@
-# Active project: Chiang Mai Old City Walk (15 October 2026)
+# Active project: Old City Swordsman (15 October 2026)
 
 The user abandoned SLIME HOOD and all earlier gameplay concepts. The active request is
-a detailed, walkable 3D reconstruction of Chiang Mai's Old City using real map geometry.
+a detailed, walkable 3D reconstruction of Chiang Mai's Old City using real map geometry,
+with first-person swordsman combat against three slimes at the eastern gate plaza.
+Remove real place/road labels and POI pins from gameplay and the minimap. Keep map data
+and attribution intact. Combat is local, real-time, with blocking, HP/stamina, XP/levels,
+enemy respawn and player restart. No networked MMO or persistence is implemented yet.
 Read `README.md` and `apps/chiangmai-world/README.md` first. The new app is in
 `apps/chiangmai-world`, using Three.js and a cached OpenStreetMap extract.
 

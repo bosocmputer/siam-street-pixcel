@@ -1,0 +1,465 @@
+/* Combat HUD: keep the centre and the sword side free of map panels. */
+[hidden] {
+  display: none !important;
+}
+.quest {
+  position: absolute;
+  top: 132px;
+  left: 28px;
+  z-index: 5;
+  padding: 14px 18px;
+  background: var(--surface);
+  border-left: 2px solid var(--accent);
+  font-size: 12px;
+}
+.quest > span,
+.quest small {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+}
+.quest strong {
+  display: block;
+  margin: 5px 0;
+  font-weight: 500;
+}
+.quest b {
+  color: var(--accent);
+  margin-left: 20px;
+  font-variant-numeric: tabular-nums;
+}
+.map-panel {
+  top: 98px;
+  bottom: auto;
+  width: 178px;
+}
+.view-switch {
+  bottom: auto;
+  top: 318px;
+  right: 28px;
+  left: auto;
+  transform: none;
+}
+.view-switch button {
+  padding: 7px 10px;
+  font-size: 10px;
+}
+.keyboard-hint {
+  bottom: 20px;
+}
+.player-status {
+  position: absolute;
+  z-index: 5;
+  bottom: 62px;
+  left: 28px;
+  width: 270px;
+  padding: 14px 17px;
+  background: var(--surface);
+  border-radius: 6px;
+  font-size: 12px;
+}
+.player-status > div:first-child,
+.status-bottom {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+}
+#hp-text {
+  font-variant-numeric: tabular-nums;
+}
+.meter {
+  height: 8px;
+  overflow: hidden;
+  background: oklch(0.13 0.02 175 / 0.8);
+  border-radius: 2px;
+  margin-top: 9px;
+}
+.meter i {
+  display: block;
+  height: 100%;
+  width: 100%;
+  transition: width 0.12s linear;
+}
+.health i {
+  background: oklch(0.74 0.16 143);
+}
+.stamina {
+  height: 4px;
+  margin-top: 5px;
+}
+.stamina i {
+  background: oklch(0.83 0.12 85);
+}
+.experience {
+  height: 3px;
+  margin-top: 7px;
+}
+.experience i {
+  background: var(--accent);
+  width: 0;
+}
+.status-bottom {
+  color: var(--muted);
+  font-size: 9px;
+  margin-top: 7px;
+}
+.combat-actions {
+  position: absolute;
+  z-index: 10;
+  bottom: 62px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 10px;
+}
+.combat-actions button {
+  min-width: 115px;
+  min-height: 66px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--surface);
+}
+.combat-actions span {
+  display: block;
+  font-size: 15px;
+}
+.combat-actions kbd {
+  display: block;
+  margin-top: 5px;
+  font: 9px inherit;
+  color: var(--muted);
+}
+#attack {
+  border-color: var(--accent);
+}
+#attack.cooldown {
+  opacity: 0.65;
+}
+#block[aria-pressed='true'] {
+  background: oklch(0.42 0.05 170);
+  border-color: var(--accent);
+}
+#pause {
+  position: absolute;
+  z-index: 7;
+  top: 55px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 7px 14px;
+  font-size: 10px;
+  background: var(--surface);
+  border-radius: 4px;
+}
+.battle-paused #pause {
+  color: var(--ink);
+  background: var(--accent);
+  font-size: 13px;
+}
+.battle-screen {
+  position: fixed;
+  z-index: 20;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: oklch(0.13 0.02 175 / 0.5);
+  padding: 20px;
+}
+.battle-screen > div {
+  width: min(400px, 100%);
+  padding: 32px;
+  background: var(--surface);
+  border-top: 2px solid var(--accent);
+  box-shadow: 0 20px 70px oklch(0.1 0.02 175 / 0.3);
+}
+.battle-screen h2 {
+  font-size: 26px;
+  font-weight: 500;
+  margin: 12px 0;
+  letter-spacing: -0.02em;
+}
+.battle-screen p {
+  font-size: 13px;
+  line-height: 1.9;
+  color: var(--text);
+}
+.battle-screen small {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  margin-top: 14px;
+}
+.eyebrow {
+  color: var(--accent);
+  font: 10px system-ui;
+  letter-spacing: 0.12em;
+}
+.battle-screen .control-summary {
+  margin: 20px 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+.battle-screen .primary {
+  width: 100%;
+  margin-top: 10px;
+}
+#combat-labels {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+  overflow: hidden;
+}
+.enemy-label {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 88px;
+  text-align: center;
+  color: white;
+  font-size: 12px;
+  text-shadow: 0 1px 3px oklch(0.15 0.03 150);
+}
+.enemy-label small {
+  font: 9px system-ui;
+  color: oklch(0.95 0.02 130);
+}
+.enemy-hp {
+  height: 5px;
+  background: oklch(0.13 0.02 150 / 0.8);
+  border: 1px solid oklch(0.9 0.02 130 / 0.7);
+  margin-top: 4px;
+}
+.enemy-hp i {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: oklch(0.76 0.17 140);
+}
+.attacking .enemy-hp i {
+  background: oklch(0.87 0.16 85);
+}
+.floating-number {
+  position: absolute;
+  top: 0;
+  left: 0;
+  font: bold 27px system-ui;
+  text-shadow: 0 2px 4px oklch(0.15 0.04 150);
+}
+.damage-number {
+  color: oklch(0.98 0.02 95);
+}
+.xp-number {
+  color: oklch(0.88 0.16 140);
+  font-size: 17px;
+}
+.block-number {
+  color: oklch(0.89 0.11 210);
+  font-size: 17px;
+}
+#damage-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  opacity: 0;
+  box-shadow: inset 0 0 100px 35px oklch(0.45 0.2 25 / 0.8);
+}
+.reticle {
+  transform: translate(-50%, -50%);
+  width: 7px;
+  height: 7px;
+  background: transparent;
+  border: 1px solid white;
+}
+.reticle.in-range {
+  border-color: oklch(0.86 0.19 140);
+  background: oklch(0.86 0.19 140 / 0.5);
+}
+.reticle.confirmed::after {
+  content: '×';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font: 30px system-ui;
+  color: white;
+}
+body:not(.walking) .combat-actions,
+body:not(.walking) .player-status {
+  display: none;
+}
+@media (max-width: 680px) {
+  .identity {
+    padding: 10px 12px;
+    gap: 9px;
+  }
+  .identity h1 {
+    font-size: 17px;
+  }
+  .identity p {
+    display: none;
+  }
+  .identity h1 span {
+    font-size: 7px;
+  }
+  .city-symbol {
+    width: 26px;
+    height: 26px;
+    font-size: 21px;
+  }
+  .topbar {
+    top: 12px;
+    left: 12px;
+    right: 12px;
+  }
+  .quest {
+    top: 83px;
+    left: 12px;
+    padding: 9px 11px;
+    font-size: 11px;
+  }
+  .quest small {
+    display: none;
+  }
+  .quest b {
+    margin-left: 8px;
+  }
+  .map-panel {
+    top: 83px;
+    right: 12px;
+    width: 115px;
+    padding: 5px;
+  }
+  .map-top {
+    padding: 0 0 3px 3px;
+    font-size: 8px;
+  }
+  .map-bottom {
+    display: none;
+  }
+  .view-switch {
+    top: 231px;
+    right: 12px;
+    bottom: auto;
+    left: auto;
+    transform: none;
+  }
+  .view-switch button {
+    padding: 7px;
+    font-size: 8px;
+  }
+  .player-status {
+    bottom: 40px;
+    left: 12px;
+    width: 185px;
+    padding: 11px;
+    font-size: 11px;
+  }
+  .status-bottom {
+    font-size: 8px;
+  }
+  .combat-actions {
+    bottom: 157px;
+    right: 14px;
+    left: auto;
+    transform: none;
+    flex-direction: column;
+    gap: 9px;
+  }
+  .combat-actions button {
+    min-width: 76px;
+    min-height: 57px;
+    padding: 9px;
+  }
+  .combat-actions span {
+    font-size: 14px;
+  }
+  .combat-actions kbd {
+    display: none;
+  }
+  #pause {
+    top: auto;
+    bottom: 41px;
+    right: 12px;
+    left: auto;
+    transform: none;
+    min-height: 40px;
+  }
+  .keyboard-hint {
+    display: none;
+  }
+  .walking #touch-run {
+    right: auto;
+    left: 147px;
+    bottom: 182px;
+    width: 45px;
+    height: 45px;
+    font-size: 10px;
+  }
+  .walking #joystick {
+    bottom: 176px;
+    left: 17px;
+    width: 112px;
+    height: 112px;
+  }
+  #touch-controls > span {
+    display: none;
+  }
+  .attribution {
+    bottom: 8px;
+    right: 12px;
+  }
+  .battle-screen > div {
+    padding: 26px;
+  }
+  .battle-screen h2 {
+    font-size: 23px;
+  }
+}
+@media (max-height: 550px) and (orientation: landscape) {
+  .quest {
+    top: 93px;
+  }
+  .quest small {
+    display: none;
+  }
+  .map-panel {
+    width: 115px;
+  }
+  .view-switch {
+    top: 245px;
+  }
+  .player-status {
+    width: 210px;
+    bottom: 37px;
+    padding: 9px 12px;
+  }
+  .combat-actions {
+    left: auto;
+    right: 150px;
+    bottom: 36px;
+    transform: none;
+  }
+  .combat-actions button {
+    min-width: 78px;
+    min-height: 50px;
+  }
+  #joystick {
+    bottom: 143px;
+    left: 24px;
+  }
+  #touch-run {
+    display: none;
+  }
+  .battle-screen > div {
+    padding: 16px 26px;
+  }
+  .battle-screen p {
+    margin: 8px 0;
+    font-size: 11px;
+  }
+  .battle-screen .control-summary {
+    margin: 8px 0;
+  }
+}

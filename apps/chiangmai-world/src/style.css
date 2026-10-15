@@ -189,57 +189,7 @@ h1 span {
   gap: 8px;
   align-items: center;
 }
-.place-panel {
-  position: absolute;
-  z-index: 5;
-  left: 28px;
-  bottom: 76px;
-  width: 315px;
-  background: var(--surface);
-  padding: 22px;
-  border-radius: 8px;
-}
-.panel-top {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 10px;
-  color: var(--muted);
-}
-.province {
-  margin-left: auto;
-  font: 9px system-ui;
-  letter-spacing: 0.09em;
-}
-.live-dot {
-  display: inline-block;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--accent);
-}
-.place-panel h2 {
-  font-size: 26px;
-  line-height: 1.5;
-  font-weight: 500;
-  margin: 13px 0 6px;
-}
-.place-panel p {
-  font-size: 12px;
-  line-height: 1.8;
-  color: var(--muted);
-  margin: 0 0 20px;
-}
-.place-panel label {
-  display: block;
-  font-size: 10px;
-  color: var(--muted);
-  margin-bottom: 7px;
-}
-.destination-row {
-  display: flex;
-  gap: 7px;
-}
+
 select {
   color: var(--text);
   background: oklch(0.3 0.022 183);
@@ -250,12 +200,7 @@ select {
   padding: 10px;
   cursor: pointer;
 }
-.destination-row button {
-  background: oklch(0.3 0.022 183);
-  width: 40px;
-  font-size: 20px;
-  border-radius: 4px;
-}
+
 .primary {
   background: var(--accent);
   color: var(--accent-ink);
@@ -275,21 +220,7 @@ select {
 .primary span {
   font-size: 19px;
 }
-.place-bottom {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  border-top: 1px solid var(--line);
-  padding-top: 14px;
-  margin-top: 20px;
-  color: var(--muted);
-  font-size: 10px;
-}
-#coordinates {
-  font: 9px system-ui;
-  font-variant-numeric: tabular-nums;
-  color: var(--muted);
-}
+
 .compass {
   position: absolute;
   z-index: 4;
@@ -428,51 +359,7 @@ select {
 .walking .reticle {
   display: block;
 }
-.walking .place-panel {
-  width: 290px;
-}
-.walking .place-panel h2 {
-  font-size: 21px;
-}
-.walking .place-panel p,
-.walking .place-panel > label,
-.walking .place-panel > .primary {
-  display: none;
-}
-.walking .destination-row {
-  margin-top: 12px;
-}
-.walking .place-bottom {
-  padding-top: 10px;
-  margin-top: 13px;
-}
-#scene-labels {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 2;
-  overflow: hidden;
-}
-.landmark-label {
-  position: absolute;
-  top: 0;
-  left: 0;
-  display: none;
-  flex-direction: column;
-  align-items: center;
-  gap: 5px;
-  font-size: 10px;
-  background: var(--surface);
-  padding: 6px 10px;
-  border-radius: 4px;
-  white-space: nowrap;
-}
-.landmark-dot {
-  width: 4px;
-  height: 4px;
-  background: var(--accent);
-  border-radius: 50%;
-}
+
 #toast {
   pointer-events: none;
   position: absolute;
@@ -639,27 +526,7 @@ dialog dd {
   #help {
     width: 28px;
   }
-  .place-panel {
-    left: 12px;
-    bottom: 88px;
-    padding: 16px;
-    width: 255px;
-  }
-  .place-panel h2 {
-    font-size: 22px;
-    margin-top: 8px;
-  }
-  .place-panel p {
-    font-size: 11px;
-    margin-bottom: 12px;
-  }
-  .place-bottom {
-    margin-top: 14px;
-    padding-top: 10px;
-  }
-  .province {
-    display: none;
-  }
+
   .primary {
     font-size: 12px;
   }
@@ -700,39 +567,7 @@ dialog dd {
   .attribution button {
     font-size: 8px;
   }
-  .walking .place-panel {
-    top: 76px;
-    bottom: auto;
-    width: calc(100% - 180px);
-    min-width: 165px;
-    padding: 12px;
-  }
-  .walking .place-panel h2 {
-    font-size: 15px;
-    margin-top: 7px;
-  }
-  .walking .panel-top {
-    font-size: 8px;
-  }
-  .walking .destination-row {
-    margin-top: 7px;
-  }
-  .walking .destination-row select {
-    font-size: 10px;
-    padding: 7px 3px;
-  }
-  .walking .destination-row button {
-    width: 28px;
-  }
-  .walking .place-bottom {
-    border: 0;
-    margin-top: 7px;
-    padding-top: 0;
-    font-size: 9px;
-  }
-  .walking #coordinates {
-    font-size: 7px;
-  }
+
   dialog {
     padding: 25px;
     font-size: 12px;
@@ -795,31 +630,12 @@ dialog dd {
   }
 }
 @media (max-height: 550px) and (orientation: landscape) {
-  .place-panel {
-    bottom: 60px;
-    width: 240px;
-    padding: 14px;
-  }
-  .place-panel p {
-    display: none;
-  }
-  .place-panel h2 {
-    font-size: 20px;
-    margin: 5px 0 8px;
-  }
-  .place-panel .place-bottom {
-    margin-top: 10px;
-    padding-top: 8px;
-  }
   .map-panel {
     width: 155px;
     top: auto;
     bottom: 48px;
   }
-  .walking .place-panel {
-    top: 78px;
-    bottom: auto;
-  }
+
   #joystick {
     width: 92px;
     height: 92px;
