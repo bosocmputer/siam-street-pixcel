@@ -6,17 +6,17 @@
 
 เกม Roblox Action MMORPG ที่อ้างอิงแผนที่จริง เริ่มเชียงใหม่แล้วขยายทั่วโลก รายละเอียด gameplay, story, จำนวนผู้เล่น และ balance ใน GDD เป็นข้อเสนอ/เป้าทดลอง ผู้สร้างยังไม่ได้ review รายละเอียดทั้งหมด
 
-| รายการ                                  | สถานะจริง                                                             |
-| --------------------------------------- | --------------------------------------------------------------------- |
-| GDD และ docs/roblox 01–09               | ครบและพร้อมให้ผู้สร้าง/Claude review                                  |
-| ระบบส่งต่องาน                           | AGENTS, CLAUDE และ coordination พร้อม ยังไม่มีการตอบรับจาก Claude     |
-| เกม Roblox / Place / asset upload       | ยังไม่ได้สร้างหรือยืนยัน                                              |
-| Studio MCP บน Mac หรือ PC               | รองรับตามเอกสาร แต่ยังไม่พิสูจน์การเชื่อมบนเครื่องผู้สร้าง            |
-| Roblox multiplayer / save / performance | NOT RUN                                                               |
-| โค้ดเว็บและ crowd prototype เดิม        | ยกเลิกเป็นทิศทางผลิตภัณฑ์ เก็บโค้ดและเทสต์ไว้ใน Git เป็น legacy       |
-| แผนเก่าและ archive snapshots            | ลบจาก working tree ตามคำสั่งผู้สร้าง ป้องกันความสับสน                 |
-| โฆษณา ร้านจริง และระบบขายของ            | แผนอนาคต ไม่อยู่ใน MVP                                                |
-| การส่งผ่าน Git                          | อยู่ระหว่าง commit/push ตามคำสั่งล่าสุด ดูใบส่งต่อและผล sync ด้านล่าง |
+| รายการ                                  | สถานะจริง                                                                                      |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| GDD และ docs/roblox 01–09               | ครบและพร้อมให้ผู้สร้าง/Claude review                                                           |
+| ระบบส่งต่องาน                           | AGENTS, CLAUDE และ coordination พร้อม ยังไม่มีการตอบรับจาก Claude                              |
+| เกม Roblox / Place / asset upload       | ยังไม่ได้สร้างหรือยืนยัน                                                                       |
+| Studio MCP บน Mac หรือ PC               | รองรับตามเอกสาร แต่ยังไม่พิสูจน์การเชื่อมบนเครื่องผู้สร้าง                                     |
+| Roblox multiplayer / save / performance | NOT RUN                                                                                        |
+| โค้ดเว็บและ crowd prototype เดิม        | ยกเลิกเป็นทิศทางผลิตภัณฑ์ เก็บโค้ดและเทสต์ไว้ใน Git เป็น legacy                                |
+| แผนเก่าและ archive snapshots            | ลบจาก working tree ตามคำสั่งผู้สร้าง ป้องกันความสับสน                                          |
+| โฆษณา ร้านจริง และระบบขายของ            | แผนอนาคต ไม่อยู่ใน MVP                                                                         |
+| การส่งผ่าน Git                          | push ชุดส่งมอบสำเร็จ ยืนยัน remote hash ตรง local และ working tree สะอาดก่อนบันทึก receipt นี้ |
 
 ## Git และการย้ายไป Windows
 
@@ -24,6 +24,8 @@
 - Branch ส่งต่อ: `codex/chiangmai-old-city-3d` ชื่อเดิม แต่เนื้อหาปัจจุบันเป็นแผน Roblox
 - ฐานก่อนรอบเอกสาร: `ac7454cb170529f34d2a417af90fac00f42b4d81`
 - Commit เก็บ crowd prototype และ Serena: `341c55d`
+- Commit เอกสาร Roblox และลบแผนเก่า: `8b2b1728ac1879e7d9c5d46dd8b8d3949ba13dea`
+- ยืนยัน `git ls-remote` แล้วว่าชุดส่งมอบ `8b2b172` อยู่บน branch origin ตาม hash เดียวกัน; HEAD อาจมี commit บันทึก receipt นี้ต่อท้าย ให้ใช้ HEAD ล่าสุดของ branch
 - ตำแหน่ง Mac เดิม `/Users/nontawatwongnuk/dev_bos/siam-street-pixcel` เป็นข้อมูลที่มา ไม่ใช่ path ที่ต้องใช้บน Windows
 - บน PC ให้ clone branch โดยตรงตาม README/HANDOFF อย่าใช้ค่า default branch แล้วสรุปว่าเอกสารหาย
 - ตรวจ `git status --short` และ `git log -3 --oneline` ทุกครั้งก่อนเริ่ม ไม่ถือ snapshot นี้เป็น lock
@@ -47,6 +49,6 @@
 
 ## Ownership และงานถัดไป
 
-Codex ถือเอกสาร cleanup/coordination ระหว่างส่งมอบ; ไม่มี Studio session ที่ควบคุม (studio_id/checkpoint = none)
+ปล่อย file ownership แล้ว; SYNC-001 done ไม่มี agent หรือ Studio session ที่ควบคุมอยู่ (studio_id/checkpoint = none)
 
 งานถัดไปเสนอ `DOC-REVIEW-001` บน PC ให้ Claude ตรวจเอกสารและบันทึกตอบใน INBOX MSG-001 หากผู้สร้างสั่งเริ่มเกมให้เริ่ม R00 ไม่ต้องกลับไปทำ idle หรือ Three.js

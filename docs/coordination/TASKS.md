@@ -66,7 +66,9 @@ Handoff / open questions:
 
 - **SYNC-001** — ลบแผนเก่า ตรวจงานค้างทั้งหมด commit และ push ไป branch ส่งต่อ
   - Owner: Codex
-  - Status: in_progress
+  - Status: done
   - Acceptance: เหลือแผน Roblox/coordination, local links ผ่าน, โค้ดค้างถูกตรวจและ commit, remote hash ตรง local HEAD, working tree สะอาด
   - Verify: lint/typecheck/test/build, Markdown/link scan, staged review, credential-pattern scan, git status และ ls-remote
   - Legacy snapshot commit: `341c55d`
+  - Design/cleanup commit: `8b2b172`
+  - Result: push origin สำเร็จ ตรวจ remote hash ตรง local และ working tree สะอาดก่อนบันทึก receipt; ownership released

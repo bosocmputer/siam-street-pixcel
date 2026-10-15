@@ -16,6 +16,10 @@
 
 ยังไม่ติดตั้งหรือเชื่อม Studio ไม่สร้าง Roblox source/Place ไม่ปั้น asset ไม่เปิดขาย/โฆษณา และไม่มีการทดสอบ Roblox ใหม่ ตัวเลขในแบบเป็นค่าทดลอง
 
+## สถานะ Git ที่ยืนยันแล้ว
+
+Push สำเร็จบน `origin/codex/chiangmai-old-city-3d` ชุดโค้ด legacy คือ `341c55d` และชุดเอกสาร/cleanup คือ `8b2b172` ตรวจ remote hash ตรงกับ local ที่ `8b2b1728ac1879e7d9c5d46dd8b8d3949ba13dea` และ working tree สะอาดก่อนบันทึก receipt นี้ ไฟล์สถานะ/ใบส่งต่ออาจมี commit receipt ต่อท้าย ให้ใช้ HEAD ล่าสุดของ branch เมื่อ clone ไม่มีไฟล์หรือ Studio ที่ Codex ถือค้าง
+
 ## รับ repo ให้ถูก branch
 
 ```powershell

@@ -61,3 +61,14 @@ DOC-001 → review; COLLAB-001 → done; DOC-REVIEW-001 → ready ยังไ�
 - NOT RUN: browser manual gameplay ใหม่ และ Roblox runtime/multiplayer/performance
 
 PASS: Prettier แบบ override ignore สำหรับ Markdown 25 ไฟล์, Python ตรวจ local links 86 รายการ/fences/UTF-8 และ docs scope, `git diff --check` ผล network sync จะบันทึกหลังยืนยันจาก remote จริง
+
+### ผลส่งมอบที่ยืนยันแล้ว
+
+- Legacy code/tooling commit: `341c55d`
+- Roblox design + obsolete plan cleanup commit: `8b2b1728ac1879e7d9c5d46dd8b8d3949ba13dea`
+- PASS: `git push --set-upstream origin codex/chiangmai-old-city-3d` (exit 0)
+- PASS: `git ls-remote origin refs/heads/codex/chiangmai-old-city-3d` ตรงกับ local HEAD `8b2b1728ac1879e7d9c5d46dd8b8d3949ba13dea`
+- PASS: `git status --short` ไม่มีผลลัพธ์ก่อนเขียน receipt นี้
+- SYNC-001 done, file ownership released, Studio owner = none
+
+บันทึก receipt นี้เป็น commit ต่อท้ายชุดส่งมอบ เพื่อให้ผู้รับรู้ผล push ที่ยืนยันแล้ว ใช้ HEAD ล่าสุดของ branch บน PC ไม่ต้อง checkout ค้างที่ commit ชุดเอกสาร ไม่มีการ merge เข้าหรือเปลี่ยน default branch `main`
