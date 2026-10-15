@@ -17,6 +17,7 @@
 | AI ทำงานกับ Roblox อย่างไร         | [06 — สถาปัตยกรรมและ AI](06-roblox-architecture.md)             |
 | ทำอะไรก่อนหลังและตรวจอย่างไร       | [07 — แผนพัฒนา](07-development-plan.md)                         |
 | ร้านจริงและรายได้ ซึ่งยังพักไว้    | [08 — แผนธุรกิจในอนาคต](08-future-business.md)                  |
+| บทบาทและมาตรฐานการเขียนโค้ดของ AI  | [10 — Engineering role and standards](10-engineering-role-and-standards.md) |
 | เหตุผลที่เลือกและแหล่งอ้างอิง      | [09 — การตัดสินใจและข้อมูลอ้างอิง](09-decisions-and-sources.md) |
 
 ## กติกาการอ่าน

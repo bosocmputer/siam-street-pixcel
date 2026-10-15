@@ -1,0 +1,101 @@
+{
+ "tiles": [
+  {
+   "url": "https://tiles.openfreemap.org/planet/latest/14/12697/7321.pbf",
+   "bytes": 275645
+  }
+ ],
+ "attribution": "(c) OpenMapTiles, data from OpenStreetMap",
+ "featuresInBox": {
+  "boundary": 1,
+  "building": 2,
+  "housenumber": 6,
+  "landcover": 1,
+  "landuse": 2,
+  "poi": 104,
+  "transportation": 25,
+  "transportation_name": 9,
+  "water": 1
+ },
+ "roadClasses": {
+  "path": 5,
+  "service": 8,
+  "minor": 2,
+  "secondary": 9,
+  "tertiary": 1
+ },
+ "roadNames": [
+  "Chang Moi Kao Road",
+  "Chayiaphoom Road",
+  "Kotchasarn Road",
+  "Kotchasarn Soi 1",
+  "Moon Muang Road",
+  "Rachadamnoen Road",
+  "Rachadamnoen Road Soi 1",
+  "Thapae Road",
+  "Thapae Road Soi 6"
+ ],
+ "poiCount": 88,
+ "poiSample": [
+  [
+   "bus",
+   "bus_stop",
+   "ประตูท่าแพ (ฝั่งมูลเมือง)"
+  ],
+  [
+   "attraction",
+   "attraction",
+   "Thapae Gate"
+  ],
+  [
+   "stadium",
+   "stadium",
+   "Thaphae Boxing Stadium"
+  ],
+  [
+   "library",
+   "books",
+   "Gecko Books"
+  ],
+  [
+   "post",
+   "post_office",
+   "EMS"
+  ],
+  [
+   "shop",
+   "convenience",
+   "7-Eleven"
+  ],
+  [
+   "shop",
+   "hardware",
+   "Phon Phan"
+  ],
+  [
+   "shop",
+   "cosmetics",
+   "M Cosmetics"
+  ],
+  [
+   "shop",
+   "massage",
+   "Darlin's Massage"
+  ],
+  [
+   "shop",
+   "massage",
+   "Sabai Thai Thai"
+  ],
+  [
+   "shop",
+   "optician",
+   "Top Charoen Optical"
+  ],
+  [
+   "shop",
+   "cosmetics",
+   "M Cosmetics"
+  ]
+ ]
+}

@@ -47,3 +47,11 @@ Pure logic tests, Studio runtime checks, multi-client checks, and real-device te
 Update task status, `STATUS.md`, append to `WORKLOG.md`, and refresh `HANDOFF.md`. Include changed paths, exact checks and outcomes, limitations, current Studio ownership/checkpoint, and one concrete next action. Mark tests NOT RUN when appropriate; planned work is not completed work.
 
 For shared decisions use `docs/roblox/09-decisions-and-sources.md`. For questions/replies use `INBOX.md`; do not silently treat an AI suggestion as a human decision.
+
+## Asset sourcing rule (creator decision 2026-10-15)
+
+Search first, build second. For any 3D model, visual effect, 2D image/decal, gameplay system, plugin or audio, look for a **free** Creator Store asset before creating one. Quarantine it in `ServerStorage.AssetQuarantine`, audit it (scripts, `require`, HTTP/remote calls, part count, real-world size), check it visually in Studio, and log the verdict in `roblox/assets/third-party-assets.md` before it enters the scene. Reject assets that do not fit the real-city look. Buildings stay procedural from OSM footprints. Re-check Roblox terms and attribution before any publish.
+
+## Engineering role and standards (creator decision 2026-10-15)
+
+All code written here follows [docs/roblox/10-engineering-role-and-standards.md](docs/roblox/10-engineering-role-and-standards.md): Senior Roblox Studio developer / Luau architect / exploit-prevention role, server-authoritative Action MMORPG rules, strict Luau, rate-limited remotes, fail-safe persistence, server-side hit validation, modular code, and the response format (location, script type, code, setup) adapted for MCP work.

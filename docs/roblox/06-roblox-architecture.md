@@ -131,6 +131,8 @@ VFX ฝั่ง client, reuse assets, จำกัด collision, ปิดเ�
 
 Studio MCP ทางการให้ AI อ่าน/แก้ script สำรวจ data model รัน Luau เริ่มทดสอบ อ่าน console และดูภาพได้ตาม [Connect to Studio MCP](https://create.roblox.com/docs/studio/mcp) แต่ต้องเชื่อมกับ session ในเครื่องจริงก่อนและบันทึกผล R00
 
+ขั้นตอนเชื่อมต่อตามเอกสารทางการที่ตรวจเมื่อ 2026-10-15: Studio มี MCP server ในตัว เปิดที่ Assistant → Manage MCP Servers → Enable Studio as MCP server แล้วเชื่อม client ด้วย Quick connect หรือคำสั่ง `cmd.exe /c %LOCALAPPDATA%\Roblox\mcp.bat` (Windows) ต้องรีสตาร์ท Studio และ client หลังตั้งค่า ส่วน plugin ทางการ [Roblox/roblox-studio-agent-plugin](https://github.com/Roblox/roblox-studio-agent-plugin) เป็นตัวช่วยติดตั้งสำหรับ Claude Code และ Codex CLI ผลบนเครื่อง Windows ของผู้สร้างอยู่ใน STATUS (R00-02)
+
 workflow ที่เสนอ: รับ task ID → อ่านข้อกำหนด/สถานะ → ตรวจฉากและ diff → แก้ slice เล็ก → รันทดสอบ → เก็บภาพ/console → อัปเดต handoff อย่ารันคำสั่งลบทั้ง Workspace เพื่อเริ่มใหม่โดยไม่รู้ ownership ของวัตถุ
 
 โค้ดและ config ใน Git เป็นต้นทางที่ตรวจ diff; หากแก้ผ่าน MCP โดยตรงต้อง export/sync กลับก่อนส่งต่อ หากยังไม่มีเครื่องมือ sync ให้ใช้ขั้นตอน export ที่ตรวจซ้ำได้และบันทึก checkpoint ของ Place งานถือว่ายังไม่ส่งมอบถ้าของจริงใน Studio ไม่ตรงกับไฟล์ที่อีก AI อ่าน

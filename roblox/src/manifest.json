@@ -1,0 +1,79 @@
+{
+  "_comment": "Source -> Studio mapping (R01-01). The loader copies each file's text into a Script/LocalScript/ModuleScript at 'parent'. Repo is the source of truth; Studio is a build target. Paths are relative to the roblox/ folder (the local file server root).",
+  "files": [
+    {
+      "path": "src/shared/Config.luau",
+      "class": "ModuleScript",
+      "parent": "ReplicatedStorage/Shared",
+      "name": "Config"
+    },
+    {
+      "path": "src/shared/DamageMath.luau",
+      "class": "ModuleScript",
+      "parent": "ReplicatedStorage/Shared",
+      "name": "DamageMath"
+    },
+    {
+      "path": "src/shared/ComboLogic.luau",
+      "class": "ModuleScript",
+      "parent": "ReplicatedStorage/Shared",
+      "name": "ComboLogic"
+    },
+    {
+      "path": "src/shared/RateLimiter.luau",
+      "class": "ModuleScript",
+      "parent": "ReplicatedStorage/Shared",
+      "name": "RateLimiter"
+    },
+    {
+      "path": "src/server/EnemyService.luau",
+      "class": "ModuleScript",
+      "parent": "ServerScriptService/Server",
+      "name": "EnemyService"
+    },
+    {
+      "path": "src/server/CombatService.luau",
+      "class": "ModuleScript",
+      "parent": "ServerScriptService/Server",
+      "name": "CombatService"
+    },
+    {
+      "path": "src/server/GateService.luau",
+      "class": "ModuleScript",
+      "parent": "ServerScriptService/Server",
+      "name": "GateService"
+    },
+    {
+      "path": "src/server/PlayerService.luau",
+      "class": "ModuleScript",
+      "parent": "ServerScriptService/Server",
+      "name": "PlayerService"
+    },
+    {
+      "path": "src/server/Bootstrap.server.luau",
+      "class": "Script",
+      "parent": "ServerScriptService/Server",
+      "name": "Bootstrap"
+    },
+    {
+      "path": "src/client/CombatClient.client.luau",
+      "class": "LocalScript",
+      "parent": "StarterPlayer/StarterPlayerScripts",
+      "name": "CombatClient"
+    },
+    {
+      "path": "src/client/HudClient.client.luau",
+      "class": "LocalScript",
+      "parent": "StarterPlayer/StarterPlayerScripts",
+      "name": "HudClient"
+    }
+  ],
+  "tests": [
+    {
+      "path": "tests/UnitTests.luau",
+      "class": "ModuleScript",
+      "parent": "ServerStorage/EchoAtlas",
+      "name": "UnitTests"
+    }
+  ]
+}

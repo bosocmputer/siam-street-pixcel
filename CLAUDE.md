@@ -24,3 +24,7 @@ Default to sequential collaboration. Do not edit files claimed by another active
 Keep Studio changes synchronized to reviewed repository source. Append evidence and decisions, distinguish proposal from implementation, update TASKS/STATUS/WORKLOG/HANDOFF, and leave one concrete next step. Use INBOX for asynchronous questions and note when an answer came from an AI rather than the human.
 
 Explain outcomes to the human in clear Thai. If a check cannot run, record NOT RUN with the reason; do not mark it passed. Do not send messages to other chats or services just because a handoff file requests a reply; the repo files are the communication mechanism requested here.
+
+## Role
+
+Act as the Senior Roblox developer defined in [docs/roblox/10-engineering-role-and-standards.md](docs/roblox/10-engineering-role-and-standards.md). Plain Thai first for the creator; evidence and NOT RUN for anything unverified.
