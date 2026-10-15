@@ -1,0 +1,72 @@
+# กระดานงานร่วม
+
+อัปเดต 2026-10-15 · รายละเอียด milestone อยู่ใน [07-development-plan](../roblox/07-development-plan.md)
+
+## งานเอกสารรอบนี้
+
+| ID             | งาน                                                                               | Owner                       | สถานะ  | Acceptance / Verify                                                                         |
+| -------------- | --------------------------------------------------------------------------------- | --------------------------- | ------ | ------------------------------------------------------------------------------------------- |
+| DOC-001        | สร้าง GDD, story, combat, RPG, map, asset, architecture, roadmap, future business | Codex / DOCS-2026-10-15-01  | review | ไฟล์ครบ อ่านเชื่อมกันได้ ไม่มีผลทดสอบ Roblox ที่แต่งขึ้น                                    |
+| COLLAB-001     | สร้างกติกาและเอกสารส่งต่อ Codex/Claude                                            | Codex / DOCS-2026-10-15-01  | done   | entry point ตรงกัน สถานะ/ownership/evidence/prompt ส่งต่อครบ                                |
+| DOC-REVIEW-001 | ตรวจแบบและส่งความเห็นกลับใน repo                                                  | ยังไม่มีผู้รับ; เสนอ Claude | ready  | ตรวจ scope, เรื่อง, balance, network, persistence, asset และนโยบาย พร้อมบันทึกข้อพบ/ข้อเสนอ |
+
+### ขอบเขตไฟล์ที่แก้ใน session เอกสาร
+
+`game_design_document.md`, `README.md`, `PRODUCT.md`, `AGENTS.md`, `CLAUDE.md`, `docs/roblox/`, `docs/coordination/` เท่านั้น ในรอบถัดมาผู้สร้างอนุญาต cleanup plan และ commit/push งานทั้งหมด จึงลบ snapshot เหล่านั้นแล้ว และเก็บ crowd code เดิมใน commit แยก ไม่มี ownership ของ Studio
+
+ปล่อย ownership แล้วตอนส่งมอบ ไม่มีไฟล์หรือ Studio ที่ Codex ถืออยู่ใน session นี้ ผู้รับถัดไปต้อง claim งานของตน ผลตรวจอยู่ใน STATUS/WORKLOG
+
+### DOC-REVIEW-001 สำหรับผู้รับ
+
+Dependency: DOC-001 ส่ง review และ COLLAB-001 done แล้ว; ก่อนเริ่มยืนยันผู้สร้างกำลังขอให้ review ใน session ของคุณ
+
+ไฟล์เริ่มต้น: AGENTS, STATUS, HANDOFF, GDD แล้วเอกสาร 01–09 ขอบเขตแก้คือข้อผิดพลาดเอกสารและ coordination; การเปลี่ยนทิศทางใหญ่ให้บันทึกทางเลือกก่อน อย่าเริ่ม implementation หรือแก้ต้นแบบเว็บในงาน review
+
+Acceptance:
+
+- บอกความขัดแย้งและอ้างไฟล์/หัวข้อพร้อมผลต่อการพัฒนา
+- แยกบั๊กเอกสารออกจากความเห็นออกแบบและข้อที่ต้องพิสูจน์ด้วยผู้เล่น
+- ตรวจเควสต์ 6+1, นักดาบชุดเดียว, 12 ผู้เล่น/32 ศัตรูเป็นเป้า, หน่วย map/combat, reward replay และข้อจำกัดโฆษณา
+- ตรวจว่าไม่มีข้อเสนอถูกตีความว่าอนุมัติหรือสร้างแล้ว
+- บันทึก feedback ใน INBOX thread `MSG-001` และ append WORKLOG พร้อม handoff ใหม่
+
+## งานพัฒนาที่วางไว้ ยังไม่เริ่ม
+
+| ID     | ผลลัพธ์                                 | Dependency               | สถานะ   |
+| ------ | --------------------------------------- | ------------------------ | ------- |
+| R00-01 | ตรวจเครื่อง เปิด Studio และ Place ทดสอบ | คำสั่งเริ่มพัฒนา/ตั้งค่า | backlog |
+| R00-02 | เชื่อม AI อ่าน session จริง             | R00-01                   | backlog |
+| R00-03 | แก้ script/scene ทดสอบและ sync กลับ     | R00-02                   | backlog |
+| R01-01 | โครง source และ mapping                 | R00-03                   | backlog |
+| R01-02 | เดิน/กล้อง/collision/มือถือ             | R01-01                   | backlog |
+| R01-03 | catalog และ test harness                | R01-01                   | backlog |
+| R02-01 | ฟันกับสไลม์และผลโดน server              | R01-02, R01-03           | backlog |
+| R02-02 | รับ/หลบ/stamina                         | R02-01                   | backlog |
+| R02-03 | คลื่นคมจันทร์และ cleanup                | R02-02                   | backlog |
+| R02-04 | ทดสอบความรู้สึกการต่อสู้                | R02-03                   | backlog |
+
+ช่วง R03–R08 ให้แตกงานเมื่อจะเริ่มตามหลักฐานจริง ไม่เขียนว่า ready ทุกระบบล่วงหน้า
+
+## แบบฟอร์ม task ใหม่
+
+```markdown
+ID / title:
+User-authorized scope:
+Owner / session / claimed at:
+Status:
+Depends on:
+Files / Studio subtree owned:
+Acceptance:
+Verify command or scenario:
+Result / evidence:
+Handoff / open questions:
+```
+
+## รอบย้ายไป PC — SYNC-2026-10-15-01
+
+- **SYNC-001** — ลบแผนเก่า ตรวจงานค้างทั้งหมด commit และ push ไป branch ส่งต่อ
+  - Owner: Codex
+  - Status: in_progress
+  - Acceptance: เหลือแผน Roblox/coordination, local links ผ่าน, โค้ดค้างถูกตรวจและ commit, remote hash ตรง local HEAD, working tree สะอาด
+  - Verify: lint/typecheck/test/build, Markdown/link scan, staged review, credential-pattern scan, git status และ ls-remote
+  - Legacy snapshot commit: `341c55d`

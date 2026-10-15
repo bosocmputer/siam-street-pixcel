@@ -1,43 +1,13 @@
-# Old City Swordsman
+# ECHO ATLAS — product direction
 
-## Register
+Updated 2026-10-15. Status: proposed design, no Roblox implementation verified.
 
-product
+The creator wants a worldwide game grounded in real map geography, beginning with a small Chiang Mai area. Players can join from anywhere, choose in-game roles freely, develop their characters, and build a community. Visiting real locations and first-person view are not requirements.
 
-## Users and purpose
+The proposed experience is a third-person realtime cooperative Action RPG on Roblox: familiar streets connect safe meeting places and fictional “echo” encounters. Start with swordsman combat, a crescent-wave skill, slimes, one short boss encounter, and reliable multiplayer progression. Expand classes and cities only after playtests and performance checks.
 
-The creator wants a new 3D MMORPG foundation, starting with a walkable reconstruction of
-Chiang Mai's walled Old City. The immediate deliverable is first-person swordsman combat
-against three slimes at the eastern gate plaza. Use the two supplied maps as geographic references and OpenStreetMap as
-the source of reproducible street and building geometry.
+The exact MVP, story, mechanics, budgets, and alternatives are documented in [the GDD](game_design_document.md) and [the Roblox document set](docs/roblox/README.md). Numbers are starting targets, not measured capacity or accepted limits.
 
-## Experience
+Selling in-game cosmetics and representing authorized real businesses at real locations are future business plans. They are not part of the first playable build and require separate platform-policy review before implementation.
 
-A full-screen, daylight 3D world with a restrained, legible combat HUD. The city is
-the main surface. Let people walk at street level, inspect the whole city from above,
-locate themselves on a north-up map, and fight with visible arms and a sword. Remove real
-place names, road labels, and POI markers from the playing screen and minimap. Thai is the primary UI
-language. Desktop keyboard/mouse and mobile touch controls are both available.
-
-## Design principles
-
-- Preserve real street geometry and geographic scale before decorative detail.
-- Clearly distinguish mapped geometry from estimated heights and stylized architecture.
-- Start exploring immediately; keep setup and menus out of the way.
-- Keep the real street layout while letting the city function as a game world.
-- Telegraph enemy attacks; show damage, health, stamina, and progression clearly.
-- Keep the previous abandoned game separate from this new application.
-
-## Accessibility and inclusion
-
-Labeled keyboard-accessible UI, visible focus, high-contrast controls, touch alternatives,
-optional camera bob, and an overview mode that does not require first-person navigation.
-This visual walking prototype does not claim full screen-reader navigation of the 3D world.
-
-## Scope
-
-Build locally in `apps/chiangmai-world`. Local real-time melee combat, blocking, enemy
-respawn, defeat/restart, XP and levels. A charged spirit crescent skill adds ranged combat:
-visible absorption into the blade, then a travelling wave that hits enemies and stops at walls.
-No public deployment, accounts, persistence,
-VR headset support, or networked players in this prototype.
+The prior web, idle, and first-person prototypes are legacy history. Their platform choices and approval rules do not define the Roblox project. See [coordination status](docs/coordination/STATUS.md) for actual state and [AGENTS.md](AGENTS.md) for shared agent instructions.
