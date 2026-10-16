@@ -126,5 +126,60 @@ return function()
 		local cf, size = model:GetBoundingBox()
 		report.SlimeVisual = string.format("%.2f x %.2f x %.2f studs, parts=%d", size.X, size.Y, size.Z, #model:GetChildren())
 	end
+
+	-- Moat & Plaza Toolbox prefabs (Fountain_Park_2332885124, StoneBridge_222836185, ParkBench_393609716) ------
+	local function registerMoatPrefab(srcName: string, targetName: string)
+		local src = quarantine and quarantine:FindFirstChild(srcName)
+		if not src then
+			return
+		end
+		local old = prefabs:FindFirstChild(targetName)
+		if old then
+			old:Destroy()
+		end
+		local clone = src:Clone()
+		clone.Name = targetName
+		for _, d in clone:GetDescendants() do
+			if d:IsA("LuaSourceContainer") or d:IsA("Camera") then
+				d:Destroy()
+			elseif d:IsA("BasePart") then
+				d.Anchored = true
+			elseif d:IsA("ParticleEmitter") then
+				d.Enabled = true
+			end
+		end
+		local cf, sz = clone:GetBoundingBox()
+		local basePos = Vector3.new(cf.Position.X, cf.Position.Y - sz.Y / 2, cf.Position.Z)
+		if targetName == "StoneBridge" then
+			local bestP, bestL = nil, 0
+			for _, d in clone:GetDescendants() do
+				if d:IsA("BasePart") and math.max(d.Size.X, d.Size.Z) > bestL then
+					bestL = math.max(d.Size.X, d.Size.Z)
+					bestP = d
+				end
+			end
+			if bestP then
+				local widthAxis = Vector3.new(bestP.CFrame.LookVector.X, 0, bestP.CFrame.LookVector.Z).Unit
+				local spanAxis = Vector3.new(bestP.CFrame.RightVector.X, 0, bestP.CFrame.RightVector.Z).Unit
+				if widthAxis:Cross(spanAxis).Y > 0 then
+					spanAxis = -spanAxis
+				end
+				clone.WorldPivot = CFrame.fromMatrix(basePos, spanAxis, Vector3.yAxis, widthAxis)
+			else
+				clone.WorldPivot = CFrame.new(basePos)
+			end
+		else
+			clone.WorldPivot = CFrame.new(basePos)
+		end
+		clone.Parent = prefabs
+		report[targetName] = string.format("%.2f x %.2f x %.2f studs", sz.X, sz.Y, sz.Z)
+	end
+
+	registerMoatPrefab("Fountain_Park_2332885124", "MoatFountain")
+	registerMoatPrefab("Fountain_LowPoly_13782728612", "MoatFountainLarge")
+	registerMoatPrefab("StoneBridge_222836185", "StoneBridge")
+	registerMoatPrefab("ParkBench_393609716", "ParkBench")
+
 	return report
 end
+

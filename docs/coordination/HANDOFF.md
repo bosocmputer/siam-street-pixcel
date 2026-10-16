@@ -1,48 +1,41 @@
-# Handoff — จบงานรอบวันที่ 2026-10-15/16 (Claude บน Windows PC) → Claude / Codex รอบถัดไป
+# Handoff — อัปเดตงานรอบวันที่ 2026-10-16 (Antigravity บน Windows PC) → Antigravity / Claude / Codex รอบถัดไป
 
-From: Claude (Windows PC, Sonnet 5.5) · To: Claude session ถัดไป (หลังโควต้ารีเซ็ต) หรือ Codex บน Mac
-ผู้สร้างสั่งจบงานเพราะโควต้า Claude เต็ม ให้อัปเดตสถานะ/เอกสาร + commit + push + ทิ้ง prompt ส่งต่อ (ท้ายไฟล์นี้)
-Branch: `codex/chiangmai-old-city-3d` · ฐานก่อนรอบนี้ `d9c431b` · รอบนี้ commit รวมงานทั้งหมดที่ค้าง (ดู git log)
-Studio: **Place2** = `C:\dev\Pixel Walke\roblox\studio\EchoAtlas-Place2.rbxl` (ไฟล์อยู่นอก repo, **ไม่ถูก commit**) — มีการแก้ **ที่ยังไม่ได้เซฟ** ต้องให้ผู้สร้างกด Ctrl+S ก่อนปิด (instance id เปลี่ยนทุกครั้งที่เปิดใหม่ ให้เรียก `list_roblox_studios` ใหม่); owner ตอนส่งมอบ = none
+From: Antigravity (Windows PC, session `AGY-2026-10-16-01`) · To: AI agent รอบถัดไป (Antigravity / Claude บน PC หรือ Codex บน Mac)
+Branch: `codex/chiangmai-old-city-3d` · ฐานล่าสุด `95ac560` (ยังไม่ได้ commit การแก้ไขในรอบ `AGY-2026-10-16-01` เพราะรอคำสั่งผู้สร้าง)
+Studio: **Place2** = `C:\dev\Pixel Walke\roblox\studio\EchoAtlas-Place2.rbxl` (ไฟล์อยู่นอก repo, **ไม่ถูก commit**) — มีการแก้ในฉากที่ **ยังไม่ได้เซฟ** ต้องให้ผู้สร้างกด `Ctrl+S` ใน Studio; โหมดปัจจุบัน = `Edit`; owner ตอนส่งมอบ = none
 
 ## สิ่งที่ผู้สร้างตัดสินใจ (ยึดตามนี้)
-- **Place2 คือฐานของแมพ** (ลงตัวกว่าที่ลองใน City template) ตึกอื่น ๆ **ผู้สร้างจะ copy จาก `EchoAtlas-City.rbxl` มาวางเอง**; ไฟล์ City/`template-city.rbxl` ใช้เป็นแหล่งชิ้นส่วนเท่านั้น (ไม่ต้องแก้)
+- **Place2 คือฐานของแมพ** ตึกอื่น ๆ **ผู้สร้างจะ copy จาก `EchoAtlas-City.rbxl` มาวางเอง**; ไฟล์ City/`template-city.rbxl` ใช้เป็นแหล่งชิ้นส่วนเท่านั้น (ไม่ต้องแก้)
 - ระบบดาบ/สไลม์/ต่อสู้ **ปิดชั่วคราว** (`Config.features.combat = false`) เพื่อโฟกัสแมพและเดินสำรวจ เปิดกลับด้วยค่าเดียว
-- ผู้สร้างจะ **สั่งทีละขั้น** อย่าทำหลายขั้นรวด/อย่าเดาเกินคำสั่ง (เคยทำพลาดเพราะทำรวดเดียว)
-- คำเตือนสำคัญ: **ห้ามรัน `Builder.clear()` หรือสร้าง `ThapaeWorld` ใหม่ทั้งชุด** ใน Place2 โดยไม่ถามก่อน (จะลบตึกที่ผู้สร้างวาง) ขั้นตอนที่ทำเฉพาะกลุ่ม: `B.init(Data)` → ลบลูกของ `ThapaeWorld.Walls` → `B.walls()`
+- ผู้สร้างจะ **สั่งทีละขั้น** อย่าทำหลายขั้นรวด/อย่าเดาเกินคำสั่ง
+- คำเตือนสำคัญ: **ห้ามรัน `Builder.clear()` หรือสร้าง `ThapaeWorld` ใหม่ทั้งชุด** ใน Place2 โดยไม่ถามก่อน (จะลบตึกที่ผู้สร้างวาง)
 
-## ทำเสร็จรอบนี้ (รายละเอียด+หลักฐานใน WORKLOG ต่อ 11–25)
-1. **ประตูท่าแพใน Place2:** กำแพงหนา 6 × สูง 24 stud (หน่วย stud แปลง 1 stud = 0.28 ม.), ซุ้มช่องโค้ง 12 × 16 stud โค้งแบน (superellipse) + วงหินโค้ง (voussoir) + หินเสาข้าง, ซี่กำแพง 3/3/3 stud, อิฐเก่าหลายโทน (ตัดชิ้นตาม tile 4 stud เพื่อลายอิฐต่อเนื่อง), กำแพงเมืองสองข้างปรับเป็นสเปกเดียวกัน (**เปลี่ยนจากข้อมูล OSM ตามสั่ง**)
-2. **บานประตูไม้คู่** (WoodPlanks, แถบเหล็กดำ, ลูกหมุดครึ่งทรงกลม) **กด E เปิด/ปิด ค่าเริ่มต้นเปิด**: `roblox/src/server/GateService.luau` (เซิร์ฟเวอร์ตัดสิน: ตรวจระยะ ≤ 30 stud, cooldown 1.2 วิ, tween บาน 0.9 วิ) + ProximityPrompt สร้างโดย builder; ทดสอบกดปุ่ม E จริงใน Play ผ่าน (หมายเหตุ: prompt ของ Roblox โผล่เฉพาะเมื่อ prompt อยู่ในมุมกล้อง)
-3. **ปิดระบบต่อสู้** (`Config.features.combat=false` → Bootstrap/CombatClient/HudClient เช็คค่านี้) ทดสอบ Play: ไม่มีสไลม์/ดาบ/HUD, ประตูยังทำงาน
-4. **ข้อมูลเมืองเก่าจาก OpenFreeMap** (6 tile z14 ใน `roblox/world/source/openfreemap/`, ถอดรหัสด้วย `tools/roblox/gen_oldcity_roads.py` → `roblox/world/OldCityRoads.luau` ถนนรถวิ่ง ≈ 160 กม. ย่านคูเมือง) และตัวสร้างถนนจากชิ้น City template `roblox/world/OldCityBuilder.luau` (ใช้ใน `EchoAtlas-City.rbxl` เท่านั้น ไม่เกี่ยวกับ Place2; ผลยังไม่เป็นที่พอใจของผู้สร้างเมื่อเทียบกับ Place2)
-5. เทียบ OpenFreeMap กับ OSM snapshot ท่าแพ: ถนนห่าง ≤ 0.29 ม. (ข้อมูลตรงกัน)
+## ทำเสร็จในรอบนี้ (`AGY-2026-10-16-01`, รายละเอียดใน WORKLOG ต่อ 27)
+1. **ค้นคว้าผังเมืองประตูท่าแพของจริง (INBOX `MSG-002` resolved):**
+   - หน้าซุ้มประตูท่าแพ (ฝั่งตะวันออกของกำแพงอิฐ) ของจริงคือ **ข่วงประตูท่าแพ (Tha Phae Gate Plaza)** ลานคนเดินปูแผ่นคอนกรีตกว้างต่อเนื่องไปจนถึงถนนชัยภูมิ/คชสาร (`X ≈ 0..43 ม.`, `Z ≈ -76..+114 ม.`) **ไม่มีคูเมืองหรือสะพานขวางหน้าซุ้มประตู**
+   - **คูเมืองของจริง (`Data.water`)** แบ่งเป็น 2 ช่วงขนาบหัว-ท้ายลานข่วงประตูท่าแพ อยู่ระหว่าง **ถนนมูลเมือง** (ด้านใน/ตะวันตก) กับ **ถนนชัยภูมิ / ถนนคชสาร** (ด้านนอก/ตะวันออก):
+     - **คูเมืองฝั่งเหนือ (`id=87481337`):** `Z = -76.94..-277.73 ม.`, `X ≈ 5.17..36.49 ม.` (กว้าง ~20.2 ม.) มีน้ำพุ (`fountain`) ที่ `(16.03, -91.72)`
+     - **คูเมืองฝั่งใต้ (`id=23017972`):** `Z = +109.60..+281.14 ม.`, `X ≈ -15.17..10.45 ม.` (กว้าง ~15.6 ม.)
+2. **ย้อนคูเมือง/สะพานที่สร้างผิดตำแหน่งหน้ากำแพง (`MOAT-001` ขั้นย้อน):**
+   - ลบ `ThapaeWorld.Moat` เดิม (177 ชิ้น), ล้างน้ำ `Terrain` หน้ากำแพงด้วย `Enum.Material.Air`, และคืนค่า `Ground`, `Roads`, `Sidewalks`, `Markings`, `Props`, `StreetDecor` จาก `ServerStorage.ThapaeBackup_before_moat` โดยไม่แตะ `Buildings` (97 หลัง / 5,195 ชิ้นเท่าเดิม)
+3. **สร้างคูเมืองจริงฝั่งเหนือ-ใต้แบบสมมาตร + แก้พื้นเกินถนน + ใช้โมเดลสำเร็จรูปจาก Toolbox (`MOAT-001` ขั้นปรับปรุงตามฟีดแบ็กผู้สร้างใน `ThapaeBuilder.luau` และ Place2):**
+   - **แก้พื้นเกินออกไปนอกถนน:** ลบ `GatePassageLink` ที่ยื่นล้ำออกไปกลางถนนมูลเมืองแล้วแทนด้วย `GateThreshold` พอดีขอบทางเท้าในซุ้มประตู, ลดระดับพื้นข่วงประตูท่าแพ (`bdb6a6`) และเกาะกลางถนน (`c2b49b`) ลงที่ `0.082 ม.` (ต่ำกว่าผิวถนนลาดยาง `ROAD_TOP = 0.10 ม.`) พร้อมตัดเส้นรอยต่อแผ่นพื้น (`8f8a7e`) ที่ทับถนนออก และเปลี่ยนแผ่นพื้นฐานจาก `triPrism` (`WedgePart` ที่ยื่นล้ำขอบถนนและผ่ากลางคูเมืองเหนือ) เป็นแผ่นสี่เหลี่ยม `Part` ล้วน (`BaseSlab_Center/NW/NE/SW/SE` + `_BankGround` + `_TipGround`) ปรับมุมแดด `Lighting.ClockTime = 15.6` ไม่ให้เงากำแพงทอดยาวพาดลาน
+   - **ปรับคูเมืองทั้ง 2 ฝั่งให้เหมือนกัน (`NorthMoat` และ `SouthMoat`):** สร้างคูเมืองรูปทรงสี่เหลี่ยมผืนผ้าสมมาตรทั้งฝั่งเหนือ `(14.0, -77.0) -> (25.0, -275.0)` และฝั่งใต้ `(1.0, 110.0) -> (-9.5, 276.0)` กว้าง `18.0 ม.` เท่ากัน ลึก `6 stud` บุหิน `Slate` ตะไคร่น้ำ + ขอบหิน `Coping` + ทางเดินหัวคู `_HeaderWalk` + น้ำ `Terrain` สีเขียวอมน้ำเงินต่ำกว่าขอบ `1 stud` และต่อขยายถนนลาดยาง + ทางเท้าด้านนอกขนาบคูเมืองทั้ง 2 ฝั่งจนสุดปลายคู
+   - **ใช้โมเดลสำเร็จรูปจาก Creator Store (Toolbox):** ค้นหา นำเข้า `ServerStorage.AssetQuarantine` ตรวจสอบและลบสคริปต์แปลกปลอม แล้วบันทึกเป็น Prefab ใน `ServerStorage.EchoAtlas.Prefabs` ได้แก่ `MoatFountain` (Park Fountain `2332885124` มีละอองน้ำ `ParticleEmitter` 20 จุด + เสียงน้ำพุ วางฝั่งละ 2 จุด), `StoneBridge` (Stone Bridge `222836185` ปรับแกนตั้งฉากวางพาดข้ามคูฝั่งละ 1 สะพาน) และ `ParkBench` (`393609716` วางริมทางเดินหัวคูฝั่งละ 2 ตัว) บันทึกผลการตรวจใน `roblox/assets/third-party-assets.md` (`Buildings` 97 หลัง / 5,195 ชิ้นไม่ถูกแตะ)
 
-## ⚠ ข้อผิดพลาดที่ค้างและต้องแก้ก่อน: คูเมืองและสะพาน (WORKLOG ต่อ 25)
-ผู้สร้างแจ้งว่า **ผม (Claude) เข้าใจผิดตำแหน่ง**: สร้างคูเมือง+สะพานชิดกำแพงด้านลาน แต่ **ของจริงไม่ได้อยู่ตรงนั้น** (ผู้สร้างจะบอกตำแหน่งที่ถูกต้องรอบหน้า — ยังไม่รู้ว่าอยู่ตรงไหน **อย่าเดา ให้ถามผู้สร้างพร้อมแผนที่/ภาพอ้างอิงก่อน**) สิ่งที่อยู่ใน Place2 ตอนนี้ (ยังไม่ได้เซฟ):
-- `ThapaeWorld.Moat` (ผนัง/พื้นหิน Slate, สะพานคอนกรีต, ราว) + น้ำ Terrain ในแถบ s ≈ 0.84–5.32 ม. หน้ากำแพงด้านลาน ยาว 70 ม.
-- พื้นลานและพื้นฐาน 250 × 250 ม. ถูก **ตัดเป็นแถบ**, เส้นข้อต่อพื้นปลายถูกตัด, เสาไฟ/ม้านั่ง 17 ชิ้นถูกเลื่อน +5.3 ม., ฝาท่อ 1 ชิ้นถูกลบ
-- **วิธีย้อนกลับเต็ม (ถ้าผู้สร้างสั่งยกเลิก):** (1) ลบ `ThapaeWorld.Moat`; (2) ล้างน้ำ: `workspace.Terrain:FillBlock(CFrame ครอบแถบ, Vector3.new(264,12,~(4.48+2)/0.28), Enum.Material.Air)` ที่ศูนย์กลางแถบ (สูตรอยู่ใน WORKLOG ต่อ 25 / ดูโค้ดที่ใช้ล้างใน session นี้: ศูนย์กลาง = anchor + gateNrm × 3.08 ม. , y ≈ −3.5 stud); (3) คืนกลุ่ม Ground, Roads, Sidewalks, Markings, Props, StreetDecor จาก `ServerStorage.ThapaeBackup_before_moat` (ลบลูกของกลุ่มเดิม แล้ว clone ลูกจากสำรองกลับ) — ระวังอย่าแตะ `Buildings`
-- ถ้าผู้สร้างต้องการ "ย้ายตำแหน่ง" แทนยกเลิก: `Builder.moat()` ผูกกับ gate frame (`MOAT_*`, `S0 = GATE_THICK/2`, `MOAT_HALF_LEN`) ต้องปรับพารามิเตอร์ตำแหน่ง/ทิศ (ปัจจุบันฮาร์ดโค้ดเป็น "หน้ากำแพงด้านลาน") แล้วย้อนของเดิมก่อนรันใหม่; มันเป็น post-pass ที่แก้พื้น **ทับของเดิม** จึงต้องย้อนก่อนทุกครั้ง
-- ข้อมูลที่เกี่ยวข้อง: คูตาม OSM เดิมใน Place2 (2 ชิ้นน้ำที่ a ≈ 77 ม. s ≈ 14 ม. จากประตู) ยังอยู่ ไม่ได้แตะ; ถนนขนานกำแพงอยู่ฝั่งเมือง (s ≈ −9 ม.) ฝั่งลานไม่มีถนนติดกำแพง
-
-## สำรองใน ServerStorage ของ Place2 (ย้อนกลับได้ ลบเมื่อไม่ต้องการ)
-`ThapaeBackup_before_moat` (Ground/Roads/Sidewalks/Markings/Props/StreetDecor/Walls ก่อนขั้นคู), `WallsBackup_before_openable_doors`, `WallsBackup_spec_gate_thin`, `WallsBackup_6m_gate`, `WallsBackup_before_gate_widen` (กำแพงรุ่นก่อน ๆ) — ฉากเปิดแล้วจะอยู่ในไฟล์ถ้าผู้สร้างเซฟ
-
-## เครื่องมือ/วิธีซิงก์ (repo → Studio, ทางเดียว)
-`python -I -m http.server 8765 --bind 127.0.0.1` ใน `roblox/` แล้วรัน `execute_luau` (Edit) ที่ดึงไฟล์ผ่าน `HttpService:GetAsync` (ใน Place2 `HttpEnabled = true` อยู่แล้ว) — สคริปต์เกม: `tools/roblox/sync_to_studio.luau` (ตาม `roblox/src/manifest.json`) ส่วน `ThapaeBuilder` ต้องสร้าง/แทนที่โมดูลใน `ServerStorage.EchoAtlas` เอง; **ปิดเซิร์ฟเวอร์เมื่อเสร็จ** (ตอนส่งมอบปิดแล้ว) git บนเครื่องนี้ฟ้อง dubious ownership: ใช้ `git -c safe.directory='C:/dev/Echo Atlas' …` (ไม่ได้แก้ config ถาวร)
+## สำรองใน ServerStorage ของ Place2 (ย้อนกลับได้)
+`ThapaeBackup_before_moat` (Ground/Roads/Sidewalks/Markings/Props/StreetDecor/Walls ก่อนขั้นคู), `WallsBackup_before_openable_doors`, `WallsBackup_spec_gate_thin`, `WallsBackup_6m_gate`, `WallsBackup_before_gate_widen`
 
 ## ยังไม่ได้ทดสอบ (NOT RUN)
-unit test หลังเพิ่ม `features`; เปิด `combat=true` กลับแล้วเล่นซ้ำ; ผู้เล่นหลายคน/มือถือ/จอยจริง; FPS ของฉากปัจจุบัน (Walls เพิ่มเป็น ~700 ชิ้น); การชนของบานเมื่อผู้เล่นยืนขวาง; อาการกะพริบ (flicker) ที่ผู้สร้างเคยรายงาน — ยังไม่ได้แยกต้นเหตุ (ยอดซุ้มแก้แล้วแต่ไม่ได้ตรวจซ้ำ; เส้นถนนหนา 5 ซม. เป็นการเดา ไม่พิสูจน์); แสงออกน้ำเงินจัดที่เงา และสัดส่วนประตูเทียบรูปจริง (ค่าทั้งหมดเป็นของผู้สร้าง/ประมาณ ไม่ใช่การสำรวจ)
+ผู้เล่นหลายคน/มือถือ/จอยจริง; FPS ของฉากปัจจุบัน; การชนของบานประตูเมื่อผู้เล่นยืนขวาง; อาการกะพริบ (flicker) ที่ผู้สร้างเคยรายงาน; เปิด `combat=true` กลับแล้วเล่นซ้ำ; `pnpm lint/typecheck/test/build` ของโค้ดเว็บเดิม
 
 ## Next action (ข้อเดียว)
-**ถามผู้สร้างว่าคูเมืองและสะพานทางเข้าจริงอยู่ตรงไหนเมื่อเทียบกับประตูท่าแพ (ขอภาพ OpenFreeMap/ภาพถ่ายที่ใช้ได้) ก่อน** แล้วย้อนคู/สะพานที่สร้างผิดที่ (ดูวิธีย้อนด้านบน) จากนั้นค่อยสร้างใหม่ตามสเปก stud เดิมที่ตำแหน่งที่ถูกต้อง Acceptance: ผู้สร้างเห็นตำแหน่งตรงกับของจริง; Place2 เดินผ่านประตูและข้ามสะพานได้; Buildings ยังไม่ถูกแตะ; บันทึก WORKLOG + commit
+**ให้ผู้สร้างตรวจดูข่วงประตูท่าแพ คูเมืองฝั่งเหนือ-ใต้ และเส้นถนนใน Roblox Studio ด้วยตา (แล้วกด `Ctrl+S` เซฟไฟล์ `EchoAtlas-Place2.rbxl`) จากนั้นรอผู้สร้างสั่งงานขั้นถัดไป** (เช่น ปรับแต่งรายละเอียดฉากเพิ่มเติม, วางตึกจาก `EchoAtlas-City.rbxl`, หรือสั่ง commit/push งานรอบนี้)
 
-## Prompt ส่งต่อ (วางให้ Claude/Codex session ใหม่)
+## Prompt ส่งต่อ (วางให้ AI session ถัดไป)
 ```
-อ่าน AGENTS.md, CLAUDE.md แล้ว docs/coordination/STATUS.md, HANDOFF.md, TASKS.md, INBOX.md (MSG-002) และท้าย WORKLOG.md (ต่อ 11–26) ก่อนทำอะไร
-สถานะ: ใช้ Place2 (C:\dev\Pixel Walke\roblox\studio\EchoAtlas-Place2.rbxl) เป็นฐานแมพ ตึกผู้สร้างจะ copy จาก EchoAtlas-City.rbxl เอง ระบบต่อสู้ปิดอยู่ (Config.features.combat=false) ประตูท่าแพ+บานไม้กด E ทำแล้ว
-งานแรก: ผู้สร้างบอกว่าคูเมืองและสะพานที่ Claude สร้างชิดกำแพงด้านลาน "ผิดตำแหน่ง ของจริงไม่ได้อยู่ตรงนั้น" — ห้ามเดา ให้ถามผู้สร้างว่าตำแหน่งจริงอยู่ตรงไหน (ขอแผนที่/ภาพอ้างอิง) ก่อน แล้วย้อนของที่สร้างผิดที่ตามวิธีใน HANDOFF (ลบ ThapaeWorld.Moat, ล้างน้ำ Terrain, คืน Ground/Roads/Sidewalks/Markings/Props/StreetDecor จาก ServerStorage.ThapaeBackup_before_moat) แล้วสร้างใหม่ที่ตำแหน่งที่ถูกต้องด้วยสเปกเดิม (คู 16 กว้าง × 6 ลึก stud หินสเลตมอส น้ำ Terrain สีเขียวน้ำเงิน; สะพานคอนกรีต 12 × 16 stud ผิวสูงกว่าน้ำ 1 stud ราวกันตก)
-กฎ: ผู้สร้างสั่งทีละขั้น อย่าทำหลายขั้นรวด; ห้ามรัน Builder.clear()/สร้าง ThapaeWorld ใหม่ทั้งชุด (จะลบตึกที่ผู้สร้างวาง); ตอบเป็นภาษาไทยเข้าใจง่าย บอก NOT RUN ถ้าไม่ได้ทดสอบ; อย่า commit/push ถ้าผู้สร้างไม่ได้สั่ง; ก่อนแก้ฉากต้องให้ผู้สร้างหยุด Play (Edit mode) และอย่า blanket git add
-เมื่อเสร็จ: อัปเดต STATUS/TASKS/WORKLOG/HANDOFF แล้วทิ้ง next action ข้อเดียว
+อ่าน AGENTS.md, CLAUDE.md แล้ว docs/coordination/STATUS.md, HANDOFF.md, TASKS.md, INBOX.md (MSG-002) และท้าย WORKLOG.md (ต่อ 25–27) ก่อนทำอะไร
+สถานะ: ใช้ Place2 (C:\dev\Pixel Walke\roblox\studio\EchoAtlas-Place2.rbxl) เป็นฐานแมพ ตึกผู้สร้างจะ copy จาก EchoAtlas-City.rbxl เอง ระบบต่อสู้ปิดอยู่ (Config.features.combat=false) ประตูท่าแพ+บานไม้กด E ทำแล้ว และงาน MOAT-001 (ย้อนคูเมืองหน้ากำแพงที่ผิดตำแหน่ง คืนข่วงประตูท่าแพ + สร้างคูเมืองจริงฝั่งเหนือและฝั่งใต้ตาม Data.water ลึก 6 stud หิน Slate ตะไคร่น้ำ น้ำ Terrain + ทางเดินเชื่อมซุ้มประตู GatePassageLink) ทำและทดสอบใน Place2 เสร็จแล้ว (ยังไม่ได้ commit รอผู้สร้างสั่ง)
+งานถัดไป: ถามผู้สร้างว่าตรวจดูฉากใน Studio และกด Ctrl+S เซฟ Place2 เรียบร้อยหรือยัง และต้องการให้ทำขั้นไหนต่อ (ห้ามเดาหรือทำหลายขั้นรวด; ห้ามรัน Builder.clear() หรือแตะ ThapaeWorld.Buildings)
 ```
+

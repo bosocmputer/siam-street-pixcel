@@ -30,3 +30,8 @@
 | 89384936911598 | Low Poly Tree Cartoon | Roblox | ดูภาพแล้ว สีเขียวสดเกินไป การ์ตูน | ไม่ใช้ |
 | 119411990865533 | Arboles Realistas Trees Forest | Roblox | ดูภาพแล้ว เขียวนีออน | ไม่ใช้ |
 | (ค้นแล้ว) | bush/hedge, bicycle, "tree" ทั่วไป | หลายผู้สร้าง | ผลค้นปนของขยะ (ชื่อไม่เกี่ยวข้อง, แท็กยัดคำ, ไม่มีรายละเอียด) แม้ตั้งค่า verified creators; ตัวที่มีสเปกชัด เช่น Bike Mesh 66 ชิ้น ยังไม่ได้ดูภาพ | ยังไม่ใช้ — วิธีที่ได้ผล: ดูภาพ thumbnail (ดาวน์โหลดผ่าน thumbnails API) ก่อนนำเข้า |
+| 2332885124 | Park Fountain | barbarianblox | 28 Part (18 MeshPart) + 20 ParticleEmitter (ละอองน้ำพุ) + 1 Sound; **ไม่มี Script**; ขนาดจริง 3.08×3.00×3.08 ม. | **ใช้** → prefab `MoatFountain` วางบนแท่นหินกลางคูเมืองทั้งฝั่งเหนือ (2 จุด) และฝั่งใต้ (2 จุด) ให้สมมาตรกัน |
+| 13782728612 | Better Low Poly Fountain | ComputerLider123 | 31 Part (23 MeshPart) + 5 ParticleEmitter; มี Script 1 ตัว (`Credits`) → ลบทิ้งแล้ว; ขนาด 6.85×6.28×7.42 ม. | เก็บเป็น prefab สำรอง `MoatFountainLarge` |
+| 222836185 | Stone Bridge | Dexhall | 37 Part (Concrete); **ไม่มี Script**; ขนาดต้นฉบับ 5.14×2.11×9.68 ม. (แกนภายในเอียง 45° → ตั้ง WorldPivot ใหม่ให้ตั้งฉากกับคูเมืองและขยาย ×1.98 ข้ามคู 18 ม.) | **ใช้** → prefab `StoneBridge` วางพาดข้ามคูเมืองทั้งฝั่งเหนือและฝั่งใต้ |
+| 393609716 | Park Bench | AeliteOfficial | 27 Part; มี Script 1 ตัว → ลบทิ้งแล้ว; ขนาด 2.80×1.12×2.69 ม. (ย่อ ×0.75) | **ใช้** → prefab `ParkBench` วางริมทางเดินหัวคูเมืองทั้งสองฝั่ง |
+| 3413806622 | Canal | Danielut23 | 1 Union ขนาด 1.10×0.16×1.10 ม. (เป็นแค่ฝาท่อเล็ก ๆ) + 1 Script | **ปฏิเสธ** ลบออกจาก `AssetQuarantine` แล้ว |

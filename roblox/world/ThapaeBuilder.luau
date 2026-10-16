@@ -450,19 +450,9 @@ function Builder.markings()
 end
 
 function Builder.water()
-	for _, w in Data.water do
-		local poly = toVec2List(w.pts)
-		extrude(folders.Water, poly, 0, 0.16, Color3.fromHex("4D7C70"), Enum.Material.Glass, { Reflectance = 0.12 })
-		for i = 1, #poly do
-			local a, b = poly[i], poly[i % #poly + 1]
-			local d = b - a
-			local len = d.Magnitude
-			if len > 0.3 then
-				local mid = (a + b) / 2
-				local pos = Vector3.new(mid.X, 0.55, mid.Y)
-				box(folders.Water, Vector3.new(0.45, 1.1, len + 0.3), CFrame.lookAt(pos, pos + Vector3.new(d.X, 0, d.Y)), Color3.fromHex("B3A68F"), Enum.Material.Concrete)
-			end
-		end
+	-- Real-world moat trenches + Terrain water are built in Builder.moat(); clear legacy glass water slabs if any
+	if folders.Water then
+		folders.Water:ClearAllChildren()
 	end
 end
 
@@ -790,48 +780,22 @@ function Builder.walls()
 	end
 end
 
--- ================================================================ moat + entrance bridge (creator brief, STUDS)
--- A straight moat parallel to the front (plaza side) of the gate wall, 16 studs wide and 6 deep, lined with mossy Slate,
--- filled with Roblox Terrain water; a 12 x 16 stud concrete bridge on the gate axis, deck top level with the ground
--- (= 1 stud above the water), low grey concrete rails. This is a POST-PASS: run it after ground/places/props/walls.
--- It cuts the strip out of the ground (the 250 m base slab and the thin plaza triangles are re-cut with exact geometry),
--- moves props that stand in the strip to the far bank, then builds lining, water and bridge into ThapaeWorld.Moat.
-local MOAT_W = 16 * STUD
+-- ================================================================ real-world moat (Symmetrical North & South moats flanking Tha Phae Plaza)
+-- In real-world Chiang Mai, the city moat is interrupted by Tha Phae Gate Plaza (ข่วงประตูท่าแพ) so there is NO moat directly in front of the
+-- brick wall. Instead, two symmetrical 18.0 m wide rectangular moat canals flank the northern and southern ends of the plaza between
+-- Moon Muang Road (inner/west) and Chaiyaphum / Kotchasarn Roads (outer/east):
+--   - North Moat: (14.0, -77.0) -> (25.0, -275.0)
+--   - South Moat: (1.0, +110.0) -> (-9.5, +276.0)
+-- Both moats use 100% rectangular base ground slabs (zero triPrism wedges, preventing any ground protrusion), 6-stud deep mossy Slate walls
+-- + stone coping lip, green-blue Roblox Terrain water (1 stud below rim), full-length outer roads/sidewalks, and vetted Creator Store prefabs
+-- (`MoatFountain`, `StoneBridge`, `ParkBench` in `ServerStorage.EchoAtlas.Prefabs`).
+local MOAT_W = 18.0
 local MOAT_DEPTH = 6 * STUD
 local MOAT_LINING = 1 * STUD
-local MOAT_HALF_LEN = 35 -- metres each side of the gate, along the wall
 local WATER_BELOW_RIM = 1 * STUD
-local BRIDGE_W = 12 * STUD
-local BRIDGE_T = 0.5 * STUD
-local RAIL_H = 3 * STUD
-local RAIL_T = 1 * STUD
-local LEAF_CLEAR = 7 * STUD -- rails start this far from the wall: the open gate leaves swing over that stretch
 
 function Builder.moat(): { [string]: any }
-	local stats = { carvedTriangles = 0, removedParts = 0, clippedBoxes = 0, shiftedProps = 0, moatParts = 0 }
-	local gc = tostring(root:GetAttribute("gateCenterM") or "")
-	local gx, gz = gc:match("([%-%d%.]+), ([%-%d%.]+)")
-	local uVec, nVec = root:GetAttribute("gateU"), root:GetAttribute("gateNrm")
-	if not (gx and uVec and nVec) then
-		error("moat(): run Builder.walls() first (gate attributes missing)")
-	end
-	local anchor = Vector2.new(tonumber(gx), tonumber(gz))
-	local u2, p2 = Vector2.new(uVec.X, uVec.Z), Vector2.new(nVec.X, nVec.Z) -- along the wall / towards the plaza (unit)
-	local S0 = GATE_THICK / 2 -- wall front face
-	local S1 = S0 + MOAT_W
-	local AH = MOAT_HALF_LEN
-	local function toSA(x: number, z: number): Vector2
-		local d = Vector2.new(x, z) - anchor
-		return Vector2.new(d:Dot(p2), d:Dot(u2))
-	end
-	local function toXZ(s: number, a: number): Vector2
-		return anchor + p2 * s + u2 * a
-	end
-	local function fbox(parent, sC: number, aC: number, y0: number, y1: number, sSize: number, aSize: number, color, mat, opts)
-		local p = toXZ(sC, aC)
-		local cf = CFrame.fromMatrix(Vector3.new(p.X, (y0 + y1) / 2, p.Y), Vector3.new(u2.X, 0, u2.Y), Vector3.yAxis, Vector3.new(p2.X, 0, p2.Y))
-		return box(parent, Vector3.new(aSize, y1 - y0, sSize), cf, color, mat, opts)
-	end
+	local stats = { carvedSlabs = 0, groundPieces = 0, moatParts = 0, waterPolys = 2, gatePathLinked = true }
 
 	local moatFolder = root:FindFirstChild("Moat")
 	if moatFolder then
@@ -841,289 +805,276 @@ function Builder.moat(): { [string]: any }
 	moatFolder.Name = "Moat"
 	moatFolder.Parent = root
 
-	-- ---------------------------------------------------------------- 1. cut the strip out of the ground
-	local function clipPoly(poly: { Vector2 }, nx: number, nz: number, d: number): { Vector2 }
-		local out = {}
-		for i = 1, #poly do
-			local a, b = poly[i], poly[i % #poly + 1]
-			local da, db = nx * a.X + nz * a.Y - d, nx * b.X + nz * b.Y - d
-			if da <= 0 then
-				table.insert(out, a)
-			end
-			if (da < 0 and db > 0) or (da > 0 and db < 0) then
-				table.insert(out, a + (b - a) * (da / (da - db)))
-			end
-		end
-		return out
+	local waterFolder = folders.Water or root:FindFirstChild("Water")
+	if waterFolder then
+		waterFolder:ClearAllChildren()
 	end
-	-- pieces of a triangle (in s,a) that lie OUTSIDE the strip s in [S0,S1], |a| <= AH; convex polygons
-	local function outside(tri: { Vector2 }): ({ { Vector2 } }, number)
-		local pieces = {}
-		local area = 0
-		local function add(p: { Vector2 })
-			if #p >= 3 and math.abs(polyArea(p)) > 1e-4 then
-				table.insert(pieces, p)
-				area += math.abs(polyArea(p))
+
+	local gFolder = folders.Ground or root:FindFirstChild("Ground")
+	local rFolder = folders.Roads or root:FindFirstChild("Roads")
+	local sFolder = folders.Sidewalks or root:FindFirstChild("Sidewalks")
+	local mFolder = folders.Markings or root:FindFirstChild("Markings")
+
+	-- ---------------------------------------------------------------- 1. Replace uncut base ground slab with 5 clean axis-aligned rectangular slabs
+	if gFolder then
+		for _, p in gFolder:GetChildren() do
+			if p:IsA("BasePart") and (p.Position.Y * STUD < -0.5 or p.Name:find("BaseSlab") or p.Name:find("_BankGround") or p.Name:find("_TipGround") or p.Name == "PlazaSouthHeaderFill" or p.Name == "GateThreshold") then
+				p:Destroy()
+				stats.carvedSlabs += 1
 			end
 		end
-		add(clipPoly(tri, 1, 0, S0))
-		add(clipPoly(tri, -1, 0, -S1))
-		local mid = clipPoly(clipPoly(tri, -1, 0, -S0), 1, 0, S1)
-		add(clipPoly(mid, 0, 1, -AH))
-		add(clipPoly(mid, 0, -1, -AH))
-		return pieces, area
-	end
-	local function emitPieces(parent: Instance, pieces: { { Vector2 } }, yC: number, thick: number, color, mat, opts)
-		for _, poly in pieces do
-			local v = {}
-			for _, q in poly do
-				local p = toXZ(q.X, q.Y)
-				table.insert(v, Vector3.new(p.X, yC, p.Y))
-			end
-			for k = 2, #v - 1 do
-				triPrism(parent, v[1], v[k], v[k + 1], thick, color, mat, opts)
+		local baseCol = Color3.fromHex("B3AEA1")
+		local baseMat = Enum.Material.Concrete
+		box(gFolder, Vector3.new(250.0, 2.0, 184.6), CFrame.new(0.0, -1.0, 16.5), baseCol, baseMat, { Name = "BaseSlab_Center" })
+		box(gFolder, Vector3.new(129.5, 2.0, 48.0), CFrame.new(-60.25, -1.0, -101.0), baseCol, baseMat, { Name = "BaseSlab_NW" })
+		box(gFolder, Vector3.new(98.5, 2.0, 48.0), CFrame.new(75.75, -1.0, -101.0), baseCol, baseMat, { Name = "BaseSlab_NE" })
+		box(gFolder, Vector3.new(115.5, 2.0, 15.0), CFrame.new(-67.25, -1.0, 117.5), baseCol, baseMat, { Name = "BaseSlab_SW" })
+		box(gFolder, Vector3.new(114.5, 2.0, 15.0), CFrame.new(67.75, -1.0, 117.5), baseCol, baseMat, { Name = "BaseSlab_SE" })
+		box(gFolder, Vector3.new(24.0, 0.13, 3.8), CFrame.new(1.0, 0.065 - 0.048, 106.9), Color3.fromHex("BDB6A6"), Enum.Material.Concrete, { Name = "PlazaSouthHeaderFill" })
+		stats.groundPieces += 6
+
+		-- Trim any plaza wedges at the South Moat header and lower plaza/paving below ROAD_TOP (0.10m) so no floor sticks out onto roads
+		local roadBoxes = {}
+		if rFolder then
+			for _, r in rFolder:GetChildren() do
+				if r:IsA("BasePart") and r.Material == Enum.Material.Asphalt then
+					table.insert(roadBoxes, { cf = r.CFrame, hx = r.Size.X / 2 + 0.2 / STUD, hz = r.Size.Z / 2 + 0.2 / STUD })
+				end
 			end
 		end
-	end
-	local function carveTriangle(parent: Instance, tri3: { Vector3 }, yC: number, thick: number, color, mat, opts): boolean
-		local tri = {}
-		for _, p in tri3 do
-			table.insert(tri, toSA(p.X, p.Z))
-		end
-		local ar = math.abs(polyArea(tri))
-		if ar < 1e-6 then
+		local function overlapsAsphalt(pos: Vector3): boolean
+			for _, rb in roadBoxes do
+				local lp = rb.cf:PointToObjectSpace(pos)
+				if math.abs(lp.X) <= rb.hx and math.abs(lp.Z) <= rb.hz then
+					return true
+				end
+			end
 			return false
 		end
-		local lo, hi = math.huge, -math.huge
-		local alo, ahi = math.huge, -math.huge
-		for _, q in tri do
-			lo, hi, alo, ahi = math.min(lo, q.X), math.max(hi, q.X), math.min(alo, q.Y), math.max(ahi, q.Y)
-		end
-		if hi < S0 or lo > S1 or ahi < -AH or alo > AH then
-			return false -- does not touch the strip
-		end
-		local pieces, outArea = outside(tri)
-		if ar - outArea < 1e-3 then
-			return false -- strip does not actually cut it
-		end
-		emitPieces(parent, pieces, yC, thick, color, mat, opts)
-		return true
-	end
-
-	for _, fname in { "Ground", "Roads", "Sidewalks", "Markings" } do
-		local f = folders[fname] or root:FindFirstChild(fname)
-		if f then
-			for _, p in f:GetDescendants() do
-				if p:IsA("WedgePart") and math.abs(p.CFrame.RightVector.Y) > 0.99 then
-					-- a horizontal triangle (half of a triPrism): right angle at local (-h/2.. see probe) -> vertices
-					local h, l = p.Size.Y, p.Size.Z
-					local cf = p.CFrame
-					local tri3 = {}
-					for _, lv in { Vector3.new(0, -h / 2, -l / 2), Vector3.new(0, -h / 2, l / 2), Vector3.new(0, h / 2, l / 2) } do
-						local w = cf:PointToWorldSpace(lv)
-						table.insert(tri3, Vector3.new(w.X * STUD, 0, w.Z * STUD))
-					end
-					local opts = { CanCollide = p.CanCollide, CanTouch = p.CanTouch, CanQuery = p.CanQuery, CastShadow = p.CastShadow }
-					if carveTriangle(p.Parent, tri3, p.Position.Y * STUD, p.Size.X * STUD, p.Color, p.Material, opts) then
-						stats.carvedTriangles += 1
-						p:Destroy()
-					end
-				elseif p:IsA("BasePart") and not p:IsA("WedgePart") and not (p:IsA("Part") and p.Shape == Enum.PartType.Block) then
-					-- cylinders, balls, meshes (e.g. manhole covers): removed when their centre lies inside the strip
-					local q = toSA(p.Position.X * STUD, p.Position.Z * STUD)
-					if q.X > S0 - 0.2 and q.X < S1 + 0.2 and math.abs(q.Y) < AH then
-						p:Destroy()
-						stats.removedParts += 1
-					end
-				elseif p:IsA("Part") and p.Shape == Enum.PartType.Block then
-					local sz = p.Size * STUD
-					if sz.X > 100 and sz.Z > 100 then
-						-- the base slab: re-cut as two triangles of its own footprint
-						local cx, cz = p.Position.X * STUD, p.Position.Z * STUD
-						local hx, hz = sz.X / 2, sz.Z / 2
-						local c = { Vector3.new(cx - hx, 0, cz - hz), Vector3.new(cx + hx, 0, cz - hz), Vector3.new(cx + hx, 0, cz + hz), Vector3.new(cx - hx, 0, cz + hz) }
-						local opts = { CanCollide = p.CanCollide, CanTouch = p.CanTouch, CanQuery = p.CanQuery, CastShadow = p.CastShadow }
-						local a1 = carveTriangle(p.Parent, { c[1], c[2], c[3] }, p.Position.Y * STUD, sz.Y, p.Color, p.Material, opts)
-						local a2 = carveTriangle(p.Parent, { c[1], c[3], c[4] }, p.Position.Y * STUD, sz.Y, p.Color, p.Material, opts)
-						if a1 or a2 then
-							-- a triangle the strip does not touch must still exist: re-emit it whole
-							if not a1 then
-								emitPieces(p.Parent, { { Vector2.new(toSA(c[1].X, c[1].Z).X, toSA(c[1].X, c[1].Z).Y), toSA(c[2].X, c[2].Z), toSA(c[3].X, c[3].Z) } }, p.Position.Y * STUD, sz.Y, p.Color, p.Material, opts)
-							end
-							if not a2 then
-								emitPieces(p.Parent, { { toSA(c[1].X, c[1].Z), toSA(c[3].X, c[3].Z), toSA(c[4].X, c[4].Z) } }, p.Position.Y * STUD, sz.Y, p.Color, p.Material, opts)
-							end
-							stats.carvedTriangles += 2
+		for _, p in gFolder:GetChildren() do
+			if p:IsA("BasePart") and p.Name ~= "PlazaSouthHeaderFill" and not p.Name:find("BaseSlab") then
+				local xm, zm = p.Position.X * STUD, p.Position.Z * STUD
+				local zMax = zm + math.max(p.Size.X, p.Size.Y, p.Size.Z) * STUD / 2
+				if (zm > 109.2 or (zm > 104 and zMax > 110.2)) and xm > -13 and xm < 14 then
+					p:Destroy()
+				else
+					local hex = p.Color:ToHex()
+					if (hex == "bdb6a6" or hex == "c2b49b") and p.Position.Y * STUD > 0.03 then
+						p.Position = p.Position - Vector3.new(0, 0.048 / STUD, 0)
+					elseif hex == "8f8a7e" then
+						local p1 = p.Position + p.CFrame.LookVector * (p.Size.Z / 2) + p.CFrame.RightVector * (p.Size.X / 2)
+						local p2 = p.Position - p.CFrame.LookVector * (p.Size.Z / 2) - p.CFrame.RightVector * (p.Size.X / 2)
+						if overlapsAsphalt(p.Position) or overlapsAsphalt(p1) or overlapsAsphalt(p2) then
 							p:Destroy()
+						else
+							p.Position = Vector3.new(p.Position.X, 0.088 / STUD, p.Position.Z)
 						end
-					else
-						-- other boxes (plaza joint lines, the 2 m path under the gate, small road bits): clip along the long axis
-						local long = sz.X >= sz.Z and "X" or "Z"
-						local len = math.max(sz.X, sz.Z)
-						local wid = math.min(sz.X, sz.Z)
-						-- world direction of the part's LOCAL +X / +Z axis (LookVector is -Z, so it must be negated)
-						local axisV = (long == "X") and p.CFrame.RightVector or -p.CFrame.LookVector
-						local c = toSA(p.Position.X * STUD, p.Position.Z * STUD)
-						local dirSA = Vector2.new(axisV.X, axisV.Z)
-						dirSA = Vector2.new(dirSA:Dot(p2), dirSA:Dot(u2))
-						-- interval of the segment c + t*dirSA, t in [-len/2, len/2], inside the strip (slab method)
-						local tmin, tmax = -len / 2, len / 2
-						local function slab1(cc: number, dd: number, lo: number, hi: number)
-							if math.abs(dd) < 1e-9 then
-								if cc < lo or cc > hi then
-									tmin, tmax = 1, 0
-								end
-							else
-								local t1, t2 = (lo - cc) / dd, (hi - cc) / dd
-								if t1 > t2 then
-									t1, t2 = t2, t1
-								end
-								tmin, tmax = math.max(tmin, t1), math.min(tmax, t2)
-							end
-						end
-						slab1(c.X, dirSA.X, S0 - wid / 2, S1 + wid / 2)
-						slab1(c.Y, dirSA.Y, -AH - wid / 2, AH + wid / 2)
-						if tmin < tmax and p.Size.Y * STUD < 1.5 then
-							-- inside part = [tmin, tmax]; keep the outside remainders
-							local keepA = { -len / 2, tmin }
-							local keepB = { tmax, len / 2 }
-							local pieces = {}
-							for _, k in { keepA, keepB } do
-								if k[2] - k[1] > 0.05 then
-									table.insert(pieces, k)
-								end
-							end
-							if #pieces == 0 then
-								p:Destroy()
-								stats.removedParts += 1
-							else
-								local origCF = p.CFrame
-								local axisLocal = (long == "X") and Vector3.xAxis or Vector3.zAxis
-								for i, k in pieces do
-									local target = p
-									if i > 1 then
-										target = p:Clone()
-										target.Parent = p.Parent
-									end
-									local mid = (k[1] + k[2]) / 2
-									local newSize = p.Size
-									newSize = (long == "X") and Vector3.new((k[2] - k[1]) / STUD, newSize.Y, newSize.Z) or Vector3.new(newSize.X, newSize.Y, (k[2] - k[1]) / STUD)
-									target.Size = newSize
-									target.CFrame = origCF * CFrame.new(axisLocal * (mid / STUD))
-								end
-								stats.clippedBoxes += 1
-							end
-						end
+					elseif hex == "cfcbc0" and overlapsAsphalt(p.Position) then
+						p:Destroy()
 					end
 				end
 			end
 		end
 	end
 
-	-- props / street decor standing in the strip move to the far bank (they keep their a-position)
-	local shift = (S1 - S0) + 0.8
-	for _, fname in { "Props", "StreetDecor" } do
-		local f = folders[fname] or root:FindFirstChild(fname)
-		if f then
-			for _, p in f:GetDescendants() do
-				if p:IsA("BasePart") then
-					local q = toSA(p.Position.X * STUD, p.Position.Z * STUD)
-					if q.X > S0 - 0.4 and q.X < S1 + 0.3 and math.abs(q.Y) < AH + 1 then
-						local d = p2 * shift / STUD
-						p.CFrame = p.CFrame + Vector3.new(d.X, 0, d.Y)
-						stats.shiftedProps += 1
-					end
-				end
-			end
-		end
-	end
-
-	-- ---------------------------------------------------------------- 2. lining (mossy slate), floor, coping
+	-- ---------------------------------------------------------------- 2. Symmetrical North & South Moats + Toolbox Prefabs
 	local function moss(y: number, id: number): Color3
-		-- y = height in metres (0 = rim, negative = down); greener and darker nearer the water and the bottom
 		local t = math.clamp(-y / 1.2, 0, 1)
 		local stone = Color3.fromRGB(122, 126, 118):Lerp(Color3.fromRGB(102, 108, 100), rnd(id, 3))
 		local green = Color3.fromRGB(62, 96, 64):Lerp(Color3.fromRGB(48, 78, 56), rnd(id, 5))
 		return stone:Lerp(green, t * 0.85 * (0.7 + 0.3 * rnd(id, 7)))
 	end
+
 	local id = 0
 	local TILE = 4 * STUD
-	local function lining(sC: number, aC: number, y0: number, y1: number, sSize: number, aSize: number)
-		-- split along the long horizontal direction into tile-length pieces and vertically into 2 bands
-		local alongA = aSize >= sSize
-		local n = math.max(1, math.ceil((alongA and aSize or sSize) / (2 * TILE)))
-		local bands = math.max(1, math.ceil((y1 - y0) / TILE))
-		for i = 0, n - 1 do
-			for j = 0, bands - 1 do
-				id += 1
-				local yy0, yy1 = y0 + (y1 - y0) * j / bands, y0 + (y1 - y0) * (j + 1) / bands
-				local sc, ac, ss, as = sC, aC, sSize, aSize
-				if alongA then
-					as = aSize / n
-					ac = aC - aSize / 2 + as * (i + 0.5)
-				else
-					ss = sSize / n
-					sc = sC - sSize / 2 + ss * (i + 0.5)
+	local floorTop = -MOAT_DEPTH
+	local copeTop = 0.18
+	local waterTop = -WATER_BELOW_RIM
+	local terrain = Workspace.Terrain
+	terrain:Clear()
+
+	local prefabsFolder = game:GetService("ServerStorage"):FindFirstChild("EchoAtlas")
+	prefabsFolder = prefabsFolder and prefabsFolder:FindFirstChild("Prefabs")
+	local fountainPrefab = prefabsFolder and prefabsFolder:FindFirstChild("MoatFountain")
+	local bridgePrefab = prefabsFolder and prefabsFolder:FindFirstChild("StoneBridge")
+	local benchPrefab = prefabsFolder and prefabsFolder:FindFirstChild("ParkBench")
+
+	local moats = {
+		{
+			name = "NorthMoat",
+			p0 = Vector2.new(14.0, -77.0),
+			p1 = Vector2.new(25.0, -275.0),
+			fountains = { 22.0, 58.0 },
+		},
+		{
+			name = "SouthMoat",
+			p0 = Vector2.new(1.0, 110.0),
+			p1 = Vector2.new(-9.5, 276.0),
+			fountains = { 22.0, 58.0 },
+		},
+	}
+
+	local baseCol = Color3.fromHex("B3AEA1")
+	for _, m in moats do
+		local d = m.p1 - m.p0
+		local L = d.Magnitude
+		local dir = d / L
+		local right2 = Vector2.new(-dir.Y, dir.X)
+		local mid = (m.p0 + m.p1) / 2
+		local canalCF = CFrame.lookAt(Vector3.new(mid.X, 0, mid.Y), Vector3.new(mid.X + dir.X, 0, mid.Y + dir.Y))
+
+		if gFolder then
+			for _, side in { -1, 1 } do
+				local bankW = 16.5
+				local bMid = mid + right2 * (side * (MOAT_W / 2 + bankW / 2))
+				local bCF = CFrame.lookAt(Vector3.new(bMid.X, -1.0, bMid.Y), Vector3.new(bMid.X + dir.X, -1.0, bMid.Y + dir.Y))
+				box(gFolder, Vector3.new(bankW, 2.0, L + 8.0), bCF, baseCol, Enum.Material.Concrete, { Name = m.name .. "_BankGround" })
+			end
+			local tipMid = m.p1 + dir * 4.0
+			local tipCF = CFrame.lookAt(Vector3.new(tipMid.X, -1.0, tipMid.Y), Vector3.new(tipMid.X + dir.X, -1.0, tipMid.Y + dir.Y))
+			box(gFolder, Vector3.new(MOAT_W + 13.0, 2.0, 8.0), tipCF, baseCol, Enum.Material.Concrete, { Name = m.name .. "_TipGround" })
+		end
+
+		local swMid = m.p0 - dir * 1.2
+		local swCF = CFrame.lookAt(Vector3.new(swMid.X, 0.02, swMid.Y), Vector3.new(swMid.X + dir.X, 0.02, swMid.Y + dir.Y))
+		box(moatFolder, Vector3.new(MOAT_W + 8.0, 0.40, 2.2), swCF, Color3.fromHex("C2B49B"), Enum.Material.Pavement, { Name = m.name .. "_HeaderWalk" })
+		stats.moatParts += 1
+
+		id += 1
+		box(moatFolder, Vector3.new(MOAT_W, 0.28, L), canalCF * CFrame.new(0, floorTop - 0.14, 0), moss(floorTop, id), Enum.Material.Slate, { Name = m.name .. "_Floor" })
+		stats.moatParts += 1
+
+		local c1 = m.p0 - right2 * (MOAT_W / 2)
+		local c2 = m.p0 + right2 * (MOAT_W / 2)
+		local c3 = m.p1 + right2 * (MOAT_W / 2)
+		local c4 = m.p1 - right2 * (MOAT_W / 2)
+		local corners = { c1, c2, c3, c4 }
+
+		local bands = 2
+		for e = 1, 4 do
+			local a, b = corners[e], corners[e % 4 + 1]
+			local ed = b - a
+			local eLen = ed.Magnitude
+			local eDir = ed / eLen
+			local nx, nz = eDir.Y, -eDir.X
+			if nx * (a.X - mid.X) + nz * (a.Y - mid.Y) < 0 then
+				nx, nz = -nx, -nz
+			end
+			local nrm = Vector2.new(nx, nz)
+			local segs = math.max(1, math.ceil(eLen / (4 * TILE)))
+			local segLen = eLen / segs
+			for s = 0, segs - 1 do
+				local m2 = a + eDir * ((s + 0.5) * segLen) - nrm * (MOAT_LINING / 2)
+				for j = 0, bands - 1 do
+					id += 1
+					local yy0 = floorTop + (0 - floorTop) * (j / bands)
+					local yy1 = floorTop + (0 - floorTop) * ((j + 1) / bands)
+					local pos = Vector3.new(m2.X, (yy0 + yy1) / 2, m2.Y)
+					box(moatFolder, Vector3.new(MOAT_LINING, yy1 - yy0, segLen + MOAT_LINING * 0.5), CFrame.lookAt(pos, pos + Vector3.new(eDir.X, 0, eDir.Y)), moss((yy0 + yy1) / 2, id), Enum.Material.Slate, { Name = m.name .. "_Wall" })
+					stats.moatParts += 1
 				end
-				fbox(moatFolder, sc, ac, yy0, yy1, ss, as, moss((yy0 + yy1) / 2, id), Enum.Material.Slate)
-				stats.moatParts += 1
+			end
+			id += 1
+			local copeMid = (a + b) / 2 - nrm * (MOAT_LINING * 0.25)
+			local copePos = Vector3.new(copeMid.X, copeTop / 2, copeMid.Y)
+			local copeCol = Color3.fromRGB(128, 130, 122):Lerp(Color3.fromRGB(104, 112, 100), rnd(id, 11))
+			box(moatFolder, Vector3.new(MOAT_LINING + 0.22, copeTop, eLen + 0.30), CFrame.lookAt(copePos, copePos + Vector3.new(eDir.X, 0, eDir.Y)), copeCol, Enum.Material.Slate, { Name = m.name .. "_Coping" })
+			stats.moatParts += 1
+		end
+
+		local yMid = (floorTop + waterTop) / 2
+		local wCF = CFrame.lookAt(Vector3.new(mid.X / STUD, yMid / STUD, mid.Y / STUD), Vector3.new((mid.X + dir.X) / STUD, yMid / STUD, (mid.Y + dir.Y) / STUD))
+		terrain:FillBlock(wCF, Vector3.new((MOAT_W - 2 * MOAT_LINING) / STUD, (waterTop - floorTop) / STUD, (L - 2 * MOAT_LINING) / STUD), Enum.Material.Water)
+
+		for fIdx, distM in m.fountains do
+			local fPos2 = m.p0 + dir * distM
+			id += 1
+			cylinderUp(moatFolder, 3.2, MOAT_DEPTH - WATER_BELOW_RIM + 0.15, Vector3.new(fPos2.X, (floorTop + waterTop) / 2, fPos2.Y), moss(-MOAT_DEPTH / 2, id), Enum.Material.Slate, { Name = m.name .. "_FountainPedestal_" .. fIdx })
+			stats.moatParts += 1
+			if fountainPrefab then
+				local fModel = fountainPrefab:Clone()
+				fModel.Name = m.name .. "_ToolboxFountain_" .. fIdx
+				fModel:PivotTo(CFrame.new(fPos2.X / STUD, (waterTop - 0.10) / STUD, fPos2.Y / STUD))
+				fModel.Parent = moatFolder
+			end
+		end
+
+		if bridgePrefab then
+			local bPos2 = m.p0 + dir * 95.0
+			local bModel = bridgePrefab:Clone()
+			bModel.Name = m.name .. "_ToolboxBridge"
+			bModel:ScaleTo(bModel:GetScale() * 1.98)
+			bModel:PivotTo(CFrame.lookAt(Vector3.new(bPos2.X / STUD, 0.05 / STUD, bPos2.Y / STUD), Vector3.new((bPos2.X + dir.X) / STUD, 0.05 / STUD, (bPos2.Y + dir.Y) / STUD)))
+			bModel.Parent = moatFolder
+		end
+
+		if benchPrefab then
+			for bIdx, lat in { -4.5, 4.5 } do
+				local bPos2 = m.p0 - dir * 1.3 + right2 * lat
+				local bench = benchPrefab:Clone()
+				bench.Name = m.name .. "_ToolboxBench_" .. bIdx
+				bench:ScaleTo(bench:GetScale() * 0.75)
+				bench:PivotTo(CFrame.lookAt(Vector3.new(bPos2.X / STUD, 0.22 / STUD, bPos2.Y / STUD), Vector3.new((bPos2.X + dir.X) / STUD, 0.22 / STUD, (bPos2.Y + dir.Y) / STUD)))
+				bench.Parent = moatFolder
 			end
 		end
 	end
-	local floorTop = -MOAT_DEPTH
-	-- floor (below the water) and the four walls; the near wall stands against the fortress wall
-	lining((S0 + S1) / 2, 0, floorTop - 0.28, floorTop, S1 - S0, 2 * AH)
-	lining(S0 + MOAT_LINING / 2, 0, floorTop, 0, MOAT_LINING, 2 * AH)
-	lining(S1 - MOAT_LINING / 2, 0, floorTop, 0, MOAT_LINING, 2 * AH)
-	for _, sgn in { -1, 1 } do
-		lining((S0 + S1) / 2, sgn * (AH - MOAT_LINING / 2), floorTop, 0, S1 - S0, MOAT_LINING)
+
+	-- ---------------------------------------------------------------- 3. Outer road/sidewalk extensions & clean GateThreshold
+	if rFolder and gFolder then
+		local oldLink = rFolder:FindFirstChild("GatePassageLink")
+		if oldLink then
+			oldLink:Destroy()
+		end
+		for _, r in rFolder:GetChildren() do
+			if r:IsA("BasePart") and (r.Name:find("MoatRoadExt") or (r.Color:ToHex() == "b7ab96" and r.Position.X * STUD > -10 and r.Position.X * STUD < 5 and r.Position.Z * STUD > -5 and r.Position.Z * STUD < 2)) then
+				r:Destroy()
+			end
+		end
+		local ga, gb = Vector2.new(-6.84, -1.78), Vector2.new(-2.30, -1.52)
+		local gd = gb - ga
+		local gMid = (ga + gb) / 2
+		box(gFolder, Vector3.new(3.40, 0.30, gd.Magnitude), CFrame.lookAt(Vector3.new(gMid.X, 0.0815 - 0.15, gMid.Y), Vector3.new(gMid.X + gd.X, 0.0815 - 0.15, gMid.Y + gd.Y)), Color3.fromHex("BDB6A6"), Enum.Material.Concrete, { Name = "GateThreshold" })
+
+		local exts = {
+			{ a = Vector2.new(19.4, 126.8), b = Vector2.new(8.3, 276.5), w = 9.9 },
+			{ a = Vector2.new(36.0, -145.3), b = Vector2.new(43.0, -274.2), w = 6.6 },
+		}
+		for _, ex in exts do
+			local d = ex.b - ex.a
+			local len = d.Magnitude
+			local dir = d / len
+			local mid = (ex.a + ex.b) / 2
+			box(rFolder, Vector3.new(ex.w, 0.30, len), CFrame.lookAt(Vector3.new(mid.X, -0.05, mid.Y), Vector3.new(mid.X + dir.X, -0.05, mid.Y + dir.Y)), Color3.fromHex("58595C"), Enum.Material.Asphalt, { Name = "MoatRoadExt" })
+		end
 	end
-	-- coping: a stone lip over the cut edge of the plaza paving (the paving is 0.13 m thick); not across the bridge
-	local copeTop = 0.16
-	local function cope(sC: number, aC: number, sSize: number, aSize: number)
-		id += 1
-		fbox(moatFolder, sC, aC, 0, copeTop, sSize, aSize, Color3.fromRGB(128, 130, 122):Lerp(Color3.fromRGB(104, 112, 100), rnd(id, 11)), Enum.Material.Slate)
-		stats.moatParts += 1
-	end
-	local bw = BRIDGE_W / 2
-	for _, sgn in { -1, 1 } do
-		-- along the far edge, on both sides of the bridge opening, and around the two ends
-		local a0, a1 = bw, AH + 0.22
-		cope(S1 - MOAT_LINING / 2 + 0.11, sgn * (a0 + a1) / 2, MOAT_LINING + 0.22, a1 - a0)
-		cope((S0 + S1) / 2 + 0.11, sgn * (AH - MOAT_LINING / 2 + 0.11), S1 - S0 + 0.22, MOAT_LINING + 0.22)
+	if sFolder then
+		for _, c in sFolder:GetChildren() do
+			if c.Name:find("MoatOuterSWExt") then
+				c:Destroy()
+			end
+		end
+		for _, sw in {
+			{ a = Vector2.new(25.3, 126.8), b = Vector2.new(14.2, 276.5) },
+			{ a = Vector2.new(44.9, -215.0), b = Vector2.new(47.3, -274.2) },
+		} do
+			local d = sw.b - sw.a
+			local len = d.Magnitude
+			local dir = d / len
+			local mid = (sw.a + sw.b) / 2
+			box(sFolder, Vector3.new(2.0, 0.40, len), CFrame.lookAt(Vector3.new(mid.X, 0.02, mid.Y), Vector3.new(mid.X + dir.X, 0.02, mid.Y + dir.Y)), Color3.fromHex("C9C1B2"), Enum.Material.Pavement, { Name = "MoatOuterSWExt" })
+		end
 	end
 
-	-- ---------------------------------------------------------------- 3. water (Roblox Terrain water)
-	local terrain = Workspace.Terrain
-	local waterTop = -WATER_BELOW_RIM
-	-- Terrain voxels are 4 studs, so the water at the edge of a fill block is lower than in the middle. The block therefore
-	-- covers the WHOLE trench (it overlaps the lining parts, which hide it), so the surface is level where it meets the wall.
-	local pc = toXZ((S0 + S1) / 2, 0)
-	local yMid = (floorTop + waterTop) / 2
-	local sizeStuds = Vector3.new(2 * AH / STUD, (waterTop - floorTop) / STUD, (S1 - S0) / STUD)
-	local wcf = CFrame.fromMatrix(Vector3.new(pc.X / STUD, yMid / STUD, pc.Y / STUD), Vector3.new(u2.X, 0, u2.Y), Vector3.yAxis, Vector3.new(p2.X, 0, p2.Y))
-	terrain:FillBlock(wcf, sizeStuds, Enum.Material.Water)
 	pcall(function()
-		terrain.WaterColor = Color3.fromRGB(46, 112, 104) -- natural green-blue
-		terrain.WaterTransparency = 0.4 -- low transparency (default is almost clear)
+		terrain.WaterColor = Color3.fromRGB(46, 112, 104)
+		terrain.WaterTransparency = 0.38
 		terrain.WaterReflectance = 0.25
 		terrain.WaterWaveSize = 0.05
 		terrain.WaterWaveSpeed = 6
 	end)
 
-	-- ---------------------------------------------------------------- 4. bridge on the gate axis
-	local concrete = Color3.fromRGB(184, 184, 186)
-	fbox(moatFolder, (S0 + S1) / 2, 0, -BRIDGE_T, 0.005, S1 - S0, BRIDGE_W, concrete, Enum.Material.Concrete, { Name = "BridgeDeck" })
-	local railS0 = S0 + LEAF_CLEAR
-	local railC = (railS0 + S1) / 2
-	for _, sgn in { -1, 1 } do
-		fbox(moatFolder, railC, sgn * (bw - RAIL_T / 2), 0, RAIL_H, S1 - railS0, RAIL_T, Color3.fromRGB(168, 168, 170), Enum.Material.Concrete, { Name = "BridgeRail" })
-		-- slightly bigger post at the far end of each rail
-		fbox(moatFolder, S1 - RAIL_T * 0.6, sgn * (bw - RAIL_T * 0.6), 0, RAIL_H + 0.1, RAIL_T * 1.2, RAIL_T * 1.2, Color3.fromRGB(158, 158, 160), Enum.Material.Concrete, { Name = "BridgePost" })
-		stats.moatParts += 2
-	end
-	stats.moatParts += 1
-	root:SetAttribute("moatSpecStuds", "moat 16 wide x 6 deep, bridge 12 x 16, water 1 stud below the rim (creator brief 2026-10-15)")
+	root:SetAttribute("moatSpecStuds", "symmetrical 18m North & South moats, 6 studs deep mossy Slate, Terrain water 1 stud below rim, Toolbox fountains & bridges")
 	return stats
 end
 
@@ -2249,7 +2200,7 @@ function Builder.spawn()
 end
 
 function Builder.lighting()
-	Lighting.ClockTime = 17.3 -- golden evening
+	Lighting.ClockTime = 15.6 -- warm afternoon sun (keeps gate arch shadow near the wall)
 	Lighting.Brightness = 2.6
 	Lighting.GeographicLatitude = 18.8
 	Lighting.EnvironmentDiffuseScale = 0.6
