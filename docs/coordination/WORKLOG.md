@@ -424,3 +424,22 @@ Verification (ทั้งหมดรันใน Studio บนเครื่�
   - ตรวจด้วยภาพ (`screen_capture`) ทั้งมุมประตูท่าแพ ข่วงประตูท่าแพ คูเมืองฝั่งเหนือ และคูเมืองฝั่งใต้: ไม่มีพื้นเกินออกนอกถนน ไม่มีแท่งคอนกรีตผ่ากลางน้ำ และคูเมืองทั้ง 2 ฝั่งมีรูปทรง ความกว้าง น้ำพุ สะพานหิน และถนนขนาบข้างเหมือนกันทุกประการ
   - `Workspace.ThapaeWorld.Buildings` คงเดิม 97 Models / 5,195 descendants
   - NOT RUN: หลายผู้เล่น; มือถือ/จอยจริง; วัด FPS; ตรวจอาการกะพริบ
+
+---
+
+# ต่อ 29 — นำไฟล์ Place และ Template ทั้งหมดเข้า repo (`roblox/studio/`) + Commit & Push ขึ้น Git เพื่อย้ายไปพัฒนาต่อบน Mac
+
+- วันที่: 2026-10-16 (Windows PC, Antigravity · session `AGY-2026-10-16-01`)
+- คำสั่งผู้สร้าง: 
+  1. *"เสร็จหมดแล้วจบ งาน วันนี้ได้ อย่าลืมททำตามกติกา ส่งให้ด้วยนะ อยากให้ commit + push ทุกอย่าง ขึ้น git ด้วยเพื่อที่จะย้ายไปทำที่เครื่อง mac ได้"*
+  2. *"EchoAtlas-Place2.rbxl เอาขึ้น git ไปด้วยไม่ได้หรอ"*
+  3. *"ฉัน copy มาแล้ว 3 ไฟล์เลย เอาให้ไปหมดเลย"*
+- การดำเนินการ:
+  1. **Sync สคริปต์ใน Studio (`EchoAtlas-Place2.rbxl`):** ซิงก์โค้ด `roblox/world/ThapaeBuilder.luau` (83,329 bytes) และ `roblox/world/PrefabBuilder.luau` (6,965 bytes) เข้า `ServerStorage.EchoAtlas` ผ่าน HTTP server ในเครื่อง ตรวจสอบความถูกต้องเรียบร้อย
+  2. **Commit รอบแรก (`72d8333`):** Staged เฉพาะ 8 ไฟล์ที่แก้ไข (`HANDOFF.md`, `INBOX.md`, `STATUS.md`, `TASKS.md`, `WORKLOG.md`, `third-party-assets.md`, `PrefabBuilder.luau`, `ThapaeBuilder.luau`) และ push ขึ้น GitHub
+  3. **นำไฟล์ `.rbxl` ทั้งหมดเข้า repo:** ผู้สร้างคัดลอกไฟล์ Studio ทั้ง 3 ไฟล์เข้ามาไว้ใน `roblox/studio/` ภายใน repo:
+     - `roblox/studio/EchoAtlas-Place2.rbxl` (1,011,961 bytes ~1 MB) — แมพฐานประตูท่าแพตัวล่าสุดที่เซฟแล้ว
+     - `roblox/studio/EchoAtlas-City.rbxl` (5,197,370 bytes ~5.2 MB) — แมพ City template สำหรับ copy ตึก
+     - `roblox/studio/template-city.rbxl` (5,116,012 bytes ~5.1 MB) — ต้นฉบับ template ดั้งเดิม
+  4. **Commit & Push รอบสอง (`848fb71`):** บันทึกการติดตามไฟล์ `.rbxl` และอัปเดตเอกสาร `STATUS.md`, `HANDOFF.md` แล้ว push ขึ้น `origin/codex/chiangmai-old-city-3d` เรียบร้อย
+- สถานะส่งมอบ: Git clean 100%, ไฟล์ทั้งหมดพร้อมสำหรับ Mac เพียงรัน `git pull origin codex/chiangmai-old-city-3d`
