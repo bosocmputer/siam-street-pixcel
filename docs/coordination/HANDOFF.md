@@ -1,8 +1,8 @@
 # Handoff — อัปเดตงานรอบวันที่ 2026-10-16 (Antigravity บน Windows PC) → Antigravity / Claude / Codex รอบถัดไป
 
 From: Antigravity (Windows PC, session `AGY-2026-10-16-01`) · To: AI agent รอบถัดไป (Antigravity / Claude บน PC หรือ Codex บน Mac)
-Branch: `codex/chiangmai-old-city-3d` · ฐานล่าสุด `95ac560` (ยังไม่ได้ commit การแก้ไขในรอบ `AGY-2026-10-16-01` เพราะรอคำสั่งผู้สร้าง)
-Studio: **Place2** = `C:\dev\Pixel Walke\roblox\studio\EchoAtlas-Place2.rbxl` (ไฟล์อยู่นอก repo, **ไม่ถูก commit**) — มีการแก้ในฉากที่ **ยังไม่ได้เซฟ** ต้องให้ผู้สร้างกด `Ctrl+S` ใน Studio; โหมดปัจจุบัน = `Edit`; owner ตอนส่งมอบ = none
+Branch: `codex/chiangmai-old-city-3d` · ฐานล่าสุด `72d8333`
+Studio: **Place2** = `roblox/studio/EchoAtlas-Place2.rbxl` (ไฟล์อยู่ใน repo, **ถูก commit ใน Git แล้ว**) — เซฟล่าสุดโดยผู้สร้างเรียบร้อย; โหมดปัจจุบัน = `Edit`; owner ตอนส่งมอบ = none
 
 ## สิ่งที่ผู้สร้างตัดสินใจ (ยึดตามนี้)
 - **Place2 คือฐานของแมพ** ตึกอื่น ๆ **ผู้สร้างจะ copy จาก `EchoAtlas-City.rbxl` มาวางเอง**; ไฟล์ City/`template-city.rbxl` ใช้เป็นแหล่งชิ้นส่วนเท่านั้น (ไม่ต้องแก้)
@@ -35,7 +35,7 @@ Studio: **Place2** = `C:\dev\Pixel Walke\roblox\studio\EchoAtlas-Place2.rbxl` (�
 ## Prompt ส่งต่อ (วางให้ AI session ถัดไป)
 ```
 อ่าน AGENTS.md, CLAUDE.md แล้ว docs/coordination/STATUS.md, HANDOFF.md, TASKS.md, INBOX.md (MSG-002) และท้าย WORKLOG.md (ต่อ 25–27) ก่อนทำอะไร
-สถานะ: ใช้ Place2 (C:\dev\Pixel Walke\roblox\studio\EchoAtlas-Place2.rbxl) เป็นฐานแมพ ตึกผู้สร้างจะ copy จาก EchoAtlas-City.rbxl เอง ระบบต่อสู้ปิดอยู่ (Config.features.combat=false) ประตูท่าแพ+บานไม้กด E ทำแล้ว และงาน MOAT-001 (ย้อนคูเมืองหน้ากำแพงที่ผิดตำแหน่ง คืนข่วงประตูท่าแพ + สร้างคูเมืองจริงฝั่งเหนือและฝั่งใต้ตาม Data.water ลึก 6 stud หิน Slate ตะไคร่น้ำ น้ำ Terrain + ทางเดินเชื่อมซุ้มประตู GatePassageLink) ทำและทดสอบใน Place2 เสร็จแล้ว (ยังไม่ได้ commit รอผู้สร้างสั่ง)
+สถานะ: ใช้ Place2 (roblox/studio/EchoAtlas-Place2.rbxl ใน repo) เป็นฐานแมพ ตึกผู้สร้างจะ copy จาก EchoAtlas-City.rbxl เอง ระบบต่อสู้ปิดอยู่ (Config.features.combat=false) ประตูท่าแพ+บานไม้กด E ทำแล้ว และงาน MOAT-001 (ย้อนคูเมืองหน้ากำแพงที่ผิดตำแหน่ง คืนข่วงประตูท่าแพ + สร้างคูเมืองจริงฝั่งเหนือและฝั่งใต้ตาม Data.water ลึก 6 stud หิน Slate ตะไคร่น้ำ น้ำ Terrain + ทางเดินเชื่อมซุ้มประตู GateThreshold + สวน/น้ำพุ/สะพาน/ม้านั่ง Prefab) ทำเสร็จและเซฟไฟล์ place ใน repo เรียบร้อย (commit & push ขึ้น Git แล้ว)
 งานถัดไป: ถามผู้สร้างว่าตรวจดูฉากใน Studio และกด Ctrl+S เซฟ Place2 เรียบร้อยหรือยัง และต้องการให้ทำขั้นไหนต่อ (ห้ามเดาหรือทำหลายขั้นรวด; ห้ามรัน Builder.clear() หรือแตะ ThapaeWorld.Buildings)
 ```
 

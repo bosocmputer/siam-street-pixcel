@@ -9,7 +9,7 @@
 | รายการ | สถานะจริง |
 | --- | --- |
 | GDD และ docs/roblox 01–10 | ครบ; `04-real-world-map.md` ยังเขียนตามแผนเมืองจริงเดิม (ยังไม่ได้ปรับตามการเลือกวางตึกโดยผู้สร้าง) |
-| Place2 (`C:\dev\Pixel Walke\roblox\studio\EchoAtlas-Place2.rbxl`) | แมพท่าแพ walkable ใน Studio — **มีการแก้ที่ยังไม่ได้เซฟ** ไฟล์นอก repo ไม่ถูก commit |
+| Place2 (`roblox/studio/EchoAtlas-Place2.rbxl`) | แมพท่าแพ walkable ใน Studio — เซฟล่าสุดและถูก track ใน Git แล้ว |
 | ประตูท่าแพ (กำแพง 6×24 stud, ซุ้ม 12×16 stud, วงหินโค้ง, ซี่กำแพง, อิฐเก่า) | ทำแล้ว ตรวจด้วยภาพ + เดินผ่านใน Play ผ่าน |
 | บานประตูไม้คู่ กด E เปิด/ปิด (เริ่มเปิด) — `GateService` | ทำแล้ว ทดสอบกด E จริงใน Play ผ่าน; NOT RUN: หลายผู้เล่น/มือถือ/จอยจริง/ผู้เล่นยืนขวางบาน |
 | คูเมืองจริงสมมาตรทั้ง 2 ฝั่ง (เหนือ-ใต้ขนาบลานท่าแพ) + แก้พื้นเกินถนน + โมเดลสำเร็จรูปจาก Toolbox (`MOAT-001`) | **ทำเสร็จแล้ว** — (1) แก้พื้นลาน/ทางเดินที่เกินออกไปนอกถนนและตัดผ่านคูเมือง โดยเปลี่ยนแผ่นพื้นฐานเป็นสี่เหลี่ยม `Part` ล้วน (`BaseSlab_Center/NW/NE/SW/SE` + `_BankGround` ไม่มี `WedgePart` ที่ยื่นล้ำขอบถนน), ลดระดับพื้นลาน (`bdb6a6`) และเกาะถนน (`c2b49b`) ให้อยู่ต่ำกว่าผิวถนนลาดยาง (`0.082 ม. < ROAD_TOP 0.10 ม.`), และเปลี่ยนทางเดินซุ้มประตูเป็น `GateThreshold` พอดีขอบทางเท้า (2) ปรับคูเมืองทั้ง 2 ฝั่ง (`NorthMoat` และ `SouthMoat`) ให้มีรูปทรงสี่เหลี่ยมผืนผ้าสมมาตรกัน กว้าง `18.0 ม.` ลึก `6 stud` บุหิน `Slate` ตะไคร่น้ำ + ขอบหิน `Coping` + น้ำ `Terrain` สีเขียวอมน้ำเงิน + ขยายถนนและทางเท้าด้านนอกขนาบคูเมืองจนสุดปลายทั้งสองฝั่ง (3) นำเข้าโมเดลฟรีจาก Creator Store (Toolbox) ที่ตรวจสอบและลบสคริปต์แล้วเข้า `ServerStorage.EchoAtlas.Prefabs` (`MoatFountain` id `2332885124`, `StoneBridge` id `222836185`, `ParkBench` id `393609716`) วางสมมาตรกันทั้งคูเหนือและคูใต้ (`Buildings` 97 หลัง / 5,195 ชิ้นไม่ถูกแตะ) |
@@ -23,9 +23,9 @@
 ## Git และการย้าย
 
 - Remote: `https://github.com/bosocmputer/siam-street-pixcel.git` branch ส่งต่อ `codex/chiangmai-old-city-3d` (ชื่อเดิม เนื้อหาเป็นแผน Roblox)
-- ฐานก่อนรอบนี้: `95ac560` (ต่อจาก `d9c431b`; ยังไม่ได้ commit รอบ `AGY-2026-10-16-01` เพราะรอคำสั่งผู้สร้าง)
+- ฐานก่อนรอบนี้: `72d8333` (commit อัปเดตผังคูเมืองและโค้ดล่าสุด)
 - git บน PC ฟ้อง dubious ownership: ใช้ `git -c safe.directory='C:/dev/Echo Atlas' …` (ไม่ได้ตั้งค่าถาวร)
-- ไฟล์ Studio (.rbxl) อยู่ที่ `C:\dev\Pixel Walke\roblox\studio\` ไม่อยู่ใน repo: `EchoAtlas-Place2.rbxl` (ฐานแมพ), `EchoAtlas-City.rbxl` (สำเนา City template ที่มีตัวสร้างถนน/ระบบต่อสู้), `template-city.rbxl` (ต้นฉบับ template ห้ามแก้)
+- ไฟล์ Studio (.rbxl) อยู่ในโฟลเดอร์ `roblox/studio/` ภายใน repo และถูก track ใน Git ทั้งหมด: `EchoAtlas-Place2.rbxl` (ฐานแมพ), `EchoAtlas-City.rbxl` (สำเนา City template), `template-city.rbxl` (ต้นฉบับ template ห้ามแก้)
 
 ## เครื่องมือบนเครื่องนี้
 
