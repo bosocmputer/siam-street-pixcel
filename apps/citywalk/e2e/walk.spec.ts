@@ -24,6 +24,8 @@ for (const [name, size] of [
   ['desktop', { width: 1280, height: 800 }],
 ] as const) {
   test(`renders the city on ${name}`, async ({ page }) => {
+    // software WebGL in CI is slow, and this test walks around and takes several screenshots
+    test.setTimeout(90_000);
     await page.setViewportSize(size);
     await page.goto('./?debug=1');
     await expect(page.getByRole('button', { name: 'เริ่มเดิน' })).toBeVisible();
@@ -33,6 +35,13 @@ for (const [name, size] of [
     await expect(page.locator('.tag', { hasText: 'ประตูท่าแพ' })).toBeVisible();
     await expect(page.locator('.near')).toContainText('ประตูท่าแพ');
     await page.screenshot({ path: `${SHOTS}/${name}-start.png` });
+    await walk(page, (w) => w.simulate(1, 0, 6));
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: `${SHOTS}/${name}-gate-close.png` });
+    await walk(page, (w) => {
+      const g = w.landmarks.find((m) => m.name === 'ประตูท่าแพ')!;
+      w.teleport(g.x + 45, g.z);
+    });
 
     // look from inside the old city and from high above
     await walk(page, (w) => {
@@ -53,6 +62,14 @@ for (const [name, size] of [
 
 test('walks through Tha Phae Gate into the old city', async ({ page }) => {
   await open(page);
+  // the creator's gate model is in place, scaled to fit the gap in the wall
+  const model = await walk(
+    page,
+    (w) => (w as unknown as { gateModel: { scale: number; solids: number } | null }).gateModel,
+  );
+  expect(model).not.toBeNull();
+  expect(model!.scale).toBeGreaterThanOrEqual(0.9);
+  expect(model!.solids).toBeGreaterThanOrEqual(4);
   const gate = await walk(page, (w) => w.landmarks.find((m) => m.name === 'ประตูท่าแพ')!);
   const before = await walk(page, (w) => w.state());
   expect(before.x).toBeGreaterThan(gate.x);

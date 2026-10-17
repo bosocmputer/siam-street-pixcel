@@ -133,7 +133,11 @@ export function gateTowers(x: number, z: number): number[][] {
   });
 }
 
-export function buildWorld(world: WorldData): THREE.Group {
+/** `modelled` names gates drawn by a separate model, which then get no stand-in towers. */
+export function buildWorld(
+  world: WorldData,
+  modelled: ReadonlySet<string> = new Set(),
+): THREE.Group {
   const root = new THREE.Group();
   const [x0, z0, x1, z1] = world.bounds;
   const pad = 400;
@@ -235,7 +239,7 @@ export function buildWorld(world: WorldData): THREE.Group {
       );
   }
   for (const m of world.landmarks)
-    if (m.kind === 'gate')
+    if (m.kind === 'gate' && !modelled.has(m.name))
       for (const fp of gateTowers(m.x, m.z)) solid.prism(fp, 0, 6.5, COLOR.brick, 0x8e4630);
   root.add(solid.mesh(new THREE.MeshLambertMaterial({ vertexColors: true })));
 

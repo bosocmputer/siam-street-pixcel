@@ -3,6 +3,7 @@ import { Collider } from './collide';
 import {
   Grid,
   bbox,
+  clipHalfPlane,
   counterClockwise,
   distToSegment,
   pointInPolygon,
@@ -47,6 +48,12 @@ describe('geo', () => {
     expect(Math.min(...zs)).toBe(-2);
     expect(Math.max(...zs)).toBe(2);
     expect(ribbon([1, 1, 1, 1], 4)).toEqual([]);
+  });
+
+  it('cuts a polygon along a line', () => {
+    expect(signedArea(clipHalfPlane(square, 1, 0, 4))).toBe(60);
+    expect(clipHalfPlane(square, 1, 0, 20)).toEqual([]);
+    expect(clipHalfPlane(square, -1, 0, -20)).toEqual(square);
   });
 
   it('finds items through the grid', () => {

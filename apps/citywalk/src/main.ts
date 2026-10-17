@@ -4,6 +4,7 @@ import { Input } from './input';
 import { Minimap } from './minimap';
 import { TH } from './th';
 import type { Landmark, WorldData } from './types';
+import { loadModel, placeModel, type PlacedModel } from './gateModel';
 import { buildWorld, gateTowers } from './world';
 import './style.css';
 
@@ -79,6 +80,11 @@ function moatLapMetres(marks: Landmark[]): number {
 
 async function start(): Promise<void> {
   const loading = $('#loading');
+  // the gate model is optional: without it the gate keeps its simple stand-in towers
+  const model = loadModel('./models/thaphae_gate.glb').catch((err) => {
+    console.error(err);
+    return null;
+  });
   let world: WorldData;
   try {
     const res = await fetch('./world.json');
@@ -89,10 +95,17 @@ async function start(): Promise<void> {
     return;
   }
 
+  const gateModel = await model;
+  const thaPhaeGate = world.landmarks.find((m) => m.name === 'ประตูท่าแพ');
+  let placed: PlacedModel | null = null;
+  if (gateModel && thaPhaeGate) placed = placeModel(gateModel, thaPhaeGate, world.forts);
+  if (placed) world = { ...world, forts: placed.forts };
+  const modelled = new Set(placed && thaPhaeGate ? [thaPhaeGate.name] : []);
+
   const towers = world.landmarks
-    .filter((m) => m.kind === 'gate')
+    .filter((m) => m.kind === 'gate' && !modelled.has(m.name))
     .flatMap((m) => gateTowers(m.x, m.z));
-  const collider = new Collider(world, towers);
+  const collider = new Collider(world, [...towers, ...(placed?.solids ?? [])]);
   const lap = moatLapMetres(world.landmarks);
 
   const renderer = new THREE.WebGLRenderer({ antialias: window.devicePixelRatio < 2 });
@@ -109,7 +122,8 @@ async function start(): Promise<void> {
   sun.position.set(-250, 500, 300);
   scene.add(sun);
 
-  const city = buildWorld(world);
+  const city = buildWorld(world, modelled);
+  if (placed) city.add(placed.object);
   scene.add(city);
   const { body: walker, bike } = makeWalker();
   scene.add(walker);
@@ -117,10 +131,9 @@ async function start(): Promise<void> {
   const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.3, 2500);
 
   // start on the square in front of Tha Phae Gate, facing the gate
-  const thaPhae = world.landmarks.find((m) => m.name === 'ประตูท่าแพ');
   const state = {
-    x: (thaPhae?.x ?? 0) + 45,
-    z: thaPhae?.z ?? 0,
+    x: (thaPhaeGate?.x ?? 0) + 45,
+    z: thaPhaeGate?.z ?? 0,
     yaw: Math.PI / 2,
     pitch: 0.24,
     heading: Math.PI / 2,
@@ -372,6 +385,14 @@ async function start(): Promise<void> {
         for (let t = 0; t < seconds; t += 1 / 30) step(1 / 30, forward, right);
       },
       blocked: (x: number, z: number) => collider.blocked(x, z, RADIUS),
+      gateModel: placed
+        ? {
+            scale: placed.scale,
+            solids: placed.solids.length,
+            meshes: placed.object.children[0]!.children.length,
+          }
+        : null,
+      drawCalls: () => renderer.info.render.calls,
       landmarks: world.landmarks,
     };
   }

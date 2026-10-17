@@ -113,3 +113,29 @@ export class Grid {
     return this.cells.get(this.key(Math.floor(x / this.size), Math.floor(z / this.size))) ?? [];
   }
 }
+
+/** The part of a polygon where nx * x + nz * z >= d (one Sutherland–Hodgman pass). */
+export function clipHalfPlane(
+  poly: readonly number[],
+  nx: number,
+  nz: number,
+  d: number,
+): number[] {
+  const out: number[] = [];
+  const n = poly.length / 2;
+  for (let i = 0; i < n; i++) {
+    const ax = poly[i * 2]!,
+      az = poly[i * 2 + 1]!;
+    const j = (i + 1) % n;
+    const bx = poly[j * 2]!,
+      bz = poly[j * 2 + 1]!;
+    const da = nx * ax + nz * az - d,
+      db = nx * bx + nz * bz - d;
+    if (da >= 0) out.push(ax, az);
+    if (da >= 0 !== db >= 0) {
+      const t = da / (da - db);
+      out.push(ax + (bx - ax) * t, az + (bz - az) * t);
+    }
+  }
+  return out.length >= 6 ? out : [];
+}
