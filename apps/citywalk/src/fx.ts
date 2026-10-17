@@ -210,10 +210,14 @@ function stainTexture(): THREE.Texture {
   return new THREE.CanvasTexture(c);
 }
 
-/** The thing that flies: a glowing ball for fire, a wobbling bubble for water. */
+/** The thing that flies: a ball of flame for fire, a bubble that stretches into a spear for water. */
 export interface Orb {
   object: THREE.Object3D;
-  place(pos: Vec3, dir: Vec3, time: number): void;
+  /**
+   * Put it at `pos`, heading along `dir`. `grow` is 0..1 while it is being gathered in the hand,
+   * and `flying` is true once it has left.
+   */
+  place(pos: Vec3, dir: Vec3, time: number, grow: number, flying: boolean): void;
 }
 
 const WATER_VERT = /* glsl */ `
@@ -251,6 +255,13 @@ interface Stain {
   alpha: number;
 }
 
+/** a small patch of fire left burning on the ground after an explosion */
+interface Burning {
+  pos: Vec3;
+  left: number;
+  key: object;
+}
+
 // bright colours that add up wash out to white over the light paving, so the body of the fire uses
 // solid orange and red, and only small parts of it glow
 const FIRE = {
@@ -262,17 +273,48 @@ const FIRE = {
   ember: 0x8c1d06,
 };
 const WATER = { white: 0xf2fdff, light: 0x9fe0ff, blue: 0x3a9ee8, deep: 0x1c5fae };
+const SMOKE: [number, number] = [0x3d3330, 0x9a958f];
+
+const Z_AXIS = new THREE.Vector3(0, 0, 1);
+const tmp = new THREE.Vector3();
+
+const add = (a: Vec3, b: Vec3, k = 1): Vec3 => [a[0] + b[0] * k, a[1] + b[1] * k, a[2] + b[2] * k];
+const cross = (a: Vec3, b: Vec3): Vec3 => [
+  a[1] * b[2] - a[2] * b[1],
+  a[2] * b[0] - a[0] * b[2],
+  a[0] * b[1] - a[1] * b[0],
+];
+const unit = (a: Vec3): Vec3 => {
+  const l = Math.hypot(a[0], a[1], a[2]) || 1;
+  return [a[0] / l, a[1] / l, a[2] / l];
+};
+/** two directions at right angles to `dir` and to each other */
+function across(dir: Vec3): [Vec3, Vec3] {
+  const u = unit(cross(dir, Math.abs(dir[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0]));
+  return [u, cross(dir, u)];
+}
+/** a random direction, length 1 */
+const anyway = (): Vec3 => {
+  const z = rand(-1, 1),
+    a = rand(0, Math.PI * 2),
+    r = Math.sqrt(1 - z * z);
+  return [Math.cos(a) * r, z, Math.sin(a) * r];
+};
 
 export class Fx {
   readonly object = new THREE.Group();
   /** for glows and fire: colours add up and get brighter */
   private bright: Particles;
-  /** for smoke and water drops: colours cover what is behind */
+  /** for smoke, flames and water drops: colours cover what is behind */
   private solid: Particles;
   private uniforms = { uPx: { value: 600 } };
   private glow = glowTexture();
+  /** rings lying flat on the ground */
   private rings: Ring[] = [];
+  /** rings standing across a shot's path, like air pushed aside */
+  private airRings: Ring[] = [];
   private stains: Stain[] = [];
+  private burning: Burning[] = [];
   private emitDebt = new Map<object, number>();
   private fireCore = new THREE.MeshBasicMaterial({ color: 0xfff1c4 });
   private ballGeo = new THREE.SphereGeometry(1, 20, 14);
@@ -286,24 +328,29 @@ export class Fx {
 
   constructor() {
     this.object.name = 'Effects';
-    this.bright = new Particles(1400, THREE.AdditiveBlending, this.uniforms);
-    this.solid = new Particles(900, THREE.NormalBlending, this.uniforms);
+    this.bright = new Particles(1600, THREE.AdditiveBlending, this.uniforms);
+    this.solid = new Particles(1400, THREE.NormalBlending, this.uniforms);
     this.object.add(this.solid.points, this.bright.points);
-    const ringGeo = new THREE.RingGeometry(0.82, 1, 56).rotateX(-Math.PI / 2);
-    for (let i = 0; i < 16; i++) {
-      const mesh = new THREE.Mesh(
-        ringGeo,
-        new THREE.MeshBasicMaterial({
-          transparent: true,
-          depthWrite: false,
-          side: THREE.DoubleSide,
-        }),
-      );
-      mesh.visible = false;
-      mesh.renderOrder = 1;
-      this.object.add(mesh);
-      this.rings.push({ mesh, age: 1, life: 1, delay: 0, from: 0, to: 1, alpha: 1 });
-    }
+    const flat = new THREE.RingGeometry(0.82, 1, 56).rotateX(-Math.PI / 2);
+    const standing = new THREE.RingGeometry(0.88, 1, 40);
+    const ringPool = (geo: THREE.RingGeometry, n: number, into: Ring[]) => {
+      for (let i = 0; i < n; i++) {
+        const mesh = new THREE.Mesh(
+          geo,
+          new THREE.MeshBasicMaterial({
+            transparent: true,
+            depthWrite: false,
+            side: THREE.DoubleSide,
+          }),
+        );
+        mesh.visible = false;
+        mesh.renderOrder = 1;
+        this.object.add(mesh);
+        into.push({ mesh, age: 1, life: 1, delay: 0, from: 0, to: 1, alpha: 1 });
+      }
+    };
+    ringPool(flat, 16, this.rings);
+    ringPool(standing, 24, this.airRings);
     const stainGeo = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
     const stainTex = stainTexture();
     for (let i = 0; i < 10; i++) {
@@ -343,40 +390,54 @@ export class Fx {
     return s;
   }
 
-  /** Make the flying ball for a skill; add `object` to the scene yourself via `addOrb`. */
+  /** Make the ball for a skill; add it to the scene with `addOrb`. */
   orb(element: Element): Orb {
     const g = new THREE.Group();
     if (element === 'fire') {
       const core = new THREE.Mesh(this.ballGeo, this.fireCore);
-      core.scale.setScalar(0.16);
-      const outer = this.sprite(FIRE.flame, 0.8, THREE.NormalBlending);
+      const outer = this.sprite(FIRE.flame, 0.85, THREE.NormalBlending);
       const inner = this.sprite(FIRE.yellow, 0.9);
       g.add(outer, core, inner);
       return {
         object: g,
-        place: (p, _d, t) => {
+        place: (p, _d, t, grow) => {
           g.position.set(...p);
           const f = 1 + Math.sin(t * 37) * 0.08 + Math.sin(t * 23) * 0.06;
-          inner.scale.setScalar(0.6 * f);
-          outer.scale.setScalar(1.05 * (2 - f));
+          core.scale.setScalar(0.2 * grow);
+          inner.scale.setScalar(0.8 * f * grow);
+          outer.scale.setScalar(1.35 * (2 - f) * grow);
         },
       };
     }
     const skin = new THREE.Mesh(this.ballGeo, this.waterSkin);
     const shine = new THREE.Mesh(this.ballGeo, this.shine);
-    shine.scale.setScalar(0.045);
-    shine.position.set(-0.07, 0.08, 0.06);
     const halo = this.sprite(WATER.light, 0.35);
-    halo.scale.setScalar(1.1);
-    g.add(skin, shine, halo);
+    const body = new THREE.Group();
+    body.add(skin, shine);
+    g.add(body, halo);
     return {
       object: g,
-      place: (p, _d, t) => {
+      place: (p, d, t, grow, flying) => {
         g.position.set(...p);
-        // a bubble of water wobbles as it flies
-        const w = Math.sin(t * 18) * 0.07;
-        skin.scale.set(0.22 * (1 + w), 0.22 * (1 - w), 0.22 * (1 + w * 0.5));
-        skin.rotation.y = t * 3;
+        halo.scale.setScalar(1.1 * grow);
+        if (flying) {
+          // a short spear of water: long and thin along the way it flies
+          body.quaternion.setFromUnitVectors(Z_AXIS, tmp.set(...d));
+          const w = Math.sin(t * 40) * 0.05;
+          skin.scale.set(0.12 * (1 + w), 0.12 * (1 - w), 0.55);
+          skin.rotation.set(0, 0, 0);
+          shine.scale.setScalar(0.03);
+          shine.position.set(-0.04, 0.05, 0.25);
+          return;
+        }
+        // gathering: a spinning ball of water that swells as drops join it
+        body.quaternion.identity();
+        const w = Math.sin(t * 18) * 0.08;
+        const r = 0.24 * grow;
+        skin.scale.set(r * (1 + w), r * (1 - w), r * (1 + w * 0.5));
+        skin.rotation.y = t * 9;
+        shine.scale.setScalar(0.05 * grow);
+        shine.position.set(-0.08 * grow, 0.09 * grow, 0.08 * grow);
       },
     };
   }
@@ -402,53 +463,172 @@ export class Fx {
     return n;
   }
 
-  /** What a flying orb leaves behind it, for one frame. */
-  trail(orb: Orb, element: Element, p: Vec3, dir: Vec3, dt: number, time: number): void {
-    const back: Vec3 = [-dir[0], -dir[1], -dir[2]];
-    const jitter = (r: number): Vec3 => [
-      p[0] + rand(-r, r),
-      p[1] + rand(-r, r),
-      p[2] + rand(-r, r),
+  /** Where the ball sits while it is gathered: water circles the hand, fire stays on it. */
+  chargePos(element: Element, hand: Vec3, t: number, time: number): Vec3 {
+    if (element === 'fire') return hand;
+    const r = 0.35 * (1 - t);
+    return [
+      hand[0] + Math.cos(time * 14) * r,
+      hand[1] + Math.sin(time * 9) * r * 0.4,
+      hand[2] + Math.sin(time * 14) * r,
     ];
+  }
+
+  /**
+   * One frame of gathering the ball at `p` (`t` 0..1 is how far along). Fire draws heat in as
+   * sparks and the ball starts to burn; water pulls drops out of the air in a spiral.
+   */
+  gather(orb: Orb, element: Element, p: Vec3, t: number, dt: number): void {
     if (element === 'fire') {
-      for (let i = this.count(orb, 80, dt); i > 0; i--)
-        this.solid.emit({
-          pos: jitter(0.1),
-          vel: [
-            back[0] * 1.5 + rand(-0.4, 0.4),
-            back[1] * 1.5 + rand(0.3, 1.2),
-            back[2] * 1.5 + rand(-0.4, 0.4),
-          ],
-          life: rand(0.25, 0.45),
-          size: [rand(0.4, 0.55), 0.1],
-          color: [FIRE.orange, FIRE.ember],
-          alpha: [0.95, 0],
-          drag: 2,
-        });
-      for (let i = this.count(orb.object, 50, dt); i > 0; i--)
+      for (let i = this.count(orb, 70, dt); i > 0; i--) {
+        const from = add(p, anyway(), rand(0.9, 1.5));
+        const life = rand(0.22, 0.32);
         this.bright.emit({
-          pos: jitter(0.08),
-          vel: [back[0] * 1.2, back[1] * 1.2 + rand(0.2, 0.8), back[2] * 1.2],
-          life: rand(0.15, 0.3),
-          size: [rand(0.25, 0.35), 0.05],
-          color: [FIRE.yellow, FIRE.orange],
-          alpha: [0.7, 0],
-          drag: 2,
+          pos: from,
+          vel: [(p[0] - from[0]) / life, (p[1] - from[1]) / life, (p[2] - from[2]) / life],
+          life,
+          size: [0.05, 0.12],
+          color: [FIRE.red, FIRE.yellow],
+          alpha: [0.2, 1],
         });
-      for (let i = this.count(this.solid, 24, dt); i > 0; i--)
+      }
+      this.flames(orb.object, p, 0.28 * t, [0, 0, 0], 60 * t, dt);
+      if (t > 0.3)
+        for (let i = this.count(this.bright, 10, dt); i > 0; i--)
+          this.bright.emit({
+            pos: add(p, anyway(), 0.25 * t),
+            vel: [rand(-0.8, 0.8), rand(1, 2.5), rand(-0.8, 0.8)],
+            life: rand(0.3, 0.6),
+            size: [0.06, 0.02],
+            color: [FIRE.white, FIRE.orange],
+            alpha: [1, 0],
+            gravity: -2,
+          });
+      return;
+    }
+    for (let i = this.count(orb, 85, dt); i > 0; i--) {
+      // start on a ring around the hand and swirl inwards
+      const a = rand(0, Math.PI * 2),
+        r = rand(1, 1.6),
+        life = rand(0.28, 0.38);
+      const from: Vec3 = [p[0] + Math.cos(a) * r, p[1] + rand(-0.6, 0.7), p[2] + Math.sin(a) * r];
+      const swirl = 2.2;
+      this.solid.emit({
+        pos: from,
+        vel: [
+          (p[0] - from[0]) / life - Math.sin(a) * swirl,
+          (p[1] - from[1]) / life,
+          (p[2] - from[2]) / life + Math.cos(a) * swirl,
+        ],
+        life,
+        size: [0.05, 0.1],
+        color: [WATER.light, WATER.white],
+        alpha: [0.3, 0.95],
+        shape: 1,
+      });
+    }
+    for (let i = this.count(orb.object, 14, dt); i > 0; i--) {
+      const from = add(p, anyway(), rand(0.6, 1));
+      this.bright.emit({
+        pos: from,
+        vel: [(p[0] - from[0]) * 2.5, (p[1] - from[1]) * 2.5, (p[2] - from[2]) * 2.5],
+        life: 0.4,
+        size: [0.5, 0.2],
+        color: [WATER.deep, WATER.light],
+        alpha: [0, 0.25],
+      });
+    }
+  }
+
+  /** Flames licking off the surface of a ball of radius `r` at `p`. */
+  private flames(key: object, p: Vec3, r: number, drift: Vec3, rate: number, dt: number): void {
+    for (let i = this.count(key, rate, dt); i > 0; i--)
+      this.solid.emit({
+        pos: add(p, anyway(), r * rand(0.6, 1)),
+        vel: [drift[0] + rand(-0.3, 0.3), drift[1] + rand(0.6, 1.6), drift[2] + rand(-0.3, 0.3)],
+        life: rand(0.22, 0.4),
+        size: [rand(0.3, 0.45), 0.08],
+        color: [FIRE.orange, FIRE.ember],
+        alpha: [0.95, 0],
+        drag: 2,
+      });
+  }
+
+  /** The moment it leaves the hand: a puff and a ring of air pushed out along the way. */
+  release(element: Element, p: Vec3, dir: Vec3): void {
+    if (element === 'fire') {
+      this.bright.emit({
+        pos: p,
+        life: 0.15,
+        size: [0.6, 1.8],
+        color: [FIRE.yellow, FIRE.orange],
+        alpha: [0.9, 0],
+      });
+      for (let i = 0; i < 10; i++)
         this.solid.emit({
-          pos: jitter(0.12),
+          pos: add(p, anyway(), 0.15),
+          vel: add(anyway(), dir, -1.5),
+          life: rand(0.25, 0.4),
+          size: [0.35, 0.7],
+          color: [FIRE.orange, FIRE.ember],
+          alpha: [0.9, 0],
+          drag: 3,
+        });
+      this.airRing(p, dir, 0xff9a3c, 0.15, 0.9, 0.25, 0.8, THREE.AdditiveBlending);
+      return;
+    }
+    this.airRing(p, dir, 0xeaf9ff, 0.1, 0.6, 0.2, 0.6, THREE.NormalBlending);
+    this.airRing(add(p, dir, 0.6), dir, 0xeaf9ff, 0.1, 0.45, 0.18, 0.45, THREE.NormalBlending);
+    for (let i = 0; i < 16; i++) {
+      const [u, v] = across(dir);
+      const a = rand(0, Math.PI * 2),
+        s = rand(1, 2.5);
+      this.solid.emit({
+        pos: p,
+        vel: add(add(add([0, 0, 0], u, Math.cos(a) * s), v, Math.sin(a) * s), dir, rand(1, 4)),
+        life: rand(0.25, 0.4),
+        size: [0.07, 0.04],
+        color: [WATER.white, WATER.blue],
+        alpha: [0.95, 0.5],
+        gravity: -8,
+        shape: 1,
+      });
+    }
+  }
+
+  /**
+   * What a flying ball leaves behind it, for one frame. It moved `moved` metres along `dir` to
+   * reach `p`; the trail fills in that whole stretch so a fast shot leaves an unbroken line.
+   */
+  trail(orb: Orb, element: Element, p: Vec3, dir: Vec3, moved: number, dt: number): void {
+    const back: Vec3 = [-dir[0], -dir[1], -dir[2]];
+    const along = (): Vec3 => add(p, back, rand(0, moved));
+    if (element === 'fire') {
+      // the line of fire: dense small glows along the path, fading where the ball has been
+      for (let i = this.count(orb, 160, dt); i > 0; i--)
+        this.bright.emit({
+          pos: add(along(), anyway(), 0.05),
+          vel: [rand(-0.2, 0.2), rand(0.2, 0.6), rand(-0.2, 0.2)],
+          life: rand(0.25, 0.4),
+          size: [0.32, 0.06],
+          color: [FIRE.yellow, FIRE.red],
+          alpha: [0.75, 0],
+        });
+      this.flames(orb.object, p, 0.3, add([0, 0, 0], back, 2), 110, dt);
+      for (let i = this.count(this.solid, 30, dt); i > 0; i--)
+        this.solid.emit({
+          pos: add(along(), anyway(), 0.15),
           vel: [rand(-0.3, 0.3), rand(0.6, 1.2), rand(-0.3, 0.3)],
-          life: rand(0.7, 1.1),
-          size: [0.3, 0.9],
-          color: [0x4a3a33, 0x8a8580],
-          alpha: [0.35, 0],
+          life: rand(0.8, 1.3),
+          size: [0.35, 1.1],
+          color: SMOKE,
+          alpha: [0.32, 0],
           drag: 1,
         });
-      for (let i = this.count(this.bright, 18, dt); i > 0; i--)
+      for (let i = this.count(this.bright, 26, dt); i > 0; i--)
         this.bright.emit({
-          pos: jitter(0.15),
-          vel: [rand(-1.5, 1.5), rand(0.5, 2.5), rand(-1.5, 1.5)],
+          pos: add(p, anyway(), 0.25),
+          vel: add([rand(-1.5, 1.5), rand(0.5, 2.5), rand(-1.5, 1.5)], back, 2),
           life: rand(0.4, 0.8),
           size: [0.07, 0.02],
           color: [FIRE.white, FIRE.orange],
@@ -457,181 +637,170 @@ export class Fx {
         });
       return;
     }
-    // water: two threads spiral around the path, drops fall off it and a light mist follows
-    const side = Math.abs(dir[1]) < 0.9 ? ([0, 1, 0] as Vec3) : ([1, 0, 0] as Vec3);
-    const u: Vec3 = [
-      dir[1] * side[2] - dir[2] * side[1],
-      dir[2] * side[0] - dir[0] * side[2],
-      dir[0] * side[1] - dir[1] * side[0],
-    ];
-    const ul = Math.hypot(...u) || 1;
-    u[0] /= ul;
-    u[1] /= ul;
-    u[2] /= ul;
-    const v: Vec3 = [
-      dir[1] * u[2] - dir[2] * u[1],
-      dir[2] * u[0] - dir[0] * u[2],
-      dir[0] * u[1] - dir[1] * u[0],
-    ];
-    for (let i = this.count(orb, 90, dt); i > 0; i--) {
-      const a = time * 16 + (i % 2) * Math.PI;
-      const r = 0.3;
-      const c = Math.cos(a) * r,
-        s = Math.sin(a) * r;
+    // water: a thin wake of spray along the path, rings of air pushed aside, drops falling off
+    for (let i = this.count(orb, 140, dt); i > 0; i--)
       this.bright.emit({
-        pos: [p[0] + u[0] * c + v[0] * s, p[1] + u[1] * c + v[1] * s, p[2] + u[2] * c + v[2] * s],
-        life: 0.32,
-        size: [0.2, 0.04],
-        color: [WATER.white, WATER.blue],
-        alpha: [0.75, 0],
+        pos: add(along(), anyway(), 0.04),
+        life: rand(0.3, 0.45),
+        size: [0.14, 0.55],
+        color: [WATER.white, WATER.deep],
+        alpha: [0.45, 0],
       });
-    }
-    for (let i = this.count(this.solid, 40, dt); i > 0; i--)
+    for (let i = this.count(orb.object, 18, dt); i > 0; i--)
+      this.airRing(
+        add(p, back, rand(0.3, moved)),
+        dir,
+        0xeaf9ff,
+        0.12,
+        0.45,
+        0.2,
+        0.4,
+        THREE.NormalBlending,
+      );
+    for (let i = this.count(this.solid, 50, dt); i > 0; i--)
       this.solid.emit({
-        pos: jitter(0.12),
-        vel: [back[0] * 1 + rand(-0.6, 0.6), rand(-0.2, 0.8), back[2] * 1 + rand(-0.6, 0.6)],
+        pos: add(along(), anyway(), 0.08),
+        vel: [rand(-0.6, 0.6), rand(-0.2, 0.6), rand(-0.6, 0.6)],
         life: rand(0.4, 0.7),
-        size: [rand(0.07, 0.11), 0.04],
+        size: [rand(0.06, 0.1), 0.04],
         color: [WATER.light, WATER.blue],
         alpha: [0.95, 0.6],
         gravity: -9,
         shape: 1,
       });
-    for (let i = this.count(this.bright, 20, dt); i > 0; i--)
-      this.bright.emit({
-        pos: jitter(0.08),
-        life: 0.5,
-        size: [0.35, 0.8],
-        color: [WATER.light, WATER.deep],
-        alpha: [0.22, 0],
-      });
   }
 
-  /** A small flash at the hand as the skill leaves it. */
-  cast(element: Element, p: Vec3): void {
-    const c =
-      element === 'fire' ? FIRE : { white: WATER.white, yellow: WATER.light, orange: WATER.blue };
-    this.bright.emit({
-      pos: p,
-      life: 0.18,
-      size: [0.4, 1.3],
-      color: [c.white, c.orange],
-      alpha: [0.9, 0],
-    });
-    for (let i = 0; i < 14; i++)
-      this.bright.emit({
-        pos: p,
-        vel: [rand(-2.5, 2.5), rand(-1, 2.5), rand(-2.5, 2.5)],
-        life: rand(0.2, 0.35),
-        size: [0.1, 0.02],
-        color: [c.white, c.yellow],
-        alpha: [1, 0],
-        drag: 4,
-      });
-  }
-
-  /** The burst where a shot lands. `ground` is the height of the ground below it. */
-  impact(element: Element, p: Vec3, ground: number, big = true): void {
+  /**
+   * The burst where a shot lands. `ground` is the height of the ground below it, `dir` the way
+   * the shot was going; a `small` one is a shot fading out with nothing hit.
+   */
+  impact(element: Element, p: Vec3, ground: number, dir: Vec3, small = false): void {
     const at = (h: number): Vec3 => [p[0], ground + h, p[2]];
+    const k = small ? 0.3 : 1;
     if (element === 'fire') {
       this.bright.emit({
         pos: p,
-        life: 0.16,
-        size: [0.8, 2.4],
-        color: [FIRE.yellow, FIRE.orange],
-        alpha: [0.9, 0],
+        life: 0.18,
+        size: [1.2, 4.2 * k],
+        color: [FIRE.white, FIRE.yellow],
+        alpha: [0.85, 0],
       });
-      for (let i = 0; i < (big ? 22 : 8); i++) {
-        const a = rand(0, Math.PI * 2),
-          s = rand(0.8, 2.8);
+      // the fireball swells outwards, then rolls up as smoke
+      for (let i = 0; i < 34 * k; i++) {
+        const d = anyway(),
+          s = rand(2.5, 6.5);
         this.solid.emit({
-          pos: [p[0] + rand(-0.2, 0.2), p[1] + rand(-0.2, 0.2), p[2] + rand(-0.2, 0.2)],
-          vel: [Math.cos(a) * s, rand(0.5, 2.5), Math.sin(a) * s],
-          life: rand(0.35, 0.6),
-          size: [rand(0.6, 0.9), 1.3],
+          pos: add(p, d, 0.2),
+          vel: [d[0] * s, Math.abs(d[1]) * s * 0.7 + 0.8, d[2] * s],
+          life: rand(0.45, 0.8),
+          size: [rand(0.7, 1), rand(1.6, 2.2)],
           color: [FIRE.orange, FIRE.ember],
           alpha: [0.95, 0],
-          drag: 3,
+          drag: 4.5,
         });
       }
-      for (let i = 0; i < (big ? 46 : 14); i++) {
-        const a = rand(0, Math.PI * 2),
-          up = rand(-0.2, 1),
-          s = rand(4, 9);
+      for (let i = 0; i < 14 * k; i++) {
+        const d = anyway();
+        this.bright.emit({
+          pos: add(p, d, 0.15),
+          vel: add([0, 0.8, 0], d, rand(1, 3)),
+          life: rand(0.25, 0.4),
+          size: [0.9, 1.6],
+          color: [FIRE.yellow, FIRE.red],
+          alpha: [0.8, 0],
+          drag: 4,
+        });
+      }
+      for (let i = 0; i < 70 * k; i++) {
+        const d = anyway(),
+          s = rand(5, 11);
         this.bright.emit({
           pos: p,
-          vel: [Math.cos(a) * s * (1 - up * 0.5), up * s, Math.sin(a) * s * (1 - up * 0.5)],
-          life: rand(0.4, 0.8),
-          size: [rand(0.07, 0.12), 0.03],
+          vel: [d[0] * s, Math.abs(d[1]) * s, d[2] * s],
+          life: rand(0.45, 0.9),
+          size: [rand(0.07, 0.13), 0.03],
           color: [FIRE.white, FIRE.orange],
           alpha: [1, 0.3],
           gravity: -9,
           drag: 1.5,
         });
       }
-      for (let i = 0; i < (big ? 12 : 4); i++)
+      for (let i = 0; i < 18 * k; i++)
         this.solid.emit({
-          pos: [p[0] + rand(-0.4, 0.4), p[1] + rand(0, 0.4), p[2] + rand(-0.4, 0.4)],
-          vel: [rand(-0.6, 0.6), rand(0.8, 1.8), rand(-0.6, 0.6)],
-          life: rand(1.2, 1.9),
-          size: [0.6, 2.2],
-          color: [0x3d3330, 0x9a958f],
-          alpha: [0.42, 0],
+          pos: add(p, anyway(), rand(0.2, 0.9)),
+          vel: [rand(-0.7, 0.7), rand(1, 2.4), rand(-0.7, 0.7)],
+          life: rand(1.4, 2.2),
+          size: [0.8, 2.8],
+          color: SMOKE,
+          alpha: [0.4, 0],
           drag: 1.2,
         });
-      if (big) {
-        this.ring(at(0.09), 0xffb347, 0.2, 3.2, 0.38, 0, 0.9, THREE.AdditiveBlending);
-        this.ring(at(0.1), 0xff6a1a, 0.1, 2.2, 0.3, 0.06, 0.7, THREE.AdditiveBlending);
-        this.stain(at(0.055), 2.4, 0x2a1a12, 0.55, 3.5);
+      if (small) return;
+      this.ring(at(0.09), 0xffb347, 0.3, 4.6, 0.42, 0, 0.9, THREE.AdditiveBlending);
+      this.ring(at(0.1), 0xff6a1a, 0.2, 3.2, 0.34, 0.06, 0.75, THREE.AdditiveBlending);
+      this.stain(at(0.055), 3.6, 0x2a1a12, 0.55, 4);
+      // little fires keep burning on the ground around it for a moment
+      for (let i = 0; i < 6; i++) {
+        const a = rand(0, Math.PI * 2),
+          r = rand(0.4, 1.9);
+        this.burning.push({
+          pos: [p[0] + Math.cos(a) * r, ground + 0.1, p[2] + Math.sin(a) * r],
+          left: rand(0.7, 1.5),
+          key: {},
+        });
       }
       return;
     }
-    // water
+    // water: bursts apart under pressure, most of it sprayed on in the way it was going
     this.bright.emit({
       pos: p,
       life: 0.14,
-      size: [0.8, 2.4],
+      size: [0.9, 2.8 * k],
       color: [WATER.white, WATER.light],
-      alpha: [0.8, 0],
+      alpha: [0.85, 0],
     });
-    for (let i = 0; i < (big ? 44 : 16); i++) {
-      const a = rand(0, Math.PI * 2),
-        s = rand(1.5, 5);
+    for (let i = 0; i < 100 * k; i++) {
+      const d = anyway(),
+        s = rand(3, 9);
+      const v = add([d[0] * s, Math.abs(d[1]) * s * 0.8 + 1.5, d[2] * s], dir, rand(2, 7));
       this.solid.emit({
-        pos: [p[0] + rand(-0.15, 0.15), p[1] + rand(-0.15, 0.15), p[2] + rand(-0.15, 0.15)],
-        vel: [Math.cos(a) * s, rand(2, 6), Math.sin(a) * s],
-        life: rand(0.6, 1),
-        size: [rand(0.08, 0.15), 0.05],
+        pos: add(p, d, 0.1),
+        vel: v,
+        life: rand(0.5, 0.95),
+        size: [rand(0.08, 0.16), 0.05],
         color: [WATER.white, WATER.blue],
-        alpha: [0.95, 0.7],
-        gravity: -13,
+        alpha: [0.95, 0.65],
+        gravity: -14,
+        drag: 0.8,
         shape: 1,
       });
     }
-    for (let i = 0; i < (big ? 10 : 4); i++)
+    for (let i = 0; i < 16 * k; i++) {
+      const d = anyway();
       this.bright.emit({
-        pos: [p[0] + rand(-0.3, 0.3), p[1] + rand(-0.2, 0.3), p[2] + rand(-0.3, 0.3)],
-        vel: [rand(-0.8, 0.8), rand(0.2, 0.9), rand(-0.8, 0.8)],
-        life: rand(0.5, 0.8),
-        size: [0.6, 1.8],
+        pos: add(p, d, 0.2),
+        vel: add(add([0, 0.5, 0], d, rand(1.5, 3.5)), dir, 1.5),
+        life: rand(0.45, 0.8),
+        size: [0.6, 2.2],
         color: [WATER.light, WATER.deep],
-        alpha: [0.3, 0],
-        drag: 2,
+        alpha: [0.35, 0],
+        drag: 3,
       });
-    if (big) {
-      for (let i = 0; i < 3; i++)
-        this.ring(
-          at(0.08),
-          0xd8f4ff,
-          0.2,
-          1.6 + i * 0.8,
-          0.7,
-          i * 0.14,
-          0.75 - i * 0.15,
-          THREE.NormalBlending,
-        );
-      this.stain(at(0.055), 2, 0x1e4f73, 0.4, 2.5);
     }
+    this.airRing(p, dir, 0xeaf9ff, 0.2, 1.5 * k, 0.26, 0.5, THREE.NormalBlending);
+    if (small) return;
+    for (let i = 0; i < 3; i++)
+      this.ring(
+        at(0.08),
+        0xd8f4ff,
+        0.2,
+        1.8 + i * 0.9,
+        0.7,
+        i * 0.14,
+        0.75 - i * 0.15,
+        THREE.NormalBlending,
+      );
+    this.stain(at(0.055), 2.4, 0x1e4f73, 0.42, 2.8);
   }
 
   /** A defeated slime melts into a puddle with a few drops. */
@@ -662,13 +831,34 @@ export class Fx {
     delay: number,
     alpha: number,
     blending: THREE.Blending,
-  ): void {
-    const r = this.rings.find((x) => x.age >= x.life + x.delay) ?? this.rings[0]!;
+    pool = this.rings,
+  ): Ring {
+    const r =
+      pool.find((x) => x.age >= x.life + x.delay) ??
+      pool.reduce((a, b) => (b.age / b.life > a.age / a.life ? b : a));
     r.mesh.position.set(...p);
     r.mesh.material.color.setHex(color);
-    r.mesh.material.blending = blending;
-    r.mesh.material.needsUpdate = true;
+    if (r.mesh.material.blending !== blending) {
+      r.mesh.material.blending = blending;
+      r.mesh.material.needsUpdate = true;
+    }
     Object.assign(r, { age: 0, life, delay, from, to, alpha });
+    return r;
+  }
+
+  /** A ring standing across the path at `p`, facing along `dir`. */
+  private airRing(
+    p: Vec3,
+    dir: Vec3,
+    color: number,
+    from: number,
+    to: number,
+    life: number,
+    alpha: number,
+    blending: THREE.Blending,
+  ): void {
+    const r = this.ring(p, color, from, to, life, 0, alpha, blending, this.airRings);
+    r.mesh.quaternion.setFromUnitVectors(Z_AXIS, tmp.set(...dir));
   }
 
   private stain(p: Vec3, size: number, color: number, alpha: number, life: number): void {
@@ -683,16 +873,8 @@ export class Fx {
   /** Advance everything; `scale` is the city scale (the effects are drawn inside the city). */
   update(dt: number, camera: THREE.PerspectiveCamera, viewHeight: number, scale: number): number {
     this.uniforms.uPx.value = (viewHeight / (2 * Math.tan((camera.fov * Math.PI) / 360))) * scale;
-    for (const r of this.rings) {
-      r.age += dt;
-      const t = (r.age - r.delay) / r.life;
-      r.mesh.visible = t >= 0 && t < 1;
-      if (!r.mesh.visible) continue;
-      const e = 1 - (1 - t) * (1 - t); // fast, then slowing down
-      const s = r.from + (r.to - r.from) * e;
-      r.mesh.scale.set(s, 1, s);
-      r.mesh.material.opacity = r.alpha * (1 - t);
-    }
+    for (const r of this.rings) this.grow(r, dt, false);
+    for (const r of this.airRings) this.grow(r, dt, true);
     for (const s of this.stains) {
       s.age += dt;
       const t = s.age / s.life;
@@ -700,6 +882,27 @@ export class Fx {
       // stays a while, then fades
       s.mesh.material.opacity = s.alpha * Math.min(1, (1 - t) * 2.5);
     }
+    this.burning = this.burning.filter((b) => {
+      b.left -= dt;
+      if (b.left <= 0) {
+        this.emitDebt.delete(b.key);
+        return false;
+      }
+      this.flames(b.key, b.pos, 0.15, [0, 0.3, 0], 22 * Math.min(1, b.left * 2), dt);
+      return true;
+    });
     return this.bright.update(dt) + this.solid.update(dt);
+  }
+
+  private grow(r: Ring, dt: number, standing: boolean): void {
+    r.age += dt;
+    const t = (r.age - r.delay) / r.life;
+    r.mesh.visible = t >= 0 && t < 1;
+    if (!r.mesh.visible) return;
+    const e = 1 - (1 - t) * (1 - t); // fast, then slowing down
+    const s = r.from + (r.to - r.from) * e;
+    if (standing) r.mesh.scale.setScalar(s);
+    else r.mesh.scale.set(s, 1, s);
+    r.mesh.material.opacity = r.alpha * (1 - t);
   }
 }

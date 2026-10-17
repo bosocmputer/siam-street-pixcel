@@ -388,28 +388,35 @@ async function start(): Promise<void> {
 
   /** the camera's forward direction as a heading (0 = +z), which is where "in front" is */
   const lookHeading = () => Math.atan2(-Math.sin(state.yaw), -Math.cos(state.yaw));
-  const castSkill = (e: Element) => {
-    if (!combat) return;
-    const s = state.scale;
-    const me = { x: state.x, z: state.z, heading: lookHeading() };
-    combat.ensureTarget(me);
-    // turn to the target (or keep looking ahead) and throw from the right hand
-    const aim = combat.facing();
-    let fx = Math.sin(me.heading),
-      fz = Math.cos(me.heading);
+  /** which way to throw (map x, z, length 1): at the target if there is one, else ahead */
+  const throwDir = (): [number, number] => {
+    const aim = combat?.facing();
     if (aim) {
       const d = Math.hypot(aim[0] - state.x, aim[2] - state.z) || 1;
-      fx = (aim[0] - state.x) / d;
-      fz = (aim[2] - state.z) / d;
+      return [(aim[0] - state.x) / d, (aim[2] - state.z) / d];
     }
-    if (combat.cooldowns[e] > 0) return;
+    const h = lookHeading();
+    return [Math.sin(h), Math.cos(h)];
+  };
+  /** the walker's right hand, held out a little to the side so the camera behind can see it */
+  const hand = (): Vec3 => {
+    const s = state.scale;
+    const fx = -Math.sin(walker.rotation.y),
+      fz = -Math.cos(walker.rotation.y);
+    return [
+      (walker.position.x + fx * 0.35 - fz * 0.5) / s,
+      1.45 / s,
+      (walker.position.z + fz * 0.35 + fx * 0.5) / s,
+    ];
+  };
+  const castSkill = (e: Element) => {
+    if (!combat || combat.gathering || combat.cooldowns[e] > 0) return;
+    const me = { x: state.x, z: state.z, heading: lookHeading() };
+    combat.ensureTarget(me);
+    // turn to the target (or keep looking ahead) and gather the ball in the right hand
+    const [fx, fz] = throwDir();
     state.heading = Math.atan2(-fx, -fz);
     walker.rotation.y = state.heading;
-    const hand: Vec3 = [
-      state.x + (fx * 0.35 - fz * 0.3) / s,
-      1.25 / s,
-      state.z + (fz * 0.35 + fx * 0.3) / s,
-    ];
     combat.cast(e, hand, { ...me, heading: Math.atan2(fx, fz) });
   };
 
@@ -516,6 +523,11 @@ async function start(): Promise<void> {
       const { forward, right } = input.read();
       step(dt, forward, right);
       bob(dt, forward !== 0 || right !== 0);
+      if (combat?.gathering) {
+        // keep facing the target while the ball is gathered
+        const [fx, fz] = throwDir();
+        state.heading = Math.atan2(-fx, -fz);
+      }
       const worldDt = paused ? 0 : freeze > 0 ? dt * 0.08 : dt;
       freeze = Math.max(0, freeze - dt);
       fight(worldDt);

@@ -43,10 +43,13 @@ test.describe('skills on a phone', () => {
     await page.waitForTimeout(200);
     await page.screenshot({ path: `${SHOTS}/skill-target.png` });
 
-    // fire: caught in the air, then just after it lands
+    // fire: gathered in the hand, caught in the air, then just after it lands
     await page.getByRole('button', { name: 'กระสุนไฟ' }).tap();
     expect((await combat(page)).inFlight).toBe(1);
-    await js(page, 'window.__walk.simulateFight(0.35)');
+    await js(page, 'window.__walk.simulateFight(0.4)');
+    await page.waitForTimeout(150);
+    await page.screenshot({ path: `${SHOTS}/skill-fire-gather.png` });
+    await js(page, 'window.__walk.simulateFight(0.4)');
     await page.waitForTimeout(150);
     await page.screenshot({ path: `${SHOTS}/skill-fire-flying.png` });
     await untilLanded(page, 0.1);
@@ -63,6 +66,9 @@ test.describe('skills on a phone', () => {
     await page.getByRole('button', { name: 'กระสุนน้ำ' }).tap();
     await js(page, 'window.__walk.simulateFight(0.2)');
     await page.waitForTimeout(150);
+    await page.screenshot({ path: `${SHOTS}/skill-water-gather.png` });
+    await js(page, 'window.__walk.simulateFight(0.17)');
+    await page.waitForTimeout(150);
     await page.screenshot({ path: `${SHOTS}/skill-water-flying.png` });
     await untilLanded(page, 0.12);
     await page.waitForTimeout(150);
@@ -78,12 +84,15 @@ test.describe('skills on a phone', () => {
       w.teleport(s.x + ((me.x - s.x) / d) * 5, s.z + ((me.z - s.z) / d) * 5);
       w.simulateFight(1.5);
     })()`);
-    for (const [skill, name] of [
-      ['fire', 'กระสุนไฟ'],
-      ['water', 'กระสุนน้ำ'],
+    for (const [skill, name, gather] of [
+      ['fire', 'กระสุนไฟ', 0.55],
+      ['water', 'กระสุนน้ำ', 0.3],
     ] as const) {
       await page.getByRole('button', { name }).tap();
-      await js(page, 'window.__walk.simulateFight(0.2)');
+      await js(page, `window.__walk.simulateFight(${gather * 0.75})`);
+      await page.waitForTimeout(150);
+      await page.screenshot({ path: `${SHOTS}/skill-${skill}-close-gather.png` });
+      await js(page, `window.__walk.simulateFight(${gather * 0.25 + 0.1})`);
       await page.waitForTimeout(150);
       await page.screenshot({ path: `${SHOTS}/skill-${skill}-close-flying.png` });
       await untilLanded(page, 0.08);

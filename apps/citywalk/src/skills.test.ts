@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   SKILLS,
+  splashed,
   chooseTarget,
   launch,
   readyCooldowns,
@@ -16,12 +17,12 @@ const dist = (a: Vec3, b: Vec3) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b
 
 describe('skill shots', () => {
   for (const element of ['fire', 'water'] as const)
-    it(`a ${element} shot swings out, then always reaches its target`, () => {
+    it(`a ${element} shot flies straight and always reaches its target`, () => {
       const aim: Vec3 = [0, 0.4, 15];
       const shot = launch(element, [0, 1.3, 0], 0, aim, 2);
-      // it leaves to one side and upwards, not straight at the target
-      expect(Math.sign(shot.dir[0])).toBe(element === 'fire' ? -1 : 1);
-      expect(shot.dir[1]).toBeGreaterThan(0);
+      // a straight line from the hand down to the target
+      expect(shot.dir[0]).toBeCloseTo(0);
+      expect(shot.dir[2]).toBeGreaterThan(0.99);
       let closest = Infinity;
       for (let t = 0; t < 3; t += 1 / 60) {
         stepShot(shot, 1 / 60, aim);
@@ -49,6 +50,22 @@ describe('skill shots', () => {
     expect(chooseTarget({ x: 0, z: 0, heading: 0 }, slimes)).toBe(1);
     expect(chooseTarget({ x: 0, z: 0, heading: Math.PI }, slimes)).toBe(0);
     expect(chooseTarget({ x: 0, z: 0, heading: 0 }, [slimes[3]!])).toBeNull();
+  });
+
+  it('a burst catches the other slimes close by, not the one hit or those far away', () => {
+    const slimes = [
+      { x: 0, z: 0, alive: true }, // hit directly
+      { x: 2, z: 0, alive: true },
+      { x: 0, z: -2.5, alive: false }, // already melting
+      { x: 4, z: 0, alive: true },
+    ];
+    expect(splashed([0, 0.4, 0], slimes, 2.8, 0)).toEqual([1]);
+    expect(splashed([0, 0.06, 0], slimes, 2.8, null)).toEqual([0, 1]);
+  });
+
+  it('gathers water faster than fire, and water flies faster', () => {
+    expect(SKILLS.water.charge).toBeLessThan(SKILLS.fire.charge);
+    expect(SKILLS.water.speed).toBeGreaterThan(SKILLS.fire.speed * 2);
   });
 
   it('waits for the cooldown between uses', () => {

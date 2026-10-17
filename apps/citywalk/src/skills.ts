@@ -15,12 +15,40 @@ export interface SkillSpec {
   lift: number;
   /** how far the slime is pushed back, metres */
   knock: number;
+  /** seconds spent gathering the ball in the hand before it flies */
+  charge: number;
+  /** slimes this close to where it bursts (metres) also take `damage` */
+  splash: { radius: number; damage: number } | null;
 }
 
-/** Fire: slow, heavy, curls in from the right. Water: quick, light, arcs over from the left. */
+/**
+ * Fire: a big ball of flame gathered in the hand, flies straight and fairly slowly, and bursts
+ * wide enough to scorch slimes nearby. Water: drawn together quickly, shot like a short spear of
+ * water, very fast, pushes the slime back hard.
+ */
 export const SKILLS: Record<Element, SkillSpec> = {
-  fire: { damage: 40, speed: 13, cooldown: 1.4, range: 32, side: 0.7, lift: 0.25, knock: 0.6 },
-  water: { damage: 20, speed: 20, cooldown: 0.55, range: 32, side: -0.45, lift: 0.55, knock: 1.1 },
+  fire: {
+    damage: 40,
+    speed: 15,
+    cooldown: 1.6,
+    range: 32,
+    side: 0,
+    lift: 0.04,
+    knock: 0.7,
+    charge: 0.55,
+    splash: { radius: 2.8, damage: 15 },
+  },
+  water: {
+    damage: 20,
+    speed: 34,
+    cooldown: 0.7,
+    range: 32,
+    side: 0,
+    lift: 0,
+    knock: 1.3,
+    charge: 0.3,
+    splash: null,
+  },
 };
 
 /** How far a slime can be and still be picked when no target is chosen. */
@@ -126,6 +154,23 @@ export function chooseTarget(
     }
   });
   return best;
+}
+
+/**
+ * Slimes caught in a burst at `at` (map metres), apart from the one hit directly. Only the
+ * ground distance counts.
+ */
+export function splashed(
+  at: Vec3,
+  slimes: readonly { x: number; z: number; alive: boolean }[],
+  radius: number,
+  except: number | null,
+): number[] {
+  const out: number[] = [];
+  slimes.forEach((s, i) => {
+    if (i !== except && s.alive && Math.hypot(s.x - at[0], s.z - at[2]) <= radius) out.push(i);
+  });
+  return out;
 }
 
 /** Seconds left before each skill can be used again. */

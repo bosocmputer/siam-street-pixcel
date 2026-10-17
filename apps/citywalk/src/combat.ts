@@ -9,6 +9,7 @@ import {
   launch,
   readyCooldowns,
   spent,
+  splashed,
   stepShot,
   tickCooldowns,
   useSkill,
@@ -16,6 +17,24 @@ import {
   type Shot,
   type Vec3,
 } from './skills';
+
+/** height of the paved square, where bursts and stains sit */
+const GROUND = 0.04;
+
+const unit = (v: Vec3): Vec3 => {
+  const l = Math.hypot(v[0], v[1], v[2]) || 1;
+  return [v[0] / l, v[1] / l, v[2] / l];
+};
+
+/** a ball being gathered in the hand */
+interface Charging {
+  element: Element;
+  hand: () => Vec3;
+  /** where to throw if there is no target, radians, 0 = +z */
+  heading: number;
+  orb: Orb;
+  t: number;
+}
 
 /** the colour a slime glows when hit */
 const HIT_COLOR: Record<Element, number> = { fire: 0xffa040, water: 0xd8f6ff };
@@ -42,6 +61,7 @@ export class Combat {
   readonly cooldowns = readyCooldowns();
   target: number | null = null;
   private flying: Flying[] = [];
+  private charging: Charging | null = null;
   private marker = new THREE.Group();
   private ring: THREE.Mesh;
   private arrow: THREE.Mesh;
@@ -97,26 +117,28 @@ export class Combat {
     this.target = chooseTarget(player, list) ?? this.target;
   }
 
-  /**
-   * Use a skill. `hand` is where it leaves from and `heading` (0 = +z) where the walker looks,
-   * both in map metres. Returns false while the skill is cooling down.
-   */
   /** Keep the chosen slime if it can still be hit, else pick the best one in reach. */
   ensureTarget(player: { x: number; z: number; heading: number }): void {
     if (this.target !== null && !this.herd.aimPoint(this.target)) this.target = null;
     if (this.target === null) this.target = chooseTarget(player, this.candidates());
   }
 
-  cast(element: Element, hand: Vec3, player: { x: number; z: number; heading: number }): boolean {
+  /**
+   * Start a skill: the ball is gathered in the hand for a moment, then flies. `hand` tells where
+   * the hand is now (it moves with the walker); `player.heading` (0 = +z) is where to throw with
+   * no target. Returns false while the skill cools down or another one is being gathered.
+   */
+  cast(
+    element: Element,
+    hand: () => Vec3,
+    player: { x: number; z: number; heading: number },
+  ): boolean {
+    if (this.charging) return false;
     this.ensureTarget(player);
     if (!useSkill(this.cooldowns, element)) return false;
-    const aim = this.target !== null ? this.herd.aimPoint(this.target) : null;
-    const shot = launch(element, hand, player.heading, aim, this.target);
     const orb = this.fx.orb(element);
     this.fx.addOrb(orb);
-    orb.place(shot.pos, shot.dir, 0);
-    this.fx.cast(element, hand);
-    this.flying.push({ shot, orb, aim, time: 0 });
+    this.charging = { element, hand, heading: player.heading, orb, t: 0 };
     return true;
   }
 
@@ -125,14 +147,21 @@ export class Combat {
     return this.target !== null ? this.herd.aimPoint(this.target) : null;
   }
 
+  /** Is a ball being gathered in the hand right now? */
+  get gathering(): boolean {
+    return this.charging !== null;
+  }
+
   update(dt: number): HitEvent[] {
     this.time += dt;
     tickCooldowns(this.cooldowns, dt);
+    this.gather(dt);
     const hits: HitEvent[] = [];
     this.flying = this.flying.filter((f) => {
       f.time += dt;
       const s = f.shot;
       if (s.target !== null) f.aim = this.herd.aimPoint(s.target) ?? f.aim;
+      const from = s.travelled;
       // small steps so a fast shot cannot skip through a slime
       const steps = Math.max(1, Math.ceil((SKILLS[s.element].speed * dt) / 0.25));
       for (let n = 0; n < steps; n++) {
@@ -148,38 +177,79 @@ export class Combat {
             spec.knock,
             HIT_COLOR[s.element],
           );
-          this.fx.impact(s.element, s.pos, 0.04);
-          if (result === 'defeated') {
-            this.fx.melt(s.pos, 0.04);
-            if (this.target === hit) this.target = null;
-          }
-          hits.push({
-            element: s.element,
-            slime: hit,
-            damage: spec.damage,
-            defeated: result === 'defeated',
-            at: [...s.pos],
-          });
+          this.fx.impact(s.element, s.pos, GROUND, s.dir);
+          hits.push(this.hitEvent(s.element, hit, spec.damage, result, s.pos));
+          this.burst(s, hit, hits);
           return this.land(f);
         }
         const aimGone = s.target !== null && !this.herd.aimPoint(s.target);
         const atAim =
           f.aim && aimGone && Math.hypot(s.pos[0] - f.aim[0], s.pos[2] - f.aim[2]) < 0.3;
         if (s.pos[1] < 0.1 || this.collider.solid(s.pos[0], s.pos[2]) || atAim) {
-          this.fx.impact(s.element, s.pos, 0.04, s.pos[1] < 1.5);
+          const low = s.pos[1] < 1.5;
+          this.fx.impact(s.element, s.pos, GROUND, s.dir, !low);
+          if (low) this.burst(s, null, hits);
           return this.land(f);
         }
         if (spent(s)) {
-          this.fx.impact(s.element, s.pos, 0.04, false);
+          this.fx.impact(s.element, s.pos, GROUND, s.dir, true);
           return this.land(f);
         }
       }
-      f.orb.place(s.pos, s.dir, f.time);
-      this.fx.trail(f.orb, s.element, s.pos, s.dir, dt, this.time);
+      f.orb.place(s.pos, s.dir, f.time, 1, true);
+      this.fx.trail(f.orb, s.element, s.pos, s.dir, s.travelled - from, dt);
       return true;
     });
     this.updateMarker();
     return hits;
+  }
+
+  /** Grow the ball in the hand, and let it go once it is ready. */
+  private gather(dt: number): void {
+    const c = this.charging;
+    if (!c) return;
+    c.t += dt;
+    const spec = SKILLS[c.element];
+    const t = Math.min(1, c.t / spec.charge);
+    const at = this.fx.chargePos(c.element, c.hand(), t, this.time);
+    const aim = this.target !== null ? this.herd.aimPoint(this.target) : null;
+    const toAim = aim ? unit([aim[0] - at[0], aim[1] - at[1], aim[2] - at[2]]) : null;
+    const grow = 1 - (1 - t) * (1 - t);
+    c.orb.place(at, toAim ?? [Math.sin(c.heading), 0, Math.cos(c.heading)], this.time, grow, false);
+    this.fx.gather(c.orb, c.element, at, t, dt);
+    if (t < 1) return;
+    const shot = launch(c.element, at, c.heading, aim, this.target);
+    this.fx.release(c.element, at, shot.dir);
+    this.flying.push({ shot, orb: c.orb, aim, time: 0 });
+    this.charging = null;
+  }
+
+  /** A fire burst also scorches the slimes standing close by. */
+  private burst(s: Shot, direct: number | null, hits: HitEvent[]): void {
+    const splash = SKILLS[s.element].splash;
+    if (!splash) return;
+    for (const i of splashed(s.pos, this.candidates(), splash.radius, direct)) {
+      const result = this.herd.hit(i, splash.damage, s.pos[0], s.pos[2], 0.7, HIT_COLOR[s.element]);
+      if (result !== 'ignored')
+        hits.push(this.hitEvent(s.element, i, splash.damage, result, s.pos));
+    }
+  }
+
+  private hitEvent(
+    element: Element,
+    slime: number,
+    damage: number,
+    result: 'hurt' | 'defeated' | 'ignored',
+    pos: Vec3,
+  ): HitEvent {
+    const defeated = result === 'defeated';
+    const where = this.herd.state()[slime];
+    const at: Vec3 = where ? [where.x, pos[1], where.z] : [...pos];
+    if (defeated) {
+      this.fx.melt(at, GROUND);
+      if (this.target === slime) this.target = null;
+    }
+    return { element, slime, damage, defeated, at };
   }
 
   private land(f: Flying): false {
@@ -208,8 +278,8 @@ export class Combat {
     this.arrow.rotation.y = this.time * 2;
   }
 
-  /** Shots in the air, for tests. */
+  /** Shots being gathered or in the air, for tests. */
   get inFlight(): number {
-    return this.flying.length;
+    return this.flying.length + (this.charging ? 1 : 0);
   }
 }
