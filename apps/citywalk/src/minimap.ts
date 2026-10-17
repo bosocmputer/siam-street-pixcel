@@ -49,14 +49,38 @@ export class Minimap {
     for (const p of world.forts) poly(p, '#a9573c');
   }
 
+  /** Paint an extra area (map metres) onto the background, under the walker. */
+  addArea(poly: readonly number[], fill: string): void {
+    const b = this.base.getContext('2d')!;
+    b.beginPath();
+    for (let i = 0; i < poly.length; i += 2) b.lineTo(...this.px(poly[i]!, poly[i + 1]!));
+    b.closePath();
+    b.fillStyle = fill;
+    b.fill();
+  }
+
   private px(x: number, z: number): [number, number] {
     return [(x - this.x0) * this.k, (z - this.z0) * this.k];
   }
 
-  draw(x: number, z: number, heading: number, showMarks: boolean): void {
+  draw(
+    x: number,
+    z: number,
+    heading: number,
+    showMarks: boolean,
+    dots: readonly number[] = [],
+  ): void {
     const g = this.g;
     const dpr = this.canvas.width / SIZE;
     g.drawImage(this.base, 0, 0);
+    // monsters
+    g.fillStyle = '#19b6d6';
+    for (let i = 0; i < dots.length; i += 2) {
+      const [mx, mz] = this.px(dots[i]!, dots[i + 1]!);
+      g.beginPath();
+      g.arc(mx, mz, 1.8 * dpr, 0, Math.PI * 2);
+      g.fill();
+    }
     if (showMarks)
       for (const m of this.world.landmarks) {
         const [mx, mz] = this.px(m.x, m.z);

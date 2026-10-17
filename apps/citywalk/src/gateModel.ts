@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { fetchModel } from './assets';
 import { clipHalfPlane } from './geo';
 import type { Landmark } from './types';
 
@@ -19,24 +20,6 @@ export interface PlacedModel {
   /** the map's own wall pieces, cut back where the model now stands */
   forts: number[][];
   scale: number;
-}
-
-/**
- * The .glb file, or the same bytes as base64 text next to it (`<name>.glb.b64.txt`) for hosts that
- * only serve text, such as the shared preview page.
- */
-async function fetchModel(url: string): Promise<ArrayBuffer> {
-  const res = await fetch(url);
-  if (res.ok && !(res.headers.get('content-type') ?? '').includes('text/html'))
-    return res.arrayBuffer();
-  const text = await fetch(`${url}.b64.txt`).then((r) => {
-    if (!r.ok) throw new Error(`model not found: ${url}`);
-    return r.text();
-  });
-  const bin = atob(text.trim());
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  return bytes.buffer;
 }
 
 /**
@@ -134,15 +117,23 @@ function wallAxis(polys: number[][]): { cx: number; cz: number; ax: number; az: 
 }
 
 /**
- * Stand the model in the gap of the gate's wall, along the wall, with its front (+Z, the side with
- * the name plaque) facing out of the city. The scale makes the model's opening as wide as the gap
- * in the map's wall. Map wall pieces under the model are cut away so the two don't overlap.
+ * The frame the gate model is built in: origin in the middle of the gap in the gate's wall, on the
+ * wall's centre line; +X along the wall, +Z out of the city (away from the map origin).
  */
-export function placeModel(
-  model: THREE.Group,
-  gate: Landmark,
-  forts: number[][],
-): PlacedModel | null {
+export interface GateFrame {
+  px: number;
+  pz: number;
+  ax: number;
+  az: number;
+  ox: number;
+  oz: number;
+  /** width of the gap between the map's wall pieces, in metres */
+  gap: number;
+  /** the map's wall pieces that belong to this gate */
+  near: number[][];
+}
+
+export function gateFrame(gate: Landmark, forts: number[][]): GateFrame | null {
   const near = forts.filter((f) => {
     for (let i = 0; i < f.length; i += 2)
       if (Math.hypot(f[i]! - gate.x, f[i + 1]! - gate.z) < 40) return true;
@@ -151,7 +142,6 @@ export function placeModel(
   if (near.length === 0) return null;
   const { cx, cz } = wallAxis(near);
   let { ax, az } = wallAxis(near);
-  // the model's +Z must point away from the city centre (the map origin)
   let ox = -az,
     oz = ax;
   if (ox * gate.x + oz * gate.z < 0) {
@@ -161,25 +151,52 @@ export function placeModel(
     oz = -oz;
   }
   // centre of the gap: where the wall line passes the gate, between the nearest wall ends
-  const t = (p: [number, number]) => (p[0] - cx) * ax + (p[1] - cz) * az;
-  const tGate = t([gate.x, gate.z]);
+  const t = (x: number, z: number) => (x - cx) * ax + (z - cz) * az;
+  const tGate = t(gate.x, gate.z);
   let before = -Infinity,
     after = Infinity;
   for (const f of near)
     for (let i = 0; i < f.length; i += 2) {
-      const v = t([f[i]!, f[i + 1]!]);
+      const v = t(f[i]!, f[i + 1]!);
       if (v <= tGate) before = Math.max(before, v);
       else after = Math.min(after, v);
     }
+  const known = Number.isFinite(before) && Number.isFinite(after);
+  const tMid = known ? (before + after) / 2 : tGate;
+  return {
+    px: cx + ax * tMid,
+    pz: cz + az * tMid,
+    ax,
+    az,
+    ox,
+    oz,
+    gap: known ? after - before : 0,
+    near,
+  };
+}
+
+/** Map position of a point given in the gate frame. */
+export function frameToMap(f: GateFrame, x: number, z: number): [number, number] {
+  return [f.px + f.ax * x + f.ox * z, f.pz + f.az * x + f.oz * z];
+}
+
+/** Gate-frame position of a map point. */
+export function mapToFrame(f: GateFrame, x: number, z: number): [number, number] {
+  return [(x - f.px) * f.ax + (z - f.pz) * f.az, (x - f.px) * f.ox + (z - f.pz) * f.oz];
+}
+
+/**
+ * Stand the model in the gap of the gate's wall, along the wall, with its front (+Z, the side with
+ * the name plaque) facing out of the city. The scale makes the model's opening as wide as the gap
+ * in the map's wall. Map wall pieces under the model are cut away so the two don't overlap.
+ */
+export function placeModel(model: THREE.Group, frame: GateFrame, forts: number[][]): PlacedModel {
+  const { px, pz, ax, az, ox, oz, near } = frame;
   const opening = (model.userData.opening as number | undefined) ?? DEFAULT_OPENING;
-  const gap = Number.isFinite(before) && Number.isFinite(after) ? after - before : opening;
-  const tMid = Number.isFinite(before) && Number.isFinite(after) ? (before + after) / 2 : tGate;
+  const gap = frame.gap || opening;
   // a model built to the map's size stays at its true size; others are scaled to fit the gap
   const fit = gap / opening;
   const scale = Math.abs(fit - 1) < 0.05 ? 1 : Math.min(1.3, Math.max(0.8, fit));
-  // on the middle line of the wall, at the middle of the gap
-  const px = cx + ax * tMid;
-  const pz = cz + az * tMid;
   const local = new THREE.Box3().setFromObject(model);
   // how far the model reaches along the wall on each side, in map metres
   const reach = { pos: local.max.x * scale, neg: -local.min.x * scale };

@@ -4,7 +4,10 @@ import { Input } from './input';
 import { Minimap } from './minimap';
 import { TH } from './th';
 import type { Landmark, WorldData } from './types';
-import { loadModel, placeModel, type PlacedModel } from './gateModel';
+import { frameToMap, gateFrame, loadModel, placeModel, type PlacedModel } from './gateModel';
+import { buildPlaza } from './plaza';
+import { SlimeHerd, loadSlime } from './slime';
+import { pointInPolygon } from './geo';
 import { buildWorld, gateTowers } from './world';
 import './style.css';
 
@@ -85,6 +88,10 @@ async function start(): Promise<void> {
     console.error(err);
     return null;
   });
+  const slimeModel = loadSlime('./models/slime_aquanaut.glb').catch((err) => {
+    console.error(err);
+    return null;
+  });
   let world: WorldData;
   try {
     const res = await fetch('./world.json');
@@ -98,7 +105,8 @@ async function start(): Promise<void> {
   const gateModel = await model;
   const thaPhaeGate = world.landmarks.find((m) => m.name === 'ประตูท่าแพ');
   let placed: PlacedModel | null = null;
-  if (gateModel && thaPhaeGate) placed = placeModel(gateModel, thaPhaeGate, world.forts);
+  const gateAt = thaPhaeGate ? gateFrame(thaPhaeGate, world.forts) : null;
+  if (gateModel && gateAt) placed = placeModel(gateModel, gateAt, world.forts);
   if (placed) world = { ...world, forts: placed.forts };
   const modelled = new Set(placed && thaPhaeGate ? [thaPhaeGate.name] : []);
 
@@ -124,19 +132,48 @@ async function start(): Promise<void> {
 
   const city = buildWorld(world, modelled);
   if (placed) city.add(placed.object);
+  // the paved square in front of Tha Phae Gate, shaped from the map (no model needed)
+  const plaza = gateAt ? buildPlaza(world, gateAt) : null;
+  if (plaza) city.add(plaza.object);
+
+  // slimes wander on the square; they stay on it and bump into walls like the walker does
+  const slimeTemplate = await slimeModel;
+  let herd: SlimeHerd | null = null;
+  if (slimeTemplate && plaza && gateAt) {
+    const homes = (
+      [
+        [-2, 10],
+        [2.5, 7],
+        [-30, 24],
+        [-60, 16],
+        [30, 15],
+        [55, 10],
+      ] as const
+    ).map(([fx, fz]) => frameToMap(gateAt, fx, fz));
+    herd = new SlimeHerd(slimeTemplate, homes, {
+      wander: 8,
+      move: (x, z, dx, dz) => collider.move(x, z, dx, dz, 0.45),
+      allowed: (x, z) => pointInPolygon(x, z, plaza.outline),
+    });
+    city.add(herd.object);
+  }
   scene.add(city);
   const { body: walker, bike } = makeWalker();
   scene.add(walker);
 
   const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.3, 2500);
 
-  // start on the square in front of Tha Phae Gate, facing the gate
+  // start on the square in front of Tha Phae Gate, 20 m out, facing the gate
+  const [startX, startZ] = gateAt
+    ? frameToMap(gateAt, 0, 20)
+    : [(thaPhaeGate?.x ?? 0) + 20, thaPhaeGate?.z ?? 0];
+  const startYaw = gateAt ? Math.atan2(gateAt.ox, gateAt.oz) : Math.PI / 2;
   const state = {
-    x: (thaPhaeGate?.x ?? 0) + 45,
-    z: thaPhaeGate?.z ?? 0,
-    yaw: Math.PI / 2,
+    x: startX,
+    z: startZ,
+    yaw: startYaw,
     pitch: 0.24,
-    heading: Math.PI / 2,
+    heading: startYaw,
     mode: 'walk' as Mode,
     scale: 1,
     labels: true,
@@ -232,6 +269,7 @@ async function start(): Promise<void> {
   });
 
   const minimap = new Minimap(world);
+  if (plaza) minimap.addArea(plaza.outline, '#d8b48c');
   hud.append(minimap.canvas);
 
   const input = new Input(canvas, TH.stickHint);
@@ -300,7 +338,7 @@ async function start(): Promise<void> {
         bestD = d;
         best = m;
       }
-      v.set(m.x * state.scale, 7 * Math.max(state.scale, 0.5), m.z * state.scale).project(camera);
+      v.set(m.x * state.scale, 5.5 * Math.max(state.scale, 0.5), m.z * state.scale).project(camera);
       const sy = ((1 - v.y) / 2) * window.innerHeight;
       const show = state.labels && v.z < 1 && d * state.scale < 450 && sy > hudBottom;
       t.hidden = !show;
@@ -313,7 +351,7 @@ async function start(): Promise<void> {
     }
     near.hidden = !state.labels || !best;
     if (best) near.textContent = TH.near(best.name, Math.round(bestD / 10) * 10);
-    minimap.draw(state.x, state.z, state.heading, state.labels);
+    minimap.draw(state.x, state.z, state.heading, state.labels, herd?.dots());
   };
 
   let last = performance.now();
@@ -337,6 +375,7 @@ async function start(): Promise<void> {
       const { forward, right } = input.read();
       step(dt, forward, right);
       bob(dt, forward !== 0 || right !== 0);
+      herd?.update(dt, state);
       place();
       renderer.render(scene, camera);
       updateHud();
@@ -395,6 +434,13 @@ async function start(): Promise<void> {
           }
         : null,
       drawCalls: () => renderer.info.render.calls,
+      slimes: () => herd?.state() ?? [],
+      /** run the slimes for a number of seconds, in 1/30 s steps */
+      simulateSlimes: (seconds: number) => {
+        for (let t = 0; t < seconds; t += 1 / 30) herd?.update(1 / 30, state);
+      },
+      slimeTriangles: slimeTemplate?.triangles ?? 0,
+      plaza: plaza ? { area: Math.round(plaza.area), span: plaza.span } : null,
       landmarks: world.landmarks,
     };
   }

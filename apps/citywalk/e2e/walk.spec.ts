@@ -115,3 +115,34 @@ test('the chips change scale, labels and haze', async ({ page }) => {
     'true',
   );
 });
+
+test('the square is paved and slimes hop around it, turning to the walker', async ({ page }) => {
+  await open(page);
+  type SlimeState = { x: number; z: number; mode: string };
+  const info = (await page.evaluate(
+    '({ plaza: window.__walk.plaza, tris: window.__walk.slimeTriangles, slimes: window.__walk.slimes() })',
+  )) as { plaza: { area: number; span: [number, number] }; tris: number; slimes: SlimeState[] };
+  // the square runs between the two ends of the moat, about 190 m along the wall
+  expect(info.plaza.area).toBeGreaterThan(3000);
+  expect(info.plaza.span[1] - info.plaza.span[0]).toBeGreaterThan(150);
+  // six slimes, each lightened from the 8,600 triangles of the model file
+  expect(info.slimes).toHaveLength(6);
+  expect(info.tris).toBeLessThan(6000);
+
+  await page.evaluate('window.__walk.simulateSlimes(12)');
+  const later = (await page.evaluate('window.__walk.slimes()')) as SlimeState[];
+  const moved = later.filter(
+    (s, i) => Math.hypot(s.x - info.slimes[i]!.x, s.z - info.slimes[i]!.z) > 0.5,
+  );
+  expect(moved.length).toBeGreaterThanOrEqual(3);
+
+  // walk right up to one: it stops and lunges at the walker
+  const mode = await page.evaluate(`(() => {
+    const w = window.__walk;
+    const s = w.slimes()[0];
+    w.teleport(s.x + 1.5, s.z);
+    w.simulateSlimes(0.2);
+    return w.slimes()[0].mode;
+  })()`);
+  expect(mode).toBe('lunge');
+});
