@@ -303,14 +303,6 @@ async function start(): Promise<void> {
     minimap.draw(state.x, state.z, state.heading, state.labels);
   };
 
-  // A test line at the bottom of the screen: frames drawn, the finger's push and the position.
-  // It shows on phones where we cannot attach a debugger; remove once walking works everywhere.
-  const probe = el('div', 'probe');
-  hud.append(probe);
-  let frames = 0;
-  let lastError = '';
-  window.addEventListener('error', (e) => (lastError = String(e.message).slice(0, 80)));
-
   let last = performance.now();
   let lastTick = last;
   const tick = () => {
@@ -319,7 +311,6 @@ async function start(): Promise<void> {
     const dt = Math.max(0, Math.min(0.05, (now - last) / 1000));
     last = now;
     lastTick = now;
-    frames++;
     try {
       for (const [code, m] of [
         ['Digit1', 'walk'],
@@ -336,17 +327,9 @@ async function start(): Promise<void> {
       place();
       renderer.render(scene, camera);
       updateHud();
-      probe.textContent = TH.probe(
-        frames,
-        forward.toFixed(2),
-        right.toFixed(2),
-        Math.round(state.x),
-        Math.round(state.z),
-        lastError,
-      );
     } catch (err) {
-      lastError = String(err).slice(0, 80);
-      probe.textContent = lastError;
+      // one bad frame should not freeze the game
+      console.error(err);
     }
   };
   const frame = () => {

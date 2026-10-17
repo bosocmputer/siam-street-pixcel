@@ -19,6 +19,4 @@ export const TH = {
   arrived: (name: string) => `ถึงแล้ว: ${name}`,
   lap: (min: number) => `รอบคูเมืองด้วยความเร็วนี้ ≈ ${min} นาที`,
   credit: '© OpenStreetMap contributors',
-  probe: (frames: number, f: string, r: string, x: number, z: number, err: string) =>
-    `ทดสอบ · เฟรม ${frames} · นิ้ว ${f}, ${r} · ตำแหน่ง ${x}, ${z}${err ? ` · ${err}` : ''}`,
 } as const;
