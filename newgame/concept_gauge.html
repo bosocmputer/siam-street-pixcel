@@ -1,0 +1,216 @@
+<title>เกจ 05:59</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=Sarabun:wght@400;600&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: a smoky pre-dawn Chiang Mai; one reading column, the amber gauge window is the single loud element */
+:root{
+  --night:#15171c; --smoke:#22262d; --haze:#8d929b; --text:#e9e6df;
+  --amber:#ffb347; --ember:#e5653a; --line:#343943;
+  --display:"Chakra Petch","Sarabun",system-ui,sans-serif;
+  --body:"Sarabun",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,monospace;
+  color-scheme:dark;
+}
+body{background:var(--night);color:var(--text);font:17px/1.75 var(--body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 72px}
+main{max-width:46rem;margin:0 auto;display:grid;gap:52px}
+a{color:var(--amber)}
+.hero{padding-block:40px 0;display:grid;gap:22px}
+.clock{font:700 13px var(--mono);letter-spacing:.2em;color:var(--haze)}
+h1{font:700 clamp(32px,7vw,52px)/1.12 var(--display);margin:0;text-wrap:balance}
+.win{border:1px solid var(--amber);background:color-mix(in srgb,var(--smoke) 85%,var(--amber));
+  padding:18px 20px;display:grid;gap:14px;max-width:26rem;box-shadow:0 0 40px -10px var(--amber)}
+.win .t{font:700 12px var(--mono);letter-spacing:.18em;color:var(--amber)}
+.bar{display:grid;grid-template-columns:5.5rem 1fr 3.2rem;gap:10px;align-items:center;font:500 14px var(--mono)}
+.track{height:10px;background:var(--night);border:1px solid var(--line);position:relative;overflow:hidden}
+.fill{position:absolute;inset:0 auto 0 0;background:var(--amber)}
+.fill.fog{background:var(--haze)}
+.sender{font:500 12px var(--mono);color:var(--haze)}
+@media (prefers-reduced-motion:no-preference){
+  .fill{animation:grow 1.4s ease-out both}
+  @keyframes grow{from{width:0}}
+}
+.lede{font-size:19px;max-width:38rem}
+h2{font:700 24px/1.3 var(--display);margin:0 0 14px;text-wrap:balance;display:flex;gap:12px;align-items:baseline}
+h2 small{font:500 12px var(--mono);color:var(--amber);letter-spacing:.1em}
+p{margin:0 0 12px}
+ul,ol{margin:0;padding-left:1.3em;display:grid;gap:8px}
+.tbl{overflow-x:auto;border-top:1px solid var(--line)}
+table{border-collapse:collapse;width:100%;min-width:520px;font-size:15.5px}
+th,td{text-align:left;vertical-align:top;padding:10px 10px 10px 0;border-bottom:1px solid var(--line)}
+th{font:700 11px var(--mono);letter-spacing:.12em;color:var(--haze);text-transform:uppercase}
+td:first-child{font-weight:600;white-space:nowrap}
+.no{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px;padding:0;list-style:none}
+.no li{font:500 13px var(--mono);padding:3px 10px;border:1px solid var(--line);color:var(--haze);text-decoration:line-through}
+.map{border:1px solid var(--line);background:var(--smoke)}
+.map svg{display:block;width:100%;height:auto}
+.map text{fill:var(--text);font:12px var(--body)}
+.map .lbl{fill:var(--haze);font:11px var(--mono)}
+.steps{list-style:none;padding:0;counter-reset:s;gap:14px}
+.steps li{counter-increment:s;display:grid;grid-template-columns:34px 1fr;gap:8px}
+.steps li::before{content:counter(s);font:700 18px/1.6 var(--mono);color:var(--amber)}
+.note{border-left:2px solid var(--ember);padding-left:14px;color:var(--text)}
+.muted{color:var(--haze);font-size:14px}
+</style>
+
+<main>
+<section class="hero">
+  <div class="clock">05:59 · เชียงใหม่ · ฤดูหมอกควัน</div>
+  <h1>ตื่นมา มีเกจลอยอยู่ตรงหน้า</h1>
+  <div class="win" role="img" aria-label="หน้าต่างเกจ: Lv.1 และเกจหมอกของเมือง 3%">
+    <div class="t">เกจปรากฏ</div>
+    <div class="bar"><span>คุณ Lv.1</span><span class="track"><span class="fill" style="width:8%"></span></span><span>8%</span></div>
+    <div class="bar"><span>หมอก</span><span class="track"><span class="fill fog" style="width:3%"></span></span><span>3%</span></div>
+    <div class="sender">ผู้ส่ง: ???</div>
+  </div>
+  <p class="lede">คนอื่นมองไม่เห็นอะไรเลย แต่ในหมอกมีบางอย่างคลานออกมาจากที่ที่คุณผ่านทุกวัน คนธรรมดาที่อ่อนที่สุดค่อย ๆ แข็งแกร่งขึ้นในเมืองที่ตัวเองรู้จัก</p>
+  <p class="muted">Concept v0.2 · ชื่อเกม “เกจ” เป็นชื่อชั่วคราว · แทนเรื่อง “ทวนน้ำ” ที่ยกเลิกแล้ว · ไฟล์ใน repo: newgame/concept_gauge.md</p>
+</section>
+
+<section>
+  <h2><small>01</small>ทำไมแนวนี้เหมาะ</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>เหตุผล</th><th>ผลต่อเกม</th></tr></thead>
+    <tbody>
+      <tr><td>เล่าด้วยข้อความสั้น</td><td>เกมแนวหน้าต่างสถานะเล่าเรื่องด้วยข้อความบรรทัดเดียวอยู่แล้ว ตรงกับที่เลือกไว้ว่าไม่มีข้อความยาว</td></tr>
+      <tr><td>คนไทยรู้จักแนวนี้</td><td>อธิบายเกมได้ในประโยคเดียว</td></tr>
+      <tr><td>หมอกควันเป็นของจริง</td><td>คนภาคเหนือรู้สึกทันทีโดยไม่ต้องอธิบาย</td></tr>
+      <tr><td>เกจเมืองเป็นของทุกคน</td><td>ได้ความรู้สึก MMO โดยยังไม่ต้องมีเซิร์ฟเวอร์ real-time</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <h2><small>02</small>ไม่ลอก Solo Leveling</h2>
+  <p>แนว “ตื่นมามีระบบ” เป็นแนวทั่วไปที่ใช้ได้ แต่ของเฉพาะเรื่องเราไม่ใช้:</p>
+  <ul class="no">
+    <li>Gate</li><li>Hunter</li><li>แรงก์ E–S</li><li>กองทัพเงา</li><li>Arise</li><li>วิดพื้นพร้อมโซนลงโทษ</li><li>หน้าต่างสีฟ้า</li>
+  </ul>
+  <ol>
+    <li><b>มีสองเกจ</b> เกจตัวเอง และเกจเมืองที่ทุกคนช่วยกันกดลง</li>
+    <li><b>เริ่มจากอาชีพธรรมดาของคนไทย</b> อาชีพเดิมกลายเป็นสายพลัง</li>
+    <li><b>ภัยผูกกับปัญหาจริงของแต่ละภาค</b></li>
+    <li><b>หน้าต่างสีอำพัน</b> เหมือนพระอาทิตย์ในหมอก</li>
+  </ol>
+</section>
+
+<section>
+  <h2><small>03</small>กติกาของโลก</h2>
+  <ol>
+    <li>คนที่เห็นเกจเรียกว่า <b>คนถือเกจ</b> มีไม่มาก ไม่มีใครรู้ว่าทำไมเป็นตัวเอง</li>
+    <li><b>แอ่งหมอก</b> เกิดตรงที่หมอกค้าง เช่น ใต้สะพาน ลานจอดรถ ซอยอับ ป่าเชิงดอย <b>ตัวหมอก</b> คลานออกมาจากแอ่ง</li>
+    <li>คนทั่วไปมองไม่เห็นตัวหมอก แต่รู้สึกได้: เหนื่อย หงุดหงิด ลืมของ</li>
+    <li>ล้างแอ่งแล้ว <b>เกจเมืองลดลง</b> ทุกคนเห็นเกจเดียวกัน</li>
+    <li>เกจเมืองถึง 100% เกิด <b>วันฟ้าดับ</b> อีเวนต์บอสทั้งเมืองช่วงสุดสัปดาห์</li>
+    <li>วัดและศาสนสถานเป็นฉากหลังให้จำทาง ไม่มีการต่อสู้ ไม่มีแอ่งหมอก</li>
+  </ol>
+</section>
+
+<section>
+  <h2><small>04</small>อาชีพเดิม</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>อาชีพเดิม</th><th>สาย</th><th>เล่นยังไง</th></tr></thead>
+    <tbody>
+      <tr><td>ไรเดอร์ส่งอาหาร</td><td>เร็ว</td><td>วิ่งไว พุ่งหลบ ตีแล้วถอย</td></tr>
+      <tr><td>แม่ค้ากาด</td><td>สนับสนุน</td><td>ของฟื้นพลัง วางแผงเป็นกำแพง ได้ของจากแอ่งมากขึ้น</td></tr>
+      <tr><td>นักศึกษา</td><td>ระยะไกล</td><td>ยิงจากระยะไกล มองเห็นจุดอ่อน</td></tr>
+      <tr><td>ช่างซ่อม</td><td>ถึก</td><td>รับดาเมจ วางกับดัก ซ่อมของในฉาก</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <h2><small>05</small>ตื่นเช้ามา</h2>
+  <ul>
+    <li>เกจรีเซ็ตทุกวัน <b>05:59 เวลาไทย</b> เปิดเกมครั้งแรกของวันจะเห็นหน้าต่างเกจเด้งขึ้นเหมือนตื่นนอน</li>
+    <li><b>งานเช้า</b> 3 อย่าง เช่น วิ่งรอบคูเมือง 1 รอบในเกม ล้างแอ่งหมอก 3 จุด ช่วยคนหนึ่งคน</li>
+    <li>ขาดวันไหนไม่มีโทษ และไม่มีรางวัลต่อเนื่องที่หายเมื่อขาด</li>
+  </ul>
+</section>
+
+<section>
+  <h2><small>06</small>บทที่ 1 เชียงใหม่</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>ช่วง</th><th>สถานที่</th><th>เกิดอะไร</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>ห้องเช่าแถวคูเมือง</td><td>ตื่น 05:59 เกจขึ้น ตัวหมอกตัวแรกที่ลานจอดรถ (สอนเล่น)</td></tr>
+      <tr><td>2</td><td>ประตูท่าแพ</td><td>เจอคนถือเกจรุ่นพี่ “พี่ต้น” วินมอเตอร์ไซค์ปากร้ายใจดี</td></tr>
+      <tr><td>3</td><td>ริมปิง กาดหลวง สะพาน</td><td>แอ่งใหญ่ใต้สะพาน รู้ว่าหมอกไหลตามน้ำและลม</td></tr>
+      <tr><td>4</td><td>นิมมาน</td><td>กลุ่มคนถือเกจที่ปล่อยแอ่งให้โตเพื่อปั๊มเลเวล เป็นคู่แข่ง</td></tr>
+      <tr><td>5</td><td>ทางขึ้นดอย น้ำตก</td><td>ป่าที่หมอกหนาที่สุด บอส <b>ไฟสุมขอน</b> ที่จุดหมอกใหม่ไม่หยุด</td></tr>
+      <tr><td>6</td><td>จุดชมวิวบนดอย</td><td>บอส <b>เจ้าหมอก</b> ล้มแล้วเห็นว่าหมอกยังไหลมาจากทิศอื่น นำไปสู่จังหวัดถัดไป</td></tr>
+    </tbody>
+  </table></div>
+  <p class="muted" style="margin-top:10px">ปริศนาหลักที่ค่อย ๆ เปิด: ใครส่งเกจมา ข้อความแรก ๆ มีบรรทัด “ผู้ส่ง: ???” ทุกครั้ง</p>
+</section>
+
+<section>
+  <h2><small>07</small>แผนที่ย่อ</h2>
+  <p>ย่อประมาณ 1:8 ถึง 1:10 เดินรอบคูเมืองในเกมราว 3 นาที ใช้ผังจริงเป็นโครง ตึกทั่วไปเป็นกล่องสีเรียบ ทำละเอียดเฉพาะจุดสำคัญ ภาพนี้เป็นผังคร่าว ๆ ไม่ใช่สเกลจริง</p>
+  <div class="map" role="img" aria-label="ผังคร่าวเชียงใหม่: ดอยทางตะวันตก นิมมาน คูเมืองสี่เหลี่ยมมีประตูสี่ทิศ ไนท์บาซาร์ แม่น้ำปิง กาดหลวง และสถานีรถไฟทางตะวันออก">
+    <svg viewBox="0 0 640 340">
+      <path d="M0 260 L60 150 L110 200 L150 120 L200 210 L210 340 L0 340Z" fill="var(--line)"/>
+      <text x="70" y="250">ดอย</text><text class="lbl" x="44" y="270">ทางขึ้นดอย · น้ำตก · จุดชมวิว</text>
+      <circle cx="120" cy="70" r="22" fill="none" stroke="var(--haze)" stroke-width="2"/><text class="lbl" x="92" y="40">อ่างเก็บน้ำ</text>
+      <path d="M210 230 C250 200 270 190 320 185" fill="none" stroke="var(--haze)" stroke-width="2" stroke-dasharray="5 4"/>
+      <text x="236" y="130">นิมมาน</text><circle cx="262" cy="145" r="5" fill="var(--amber)"/>
+      <path d="M262 150 L300 175" stroke="var(--haze)" stroke-width="2" stroke-dasharray="5 4"/>
+      <rect x="320" y="120" width="120" height="120" fill="none" stroke="var(--amber)" stroke-width="5"/>
+      <text x="350" y="185">เมืองเก่า</text>
+      <g fill="var(--amber)"><rect x="436" y="174" width="10" height="12"/><rect x="374" y="114" width="12" height="10"/><rect x="314" y="174" width="10" height="12"/><rect x="374" y="236" width="12" height="10"/></g>
+      <text class="lbl" x="452" y="172">ประตูท่าแพ</text>
+      <path d="M446 180 L520 180" stroke="var(--haze)" stroke-width="2"/>
+      <circle cx="505" cy="205" r="5" fill="var(--amber)"/><text x="470" y="228">ไนท์บาซาร์</text>
+      <path d="M545 0 C530 90 560 170 540 240 S555 320 548 340" fill="none" stroke="#5aa0c8" stroke-width="7"/>
+      <text class="lbl" x="556" y="300">แม่น้ำปิง</text>
+      <circle cx="528" cy="150" r="5" fill="var(--amber)"/><text x="468" y="140">กาดหลวง</text>
+      <path d="M520 160 L568 160" stroke="var(--text)" stroke-width="3"/><text class="lbl" x="572" y="164">สะพาน</text>
+      <rect x="590" y="200" width="16" height="10" fill="var(--amber)"/><text x="570" y="230">สถานี</text><text class="lbl" x="560" y="246">ไปจังหวัดอื่น</text>
+    </svg>
+  </div>
+</section>
+
+<section>
+  <h2><small>08</small>ขยายทั้งประเทศ</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>ภาค</th><th>เกจเมือง</th><th>ตัวอย่างศัตรู</th></tr></thead>
+    <tbody>
+      <tr><td>เหนือ</td><td>หมอก</td><td>ตัวหมอก ไฟสุมขอน</td></tr>
+      <tr><td>กรุงเทพฯ ภาคกลาง</td><td>น้ำ</td><td>ตัวน้ำขัง ท่อตัน</td></tr>
+      <tr><td>อีสาน</td><td>แล้ง</td><td>ตัวดินแตก ลมร้อน</td></tr>
+      <tr><td>ใต้</td><td>คลื่น</td><td>ตัวคลื่น พายุ</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <h2><small>09</small>ทำคนเดียวด้วย AI</h2>
+  <ul>
+    <li><b>เกมเว็บ 3D (three.js)</b> แทน Unreal ทั้งหมดเป็นโค้ดที่ AI เขียนและแก้ได้ เปิดได้ทั้งมือถือและพีซีผ่านลิงก์ และผมทดสอบกับถ่ายภาพหน้าจอให้ดูได้เองในคลาวด์ ส่วน Unreal ต้องคลิกทำในโปรแกรม AI ช่วยได้น้อย</li>
+    <li><b>ภาพ low-poly</b> ตึกสร้างจากรูปตึกใน OpenStreetMap ด้วยโค้ด ตัวละครและท่าทางใช้ชุดฟรี เช่น KayKit (CC0) หรือ Quaternius (ใช้ในเกมได้ฟรี ต้องเช็กสัญญาก่อน) <a href="https://app.cinevva.com/guides/free-rigged-3d-character-models">[ที่มา]</a></li>
+    <li><b>MMO แบบขั้นบันได</b> (1) เล่นคนเดียว + เกจเมืองร่วมกัน + เห็นชื่อคนที่เพิ่งล้างแอ่ง (2) ร่วมทีม 2–4 คน (3) พื้นที่ส่วนกลางหลายคน</li>
+    <li><b>ส่วนที่ยากที่สุด</b> ความมันของการต่อสู้ 3D และความลื่นบนมือถือรุ่นถูก ต้องลองเล่นบ่อย ๆ</li>
+  </ul>
+  <p class="note" style="margin-top:14px">ต้องถามก่อนทุกครั้ง: สมัครบริการหลังบ้าน และใช้ AI สร้างโมเดล 3D ที่เสียเงิน</p>
+</section>
+
+<section>
+  <h2><small>10</small>ขั้นต่อไป</h2>
+  <ol class="steps">
+    <li><span>ผู้สร้างอนุมัติเรื่อง หรือสั่งแก้</span></li>
+    <li><span><b>ทดสอบแผนที่</b> เมืองเก่าเชียงใหม่ย่อขนาด 3D ในเบราว์เซอร์ เดินรอบคูเมืองได้ มีจุดสำคัญ 4–5 จุด</span></li>
+    <li><span><b>ทดสอบต่อสู้</b> แอ่งหมอก 1 จุด ตัวหมอก 2 แบบ หน้าต่างเกจเด้งตอนเริ่ม</span></li>
+  </ol>
+</section>
+
+<section>
+  <h2><small>?</small>คำถามถึงผู้สร้าง</h2>
+  <ol>
+    <li>ชื่อเกม: “เกจ” / “ตื่นมาเลเวล 1” / “05:59” หรือคิดเอง</li>
+    <li>ใช้หมอกควันเป็นภัยของภาคเหนือได้ไหม เป็นเรื่องที่คนเจ็บปวดจริง ต้องเล่าด้วยความเคารพ</li>
+    <li>อาชีพเดิม 4 แบบนี้โอเคไหม อยากเพิ่มอาชีพอะไร</li>
+    <li>ทำเป็นเกมเว็บ 3D ได้ไหม</li>
+  </ol>
+</section>
+</main>
