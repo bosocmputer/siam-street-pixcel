@@ -7,8 +7,15 @@ export interface InputState {
 
 export class Input {
   private keys = new Set<string>();
-  private stick = { id: -1, ox: 0, oy: 0, x: 0, y: 0 };
-  private look = { id: -1, x: 0, y: 0 };
+  // ids are null when no finger is on them: touch ids from iPhones can be negative, so -1 is no good
+  private stick: { id: number | null; ox: number; oy: number; x: number; y: number } = {
+    id: null,
+    ox: 0,
+    oy: 0,
+    x: 0,
+    y: 0,
+  };
+  private look: { id: number | null; x: number; y: number } = { id: null, x: 0, y: 0 };
   /** camera turn accumulated since the last read, in pixels */
   private turnX = 0;
   private turnY = 0;
@@ -67,7 +74,7 @@ export class Input {
     e.preventDefault();
     for (const t of Array.from(e.changedTouches)) {
       // keep touch ids apart from mouse pointer ids
-      const id = 1000 + t.identifier;
+      const id = 1e9 + t.identifier;
       if (kind === 'down') this.down(id, t.clientX, t.clientY, true);
       else if (kind === 'move') this.moveTo(id, t.clientX, t.clientY);
       else this.up(id);
@@ -76,7 +83,7 @@ export class Input {
 
   private rest(): void {
     this.home = { x: 86, y: window.innerHeight - 150 };
-    if (this.stick.id < 0) this.placeStick(this.home.x, this.home.y);
+    if (this.stick.id === null) this.placeStick(this.home.x, this.home.y);
   }
 
   private placeStick(x: number, y: number): void {
@@ -87,11 +94,11 @@ export class Input {
 
   private down(id: number, x: number, y: number, touch: boolean): void {
     // a finger on the left half of the screen drives the walker; everything else turns the camera
-    if (touch && x < window.innerWidth / 2 && this.stick.id < 0) {
+    if (touch && x < window.innerWidth / 2 && this.stick.id === null) {
       this.stick = { id, ox: x, oy: y, x, y };
       this.base.classList.add('active');
       this.placeStick(x, y);
-    } else if (this.look.id < 0) {
+    } else if (this.look.id === null) {
       this.look = { id, x, y };
     }
   }
@@ -112,11 +119,11 @@ export class Input {
 
   private up(id: number): void {
     if (id === this.stick.id) {
-      this.stick.id = -1;
+      this.stick.id = null;
       this.base.classList.remove('active');
       this.placeStick(this.home.x, this.home.y);
     }
-    if (id === this.look.id) this.look.id = -1;
+    if (id === this.look.id) this.look.id = null;
   }
 
   private stickOffset(): [number, number] {
@@ -138,7 +145,7 @@ export class Input {
     if (this.keys.has('KeyS') || this.keys.has('ArrowDown')) forward -= 1;
     if (this.keys.has('KeyD') || this.keys.has('ArrowRight')) right += 1;
     if (this.keys.has('KeyA') || this.keys.has('ArrowLeft')) right -= 1;
-    if (this.stick.id >= 0) {
+    if (this.stick.id !== null) {
       const [dx, dy] = this.stickOffset();
       forward = -dy / 48;
       right = dx / 48;

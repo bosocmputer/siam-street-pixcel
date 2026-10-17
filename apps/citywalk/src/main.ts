@@ -275,6 +275,10 @@ async function start(): Promise<void> {
 
   const v = new THREE.Vector3();
   const updateHud = () => {
+    // name tags stay below the buttons and the minimap at the top of the screen
+    const hudBottom =
+      Math.max(top.getBoundingClientRect().bottom, minimap.canvas.getBoundingClientRect().bottom) +
+      30;
     let best: Landmark | null = null;
     let bestD = Infinity;
     for (const { m, t } of tags) {
@@ -285,8 +289,7 @@ async function start(): Promise<void> {
       }
       v.set(m.x * state.scale, 7 * Math.max(state.scale, 0.5), m.z * state.scale).project(camera);
       const sy = ((1 - v.y) / 2) * window.innerHeight;
-      // keep tags out of the HUD strip at the top of the screen
-      const show = state.labels && v.z < 1 && d * state.scale < 450 && sy > 140;
+      const show = state.labels && v.z < 1 && d * state.scale < 450 && sy > hudBottom;
       t.hidden = !show;
       if (show)
         t.style.transform = `translate(-50%, -100%) translate(${((v.x + 1) / 2) * window.innerWidth}px, ${sy}px)`;

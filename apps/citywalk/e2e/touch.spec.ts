@@ -12,7 +12,8 @@ test('dragging a finger on the left side walks', async ({ page }) => {
   const touch = (type: 'touchStart' | 'touchMove' | 'touchEnd', x: number, y: number) =>
     cdp.send('Input.dispatchTouchEvent', {
       type,
-      touchPoints: type === 'touchEnd' ? [] : [{ x, y, id: 1 }],
+      // iPhones can report negative touch ids; this once left the walker standing still
+      touchPoints: type === 'touchEnd' ? [] : [{ x, y, id: -2147480000 }],
     });
   await touch('touchStart', 90, 650);
   for (let i = 1; i <= 10; i++) await touch('touchMove', 90, 650 - i * 6);
