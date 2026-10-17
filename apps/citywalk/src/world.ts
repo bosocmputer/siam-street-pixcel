@@ -174,6 +174,37 @@ export function buildWorld(world: WorldData): THREE.Group {
   }
   root.add(roads.mesh(flatMaterial(5)));
 
+  // dashed centre lines on the bigger roads, so you can see yourself moving along a street
+  const marks = new Builder();
+  for (const r of world.roads) {
+    if (r[1]! > 1 || r[2] === 1 || r[0]! < 6) continue;
+    const y = LAYER.road[r[1]!]! + 0.03;
+    const line = r.slice(3);
+    let carry = 0;
+    for (let i = 0; i + 3 < line.length; i += 2) {
+      const ax = line[i]!,
+        az = line[i + 1]!,
+        bx = line[i + 2]!,
+        bz = line[i + 3]!;
+      const len = Math.hypot(bx - ax, bz - az);
+      const ux = (bx - ax) / len,
+        uz = (bz - az) / len;
+      for (let t = carry; t + 3 <= len; t += 8) {
+        const tris = ribbon([ax + ux * t, az + uz * t, ax + ux * (t + 3), az + uz * (t + 3)], 0.25);
+        for (let k = 0; k < tris.length; k += 6)
+          marks.tri(
+            [tris[k]!, y, tris[k + 1]!],
+            [tris[k + 2]!, y, tris[k + 3]!],
+            [tris[k + 4]!, y, tris[k + 5]!],
+            0xf4f1e8,
+          );
+        carry = t + 8 - len;
+      }
+      if (len < 3) carry = Math.max(0, carry - len);
+    }
+  }
+  root.add(marks.mesh(flatMaterial(6)));
+
   const solid = new Builder();
   world.buildings.forEach((bd, i) => {
     const h = bd[0]!;
