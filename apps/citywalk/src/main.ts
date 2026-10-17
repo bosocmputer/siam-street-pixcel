@@ -220,7 +220,7 @@ async function start(): Promise<void> {
   const minimap = new Minimap(world);
   hud.append(minimap.canvas);
 
-  const input = new Input(canvas);
+  const input = new Input(canvas, TH.stickHint);
   const visited = new Set<string>();
 
   const step = (dt: number, forward: number, right: number) => {

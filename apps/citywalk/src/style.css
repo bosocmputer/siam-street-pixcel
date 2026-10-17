@@ -14,6 +14,10 @@ body {
   margin: 0;
   height: 100%;
   overflow: hidden;
+  touch-action: none;
+  overscroll-behavior: none;
+  -webkit-user-select: none;
+  user-select: none;
   background: #bfd8ea;
   color: var(--ink);
   font:
@@ -161,6 +165,26 @@ body {
   background: rgba(255, 255, 255, 0.25);
   border: 2px solid rgba(255, 255, 255, 0.6);
   pointer-events: none;
+  opacity: 0.75;
+}
+.stick.active {
+  opacity: 1;
+}
+.stick.active .stick-hint {
+  display: none;
+}
+.stick-hint {
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  transform: translate(-50%, 6px);
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--panel-text);
+  background: var(--panel);
+  padding: 1px 8px;
+  border-radius: 999px;
 }
 .knob {
   position: absolute;

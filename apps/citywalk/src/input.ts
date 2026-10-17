@@ -15,14 +15,24 @@ export class Input {
   private knob: HTMLElement;
   private base: HTMLElement;
 
-  constructor(private el: HTMLElement) {
+  /** where the stick waits when no finger is on it (touch screens only) */
+  private home = { x: 0, y: 0 };
+  private touchScreen: boolean;
+
+  constructor(el: HTMLElement, hint: string) {
+    this.touchScreen = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
     this.base = document.createElement('div');
     this.base.className = 'stick';
     this.knob = document.createElement('div');
     this.knob.className = 'knob';
-    this.base.append(this.knob);
-    this.base.hidden = true;
+    const label = document.createElement('span');
+    label.className = 'stick-hint';
+    label.textContent = hint;
+    this.base.append(this.knob, label);
+    this.base.hidden = !this.touchScreen;
     document.body.append(this.base);
+    this.rest();
+    window.addEventListener('resize', () => this.rest());
 
     window.addEventListener('keydown', (e) => {
       if (e.target instanceof HTMLButtonElement) return;
@@ -30,47 +40,83 @@ export class Input {
     });
     window.addEventListener('keyup', (e) => this.keys.delete(e.code));
     window.addEventListener('blur', () => this.keys.clear());
-    el.addEventListener('pointerdown', (e) => this.down(e));
-    el.addEventListener('pointermove', (e) => this.moveTo(e));
-    el.addEventListener('pointerup', (e) => this.up(e));
-    el.addEventListener('pointercancel', (e) => this.up(e));
+
+    // Fingers use touch events, which work in more in-app browsers than pointer events, and the
+    // page keeps them so the app around it does not scroll instead of the walker moving.
+    const opts = { passive: false } as const;
+    el.addEventListener('touchstart', (e) => this.touches(e, 'down'), opts);
+    el.addEventListener('touchmove', (e) => this.touches(e, 'move'), opts);
+    el.addEventListener('touchend', (e) => this.touches(e, 'up'), opts);
+    el.addEventListener('touchcancel', (e) => this.touches(e, 'up'), opts);
+    document.addEventListener('touchmove', (e) => e.preventDefault(), opts);
+
+    el.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'touch') return;
+      el.setPointerCapture(e.pointerId);
+      this.down(e.pointerId, e.clientX, e.clientY, false);
+    });
+    el.addEventListener('pointermove', (e) => {
+      if (e.pointerType !== 'touch') this.moveTo(e.pointerId, e.clientX, e.clientY);
+    });
+    el.addEventListener('pointerup', (e) => this.up(e.pointerId));
+    el.addEventListener('pointercancel', (e) => this.up(e.pointerId));
     el.addEventListener('contextmenu', (e) => e.preventDefault());
   }
 
-  private down(e: PointerEvent): void {
-    this.el.setPointerCapture(e.pointerId);
-    // a finger on the left half of the screen drives the walker; everything else turns the camera
-    if (e.pointerType === 'touch' && e.clientX < window.innerWidth / 2 && this.stick.id < 0) {
-      this.stick = { id: e.pointerId, ox: e.clientX, oy: e.clientY, x: e.clientX, y: e.clientY };
-      this.base.hidden = false;
-      this.base.style.left = `${e.clientX}px`;
-      this.base.style.top = `${e.clientY}px`;
-      this.knob.style.transform = 'translate(-50%, -50%)';
-    } else if (this.look.id < 0) {
-      this.look = { id: e.pointerId, x: e.clientX, y: e.clientY };
+  private touches(e: TouchEvent, kind: 'down' | 'move' | 'up'): void {
+    e.preventDefault();
+    for (const t of Array.from(e.changedTouches)) {
+      // keep touch ids apart from mouse pointer ids
+      const id = 1000 + t.identifier;
+      if (kind === 'down') this.down(id, t.clientX, t.clientY, true);
+      else if (kind === 'move') this.moveTo(id, t.clientX, t.clientY);
+      else this.up(id);
     }
   }
 
-  private moveTo(e: PointerEvent): void {
-    if (e.pointerId === this.stick.id) {
-      this.stick.x = e.clientX;
-      this.stick.y = e.clientY;
+  private rest(): void {
+    this.home = { x: 86, y: window.innerHeight - 150 };
+    if (this.stick.id < 0) this.placeStick(this.home.x, this.home.y);
+  }
+
+  private placeStick(x: number, y: number): void {
+    this.base.style.left = `${x}px`;
+    this.base.style.top = `${y}px`;
+    this.knob.style.transform = 'translate(-50%, -50%)';
+  }
+
+  private down(id: number, x: number, y: number, touch: boolean): void {
+    // a finger on the left half of the screen drives the walker; everything else turns the camera
+    if (touch && x < window.innerWidth / 2 && this.stick.id < 0) {
+      this.stick = { id, ox: x, oy: y, x, y };
+      this.base.classList.add('active');
+      this.placeStick(x, y);
+    } else if (this.look.id < 0) {
+      this.look = { id, x, y };
+    }
+  }
+
+  private moveTo(id: number, x: number, y: number): void {
+    if (id === this.stick.id) {
+      this.stick.x = x;
+      this.stick.y = y;
       const [dx, dy] = this.stickOffset();
       this.knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
-    } else if (e.pointerId === this.look.id) {
-      this.turnX += e.clientX - this.look.x;
-      this.turnY += e.clientY - this.look.y;
-      this.look.x = e.clientX;
-      this.look.y = e.clientY;
+    } else if (id === this.look.id) {
+      this.turnX += x - this.look.x;
+      this.turnY += y - this.look.y;
+      this.look.x = x;
+      this.look.y = y;
     }
   }
 
-  private up(e: PointerEvent): void {
-    if (e.pointerId === this.stick.id) {
+  private up(id: number): void {
+    if (id === this.stick.id) {
       this.stick.id = -1;
-      this.base.hidden = true;
+      this.base.classList.remove('active');
+      this.placeStick(this.home.x, this.home.y);
     }
-    if (e.pointerId === this.look.id) this.look.id = -1;
+    if (id === this.look.id) this.look.id = -1;
   }
 
   private stickOffset(): [number, number] {
