@@ -118,7 +118,7 @@ body {
 .toast {
   position: absolute;
   left: 50%;
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 172px);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 184px);
   transform: translateX(-50%);
   max-width: min(90vw, 420px);
   text-align: center;
@@ -241,4 +241,96 @@ body {
 }
 [hidden] {
   display: none !important;
+}
+.skills {
+  position: absolute;
+  right: calc(env(safe-area-inset-right, 0px) + 106px);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
+  display: grid;
+  gap: 10px;
+}
+.skill {
+  --cd: 0;
+  position: relative;
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  padding: 0;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  font: inherit;
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+.skill-fire {
+  background: radial-gradient(circle at 50% 38%, #ffe7a3 0 12%, #ff8a1e 34%, #b8320d 72%, #6d1a07);
+}
+.skill-water {
+  background: radial-gradient(circle at 50% 38%, #f0fcff 0 12%, #58b8f0 34%, #1c5fae 72%, #0f3666);
+}
+.skill-orb {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  /* the dark wedge shows how long until the skill is ready again */
+  background: conic-gradient(rgba(10, 14, 20, 0.62) calc(var(--cd) * 1turn), transparent 0);
+}
+.skill-name {
+  position: relative;
+  margin-top: 30px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+}
+.skill[data-ready='true'] {
+  border-color: #fff;
+}
+.skill:active {
+  transform: scale(0.94);
+}
+.skill:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 2px;
+}
+.hpbar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 56px;
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(20, 24, 28, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  overflow: hidden;
+}
+.hpfill {
+  height: 100%;
+  background: linear-gradient(#ffd25c, #f0a020);
+  transition: width 0.2s;
+}
+.dmg {
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-weight: 800;
+  font-size: 22px;
+  line-height: 1;
+  white-space: nowrap;
+  -webkit-text-stroke: 1px rgba(30, 20, 10, 0.55);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.45);
+}
+.dmg-fire {
+  color: #ffcf4a;
+  font-size: 26px;
+}
+.dmg-water {
+  color: #c9f1ff;
+}
+.dmg-melt {
+  color: #fff;
+  font-size: 18px;
 }

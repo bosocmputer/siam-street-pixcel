@@ -9,6 +9,9 @@ import { buildPlaza } from './plaza';
 import { SlimeHerd, loadSlime } from './slime';
 import { pointInPolygon } from './geo';
 import { buildWorld, gateTowers } from './world';
+import { Combat } from './combat';
+import { Fx } from './fx';
+import { SKILLS, type Element, type Vec3 } from './skills';
 import './style.css';
 
 type Mode = 'walk' | 'run' | 'bike';
@@ -157,6 +160,10 @@ async function start(): Promise<void> {
     });
     city.add(herd.object);
   }
+  // skill effects and shots live in the city too, so they shrink with it
+  const fx = new Fx();
+  city.add(fx.object);
+  const combat = herd ? new Combat(fx, herd, collider, city) : null;
   scene.add(city);
   const { body: walker, bike } = makeWalker();
   scene.add(walker);
@@ -193,6 +200,31 @@ async function start(): Promise<void> {
   const top = el('div', 'top');
   top.append(el('div', 'title', TH.title), near, chips);
   hud.append(top, modes, toast, credit);
+
+  // skill buttons (a test layout, to try the effects) and the target's health bar
+  const skills = el('div', 'skills');
+  const skillButtons = new Map<Element, HTMLButtonElement>();
+  if (combat) {
+    for (const e of ['fire', 'water'] as const) {
+      const b = el('button', `skill skill-${e}`);
+      b.type = 'button';
+      b.dataset.skill = e;
+      b.append(el('span', 'skill-orb'), el('span', 'skill-name', TH.skills[e]));
+      b.addEventListener('click', () => {
+        castSkill(e);
+        b.blur(); // keep the keyboard for walking
+      });
+      skills.append(b);
+      skillButtons.set(e, b);
+    }
+    hud.append(skills);
+  }
+  const hpBar = el('div', 'hpbar');
+  const hpFill = el('div', 'hpfill');
+  hpBar.append(hpFill);
+  hpBar.hidden = true;
+  hud.append(hpBar);
+  const numbers: { e: HTMLElement; at: Vec3; t: number }[] = [];
 
   let toastTimer = 0;
   const say = (text: string) => {
@@ -354,6 +386,110 @@ async function start(): Promise<void> {
     minimap.draw(state.x, state.z, state.heading, state.labels, herd?.dots());
   };
 
+  /** the camera's forward direction as a heading (0 = +z), which is where "in front" is */
+  const lookHeading = () => Math.atan2(-Math.sin(state.yaw), -Math.cos(state.yaw));
+  const castSkill = (e: Element) => {
+    if (!combat) return;
+    const s = state.scale;
+    const me = { x: state.x, z: state.z, heading: lookHeading() };
+    combat.ensureTarget(me);
+    // turn to the target (or keep looking ahead) and throw from the right hand
+    const aim = combat.facing();
+    let fx = Math.sin(me.heading),
+      fz = Math.cos(me.heading);
+    if (aim) {
+      const d = Math.hypot(aim[0] - state.x, aim[2] - state.z) || 1;
+      fx = (aim[0] - state.x) / d;
+      fz = (aim[2] - state.z) / d;
+    }
+    if (combat.cooldowns[e] > 0) return;
+    state.heading = Math.atan2(-fx, -fz);
+    walker.rotation.y = state.heading;
+    const hand: Vec3 = [
+      state.x + (fx * 0.35 - fz * 0.3) / s,
+      1.25 / s,
+      state.z + (fz * 0.35 + fx * 0.3) / s,
+    ];
+    combat.cast(e, hand, { ...me, heading: Math.atan2(fx, fz) });
+  };
+
+  /** pick the slime nearest to a tap on the screen, if one is close enough */
+  const tapSlime = (sx: number, sy: number) => {
+    if (!herd || !combat) return;
+    let best: number | null = null;
+    let bestD = Math.max(48, Math.min(window.innerWidth, window.innerHeight) * 0.12);
+    for (let i = 0; i < herd.count; i++) {
+      const p = screenOf(herd.aimPoint(i));
+      if (!p) continue;
+      const d = Math.hypot(p[0] - sx, p[1] - sy);
+      if (d < bestD) {
+        bestD = d;
+        best = i;
+      }
+    }
+    if (best !== null) combat.target = best;
+  };
+  const screenOf = (p: Vec3 | null): [number, number] | null => {
+    if (!p) return null;
+    v.set(p[0] * state.scale, p[1] * state.scale, p[2] * state.scale).project(camera);
+    if (v.z > 1) return null;
+    return [((v.x + 1) / 2) * window.innerWidth, ((1 - v.y) / 2) * window.innerHeight];
+  };
+
+  // a hit stops time for a blink and shakes the camera, so it feels heavy
+  let freeze = 0;
+  let shake = 0;
+  let paused = false;
+  const fight = (dt: number) => {
+    herd?.update(dt, state);
+    for (const n of numbers) n.t += dt;
+    for (const h of combat?.update(dt) ?? []) {
+      freeze = Math.max(freeze, h.element === 'fire' ? 0.08 : 0.04);
+      shake = Math.max(shake, h.element === 'fire' ? 0.22 : 0.09);
+      // numbers pop out above the slime, a little to one side so they do not stack up
+      const top = (herd?.height ?? 0.9) + 0.35;
+      const side = (Math.random() - 0.5) * 0.8;
+      const n = el('div', `dmg dmg-${h.element}`, String(h.damage));
+      hud.append(n);
+      numbers.push({ e: n, at: [h.at[0] + side, top, h.at[2]], t: 0 });
+      if (h.defeated) {
+        const m = el('div', 'dmg dmg-melt', TH.melted);
+        hud.append(m);
+        numbers.push({ e: m, at: [h.at[0], top + 0.5, h.at[2]], t: -0.15 });
+      }
+    }
+    fx.update(dt, camera, canvas.height, state.scale);
+  };
+
+  const updateCombatHud = () => {
+    if (!combat || !herd) return;
+    for (const [e, b] of skillButtons) {
+      const left = combat.cooldowns[e] / SKILLS[e].cooldown;
+      b.style.setProperty('--cd', left.toFixed(3));
+      b.dataset.ready = String(left === 0);
+    }
+    const t = combat.target;
+    const top = t !== null ? herd.aimPoint(t) : null;
+    const at = top ? screenOf([top[0], herd.height + 1.35, top[2]]) : null;
+    hpBar.hidden = !at;
+    if (at && t !== null) {
+      hpBar.style.transform = `translate(-50%, -100%) translate(${at[0]}px, ${at[1]}px)`;
+      hpFill.style.width = `${herd.hp(t)}%`;
+    }
+    for (let i = numbers.length - 1; i >= 0; i--) {
+      const n = numbers[i]!;
+      const k = Math.max(0, n.t) / 0.9;
+      const p = screenOf([n.at[0], n.at[1] + k * 1.2, n.at[2]]);
+      if (k >= 1 || !p) {
+        n.e.remove();
+        numbers.splice(i, 1);
+        continue;
+      }
+      n.e.style.opacity = n.t < 0 ? '0' : String(Math.min(1, (1 - k) * 2.5));
+      n.e.style.transform = `translate(-50%, -50%) translate(${p[0]}px, ${p[1]}px) scale(${1 + Math.max(0, 0.25 - k) * 2})`;
+    }
+  };
+
   let last = performance.now();
   let lastTick = last;
   const tick = () => {
@@ -369,16 +505,29 @@ async function start(): Promise<void> {
         ['Digit3', 'bike'],
       ] as const)
         if (input.pressed(code)) setMode(m);
+      if (input.pressed('KeyQ')) castSkill('fire');
+      if (input.pressed('KeyE')) castSkill('water');
+      if (input.pressed('Tab'))
+        combat?.cycleTarget({ x: state.x, z: state.z, heading: lookHeading() });
+      for (const [sx, sy] of input.takeTaps()) tapSlime(sx, sy);
       const [tx, ty] = input.takeTurn();
       state.yaw -= tx * 0.006;
       state.pitch = Math.min(1.25, Math.max(0.12, state.pitch + ty * 0.004));
       const { forward, right } = input.read();
       step(dt, forward, right);
       bob(dt, forward !== 0 || right !== 0);
-      herd?.update(dt, state);
+      const worldDt = paused ? 0 : freeze > 0 ? dt * 0.08 : dt;
+      freeze = Math.max(0, freeze - dt);
+      fight(worldDt);
       place();
+      if (shake > 0.002) {
+        camera.position.x += (Math.random() - 0.5) * shake;
+        camera.position.y += (Math.random() - 0.5) * shake;
+        shake *= Math.exp(-dt * 12);
+      }
       renderer.render(scene, camera);
       updateHud();
+      updateCombatHud();
     } catch (err) {
       // one bad frame should not freeze the game
       console.error(err);
@@ -439,6 +588,20 @@ async function start(): Promise<void> {
       simulateSlimes: (seconds: number) => {
         for (let t = 0; t < seconds; t += 1 / 30) herd?.update(1 / 30, state);
       },
+      /** slimes, shots and effects together for a number of seconds, in 1/30 s steps */
+      simulateFight: (seconds: number) => {
+        for (let t = 0; t < seconds; t += 1 / 30) fight(1 / 30);
+      },
+      cast: (e: Element) => castSkill(e),
+      combat: () =>
+        combat
+          ? { target: combat.target, cooldowns: { ...combat.cooldowns }, inFlight: combat.inFlight }
+          : null,
+      setTarget: (i: number | null) => combat && (combat.target = i),
+      /** where slime i is on the screen, in CSS pixels */
+      slimeOnScreen: (i: number) => screenOf(herd?.aimPoint(i) ?? null),
+      /** stop the world (not the camera) so a screenshot catches a moment */
+      pause: (p: boolean) => (paused = p),
       slimeTriangles: slimeTemplate?.triangles ?? 0,
       plaza: plaza ? { area: Math.round(plaza.area), span: plaza.span } : null,
       landmarks: world.landmarks,

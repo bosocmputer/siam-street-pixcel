@@ -124,3 +124,53 @@ export function stepBrain(
     b.wait = 2 + w.rng() * 4;
   }
 }
+
+/** A slime's health. Hit points, and how long each stage after a hit lasts (seconds). */
+export const VITALS = { hp: 100, hurt: 0.35, melt: 0.9, respawn: 5, grow: 0.5 };
+
+/** alive → (hit) hurt → alive, or → (out of hp) melting → gone → growing back at home → alive */
+export type Life = 'alive' | 'hurt' | 'melting' | 'gone' | 'growing';
+
+export interface Vitals {
+  hp: number;
+  life: Life;
+  /** seconds left in the current stage (unused while alive) */
+  timer: number;
+}
+
+export const newVitals = (): Vitals => ({ hp: VITALS.hp, life: 'alive', timer: 0 });
+
+/** Can a shot hit it? Not while it is melting away, gone or still growing back. */
+export const hittable = (v: Vitals): boolean => v.life === 'alive' || v.life === 'hurt';
+
+/** Take a hit. Returns what happened. */
+export function damage(v: Vitals, amount: number): 'hurt' | 'defeated' | 'ignored' {
+  if (!hittable(v)) return 'ignored';
+  v.hp = Math.max(0, v.hp - amount);
+  if (v.hp === 0) {
+    v.life = 'melting';
+    v.timer = VITALS.melt;
+    return 'defeated';
+  }
+  v.life = 'hurt';
+  v.timer = VITALS.hurt;
+  return 'hurt';
+}
+
+/** Move the stages along; returns the new stage when it changes, else null. */
+export function stepVitals(v: Vitals, dt: number): Life | null {
+  if (v.life === 'alive') return null;
+  v.timer -= dt;
+  if (v.timer > 0) return null;
+  const next: Record<Exclude<Life, 'alive'>, [Life, number]> = {
+    hurt: ['alive', 0],
+    melting: ['gone', VITALS.respawn],
+    gone: ['growing', VITALS.grow],
+    growing: ['alive', 0],
+  };
+  const [life, timer] = next[v.life];
+  v.life = life;
+  v.timer = timer;
+  if (life === 'growing') v.hp = VITALS.hp;
+  return life;
+}

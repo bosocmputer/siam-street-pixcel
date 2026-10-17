@@ -7,6 +7,8 @@ export interface InputState {
 
 export class Input {
   private keys = new Set<string>();
+  /** keys pressed since the game last asked, kept even if already let go */
+  private hits = new Set<string>();
   // ids are null when no finger is on them: touch ids from iPhones can be negative, so -1 is no good
   private stick: { id: number | null; ox: number; oy: number; x: number; y: number } = {
     id: null,
@@ -16,6 +18,9 @@ export class Input {
     y: 0,
   };
   private look: { id: number | null; x: number; y: number } = { id: null, x: 0, y: 0 };
+  /** where and when each finger or button went down, to tell a tap from a drag */
+  private downs = new Map<number, { x: number; y: number; t: number; far: boolean }>();
+  private taps: [number, number][] = [];
   /** camera turn accumulated since the last read, in pixels */
   private turnX = 0;
   private turnY = 0;
@@ -42,8 +47,10 @@ export class Input {
     window.addEventListener('resize', () => this.rest());
 
     window.addEventListener('keydown', (e) => {
-      if (e.target instanceof HTMLButtonElement) return;
+      if (e.code === 'Tab') e.preventDefault(); // Tab picks the next target, not the next button
+      if (e.target instanceof HTMLButtonElement && e.code !== 'Tab') return;
       this.keys.add(e.code);
+      if (!e.repeat) this.hits.add(e.code);
     });
     window.addEventListener('keyup', (e) => this.keys.delete(e.code));
     window.addEventListener('blur', () => this.keys.clear());
@@ -93,6 +100,7 @@ export class Input {
   }
 
   private down(id: number, x: number, y: number, touch: boolean): void {
+    this.downs.set(id, { x, y, t: performance.now(), far: false });
     // a finger on the left half of the screen drives the walker; everything else turns the camera
     if (touch && x < window.innerWidth / 2 && this.stick.id === null) {
       this.stick = { id, ox: x, oy: y, x, y };
@@ -104,6 +112,8 @@ export class Input {
   }
 
   private moveTo(id: number, x: number, y: number): void {
+    const d = this.downs.get(id);
+    if (d && Math.hypot(x - d.x, y - d.y) > 12) d.far = true;
     if (id === this.stick.id) {
       this.stick.x = x;
       this.stick.y = y;
@@ -118,6 +128,9 @@ export class Input {
   }
 
   private up(id: number): void {
+    const d = this.downs.get(id);
+    this.downs.delete(id);
+    if (d && !d.far && performance.now() - d.t < 350) this.taps.push([d.x, d.y]);
     if (id === this.stick.id) {
       this.stick.id = null;
       this.base.classList.remove('active');
@@ -166,9 +179,16 @@ export class Input {
     return t;
   }
 
+  /** Quick taps or clicks (screen pixels) since the last call. */
+  takeTaps(): [number, number][] {
+    const t = this.taps;
+    this.taps = [];
+    return t;
+  }
+
   pressed(code: string): boolean {
-    if (!this.keys.has(code)) return false;
-    this.keys.delete(code);
+    if (!this.hits.has(code)) return false;
+    this.hits.delete(code);
     return true;
   }
 }
