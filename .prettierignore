@@ -9,3 +9,5 @@ pnpm-lock.yaml
 *.txt
 .github
 docs/ui/mockup.html
+apps/citywalk/public/world.json
+newgame/*.html
