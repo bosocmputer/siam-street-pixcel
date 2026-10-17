@@ -1,0 +1,17 @@
+{
+  "about": "Keyboard keys (KeyboardEvent.code) for each action. hold = active while held, press = once per press.",
+  "hold": {
+    "forward": ["KeyW", "ArrowUp"],
+    "back": ["KeyS", "ArrowDown"],
+    "left": ["KeyA", "ArrowLeft"],
+    "right": ["KeyD", "ArrowRight"]
+  },
+  "press": {
+    "skill1": ["KeyQ"],
+    "skill2": ["KeyE"],
+    "target": ["Tab"],
+    "walk": ["Digit1"],
+    "run": ["Digit2"],
+    "bike": ["Digit3"]
+  }
+}

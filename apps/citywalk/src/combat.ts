@@ -16,7 +16,7 @@ import {
   type Element,
   type Shot,
   type Vec3,
-} from './skills';
+} from '@newgame/rpg-core';
 
 /** height of the paved square, where bursts and stains sit */
 const GROUND = 0.04;

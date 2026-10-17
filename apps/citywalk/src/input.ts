@@ -1,4 +1,8 @@
-// Keyboard, mouse and touch. Reports a movement vector (forward, right in -1..1) and camera turns.
+// Keyboard, mouse and touch. Keys become actions (config/controls.json in rpg-core), and on-screen
+// buttons send the same actions through trigger(). Reports a movement vector (forward, right in
+// -1..1), camera turns and taps.
+
+import { BINDINGS, moveFrom, type HoldAction, type PressAction } from '@newgame/rpg-core';
 
 export interface InputState {
   forward: number;
@@ -6,9 +10,10 @@ export interface InputState {
 }
 
 export class Input {
-  private keys = new Set<string>();
-  /** keys pressed since the game last asked, kept even if already let go */
-  private hits = new Set<string>();
+  /** movement actions held down right now, with the keys holding them */
+  private held = new Map<string, HoldAction>();
+  /** actions pressed since the game last asked, kept even if the key is already let go */
+  private presses = new Set<PressAction>();
   // ids are null when no finger is on them: touch ids from iPhones can be negative, so -1 is no good
   private stick: { id: number | null; ox: number; oy: number; x: number; y: number } = {
     id: null,
@@ -47,13 +52,16 @@ export class Input {
     window.addEventListener('resize', () => this.rest());
 
     window.addEventListener('keydown', (e) => {
-      if (e.code === 'Tab') e.preventDefault(); // Tab picks the next target, not the next button
-      if (e.target instanceof HTMLButtonElement && e.code !== 'Tab') return;
-      this.keys.add(e.code);
-      if (!e.repeat) this.hits.add(e.code);
+      const press = BINDINGS.press.get(e.code);
+      // Tab picks the next target, not the next button
+      if (press === 'target') e.preventDefault();
+      if (e.target instanceof HTMLButtonElement && press !== 'target') return;
+      const hold = BINDINGS.hold.get(e.code);
+      if (hold) this.held.set(e.code, hold);
+      if (press && !e.repeat) this.presses.add(press);
     });
-    window.addEventListener('keyup', (e) => this.keys.delete(e.code));
-    window.addEventListener('blur', () => this.keys.clear());
+    window.addEventListener('keyup', (e) => this.held.delete(e.code));
+    window.addEventListener('blur', () => this.held.clear());
 
     // Fingers use touch events, which work in more in-app browsers than pointer events, and the
     // page keeps them so the app around it does not scroll instead of the walker moving.
@@ -152,23 +160,14 @@ export class Input {
   }
 
   read(): InputState {
-    let forward = 0,
-      right = 0;
-    if (this.keys.has('KeyW') || this.keys.has('ArrowUp')) forward += 1;
-    if (this.keys.has('KeyS') || this.keys.has('ArrowDown')) forward -= 1;
-    if (this.keys.has('KeyD') || this.keys.has('ArrowRight')) right += 1;
-    if (this.keys.has('KeyA') || this.keys.has('ArrowLeft')) right -= 1;
     if (this.stick.id !== null) {
       const [dx, dy] = this.stickOffset();
-      forward = -dy / 48;
-      right = dx / 48;
+      const forward = -dy / 48,
+        right = dx / 48;
+      const len = Math.hypot(forward, right);
+      return len > 1 ? { forward: forward / len, right: right / len } : { forward, right };
     }
-    const len = Math.hypot(forward, right);
-    if (len > 1) {
-      forward /= len;
-      right /= len;
-    }
-    return { forward, right };
+    return moveFrom(new Set(this.held.values()));
   }
 
   /** Camera drag since the last call, in pixels. */
@@ -186,9 +185,13 @@ export class Input {
     return t;
   }
 
-  pressed(code: string): boolean {
-    if (!this.hits.has(code)) return false;
-    this.hits.delete(code);
-    return true;
+  /** An on-screen button asks for an action, the same as its key would. */
+  trigger(action: PressAction): void {
+    this.presses.add(action);
+  }
+
+  /** Was this action asked for since the last call? Asking clears it. */
+  pressed(action: PressAction): boolean {
+    return this.presses.delete(action);
   }
 }

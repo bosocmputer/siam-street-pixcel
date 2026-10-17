@@ -10,8 +10,8 @@ import {
   tickCooldowns,
   useSkill,
   type Vec3,
-} from './skills';
-import { VITALS, damage, hittable, newVitals, stepVitals } from './slimeBrain';
+} from '../src/skills';
+import { VITALS, damage, hittable, newVitals, stepVitals } from '../src/slimeBrain';
 
 const dist = (a: Vec3, b: Vec3) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 

@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { fetchModel } from './assets';
 import {
   VITALS,
   damage,
@@ -15,7 +14,7 @@ import {
   type SlimeBrain,
   type SlimeMode,
   type Vitals,
-} from './slimeBrain';
+} from '@newgame/rpg-core';
 
 // The creator's slime (public/models/slime_aquanaut.glb). Its own clips are used as they are:
 // Idle, Jumping (hops in place), Squishing and Attacking. The game moves the whole slime around.
@@ -72,8 +71,8 @@ function mergeInto(parent: THREE.Object3D, parts: THREE.Mesh[], name: string): v
  * sparkles, the dotted mouth) get fewer triangles, and the mouth dots and each eye's sparkles are
  * merged into one mesh each.
  */
-export async function loadSlime(url: string): Promise<SlimeTemplate> {
-  const gltf = await new GLTFLoader().parseAsync(await fetchModel(url), '');
+export async function loadSlime(bytes: ArrayBuffer): Promise<SlimeTemplate> {
+  const gltf = await new GLTFLoader().parseAsync(bytes, '');
   const scene = gltf.scene;
   scene.traverse((o) => {
     if (!(o instanceof THREE.Mesh)) return;

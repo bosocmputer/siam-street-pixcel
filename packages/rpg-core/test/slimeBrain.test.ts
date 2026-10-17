@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { HOP, NEAR, airborne, newBrain, seeded, stepBrain, type BrainWorld } from './slimeBrain';
+import { seeded } from '../src/rng';
+import { HOP, NEAR, airborne, newBrain, stepBrain, type BrainWorld } from '../src/slimeBrain';
 
 const far = { x: 1000, z: 1000 };
 const open: BrainWorld = {

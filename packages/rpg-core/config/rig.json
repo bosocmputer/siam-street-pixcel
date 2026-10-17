@@ -1,0 +1,101 @@
+{
+  "about": "Character_Base.glb skeleton. Metres, +Y up, the character faces +Z, its left hand is +X. Positions are where each joint sits in the rest pose, measured from the ground between the feet. Every joint has no rotation and scale 1 in the rest pose.",
+  "height": 1.7,
+  "joints": [
+    { "name": "Root", "parent": null, "at": [0, 0, 0] },
+    { "name": "Hips", "parent": "Root", "at": [0, 0.95, 0] },
+    { "name": "Spine", "parent": "Hips", "at": [0, 1.05, 0] },
+    { "name": "Chest", "parent": "Spine", "at": [0, 1.22, 0] },
+    { "name": "Neck", "parent": "Chest", "at": [0, 1.46, 0] },
+    { "name": "Head", "parent": "Neck", "at": [0, 1.52, 0] },
+    { "name": "Shoulder_L", "parent": "Chest", "at": [0.1, 1.42, 0] },
+    { "name": "UpperArm_L", "parent": "Shoulder_L", "at": [0.24, 1.4, 0] },
+    { "name": "LowerArm_L", "parent": "UpperArm_L", "at": [0.25, 1.11, 0] },
+    { "name": "Hand_L", "parent": "LowerArm_L", "at": [0.26, 0.85, 0] },
+    { "name": "Shoulder_R", "parent": "Chest", "at": [-0.1, 1.42, 0] },
+    { "name": "UpperArm_R", "parent": "Shoulder_R", "at": [-0.24, 1.4, 0] },
+    { "name": "LowerArm_R", "parent": "UpperArm_R", "at": [-0.25, 1.11, 0] },
+    { "name": "Hand_R", "parent": "LowerArm_R", "at": [-0.26, 0.85, 0] },
+    { "name": "UpperLeg_L", "parent": "Hips", "at": [0.1, 0.92, 0] },
+    { "name": "LowerLeg_L", "parent": "UpperLeg_L", "at": [0.1, 0.5, 0] },
+    { "name": "Foot_L", "parent": "LowerLeg_L", "at": [0.1, 0.08, 0] },
+    { "name": "UpperLeg_R", "parent": "Hips", "at": [-0.1, 0.92, 0] },
+    { "name": "LowerLeg_R", "parent": "UpperLeg_R", "at": [-0.1, 0.5, 0] },
+    { "name": "Foot_R", "parent": "LowerLeg_R", "at": [-0.1, 0.08, 0] }
+  ],
+  "sockets": [
+    { "name": "Socket_Head", "parent": "Head", "at": [0, 1.7, 0] },
+    { "name": "Socket_Hand_L", "parent": "Hand_L", "at": [0.26, 0.77, 0] },
+    { "name": "Socket_Hand_R", "parent": "Hand_R", "at": [-0.26, 0.77, 0] }
+  ],
+  "parts": [
+    { "name": "Body_Head", "joint": "Head", "box": [0.19, 0.2, 0.22], "from": [0, 1.5, 0] },
+    { "name": "Body_Neck", "joint": "Neck", "box": [0.09, 0.08, 0.09], "from": [0, 1.44, 0] },
+    { "name": "Body_Chest", "joint": "Chest", "box": [0.36, 0.24, 0.22], "from": [0, 1.2, 0] },
+    { "name": "Body_Spine", "joint": "Spine", "box": [0.32, 0.17, 0.2], "from": [0, 1.03, 0] },
+    { "name": "Body_Hips", "joint": "Hips", "box": [0.32, 0.14, 0.2], "from": [0, 0.89, 0] },
+    {
+      "name": "Body_UpperArm_L",
+      "joint": "UpperArm_L",
+      "box": [0.1, 0.29, 0.1],
+      "from": [0.245, 1.11, 0]
+    },
+    {
+      "name": "Body_LowerArm_L",
+      "joint": "LowerArm_L",
+      "box": [0.09, 0.26, 0.09],
+      "from": [0.255, 0.85, 0]
+    },
+    {
+      "name": "Body_Hand_L",
+      "joint": "Hand_L",
+      "box": [0.05, 0.17, 0.09],
+      "from": [0.26, 0.68, 0]
+    },
+    {
+      "name": "Body_UpperArm_R",
+      "joint": "UpperArm_R",
+      "box": [0.1, 0.29, 0.1],
+      "from": [-0.245, 1.11, 0]
+    },
+    {
+      "name": "Body_LowerArm_R",
+      "joint": "LowerArm_R",
+      "box": [0.09, 0.26, 0.09],
+      "from": [-0.255, 0.85, 0]
+    },
+    {
+      "name": "Body_Hand_R",
+      "joint": "Hand_R",
+      "box": [0.05, 0.17, 0.09],
+      "from": [-0.26, 0.68, 0]
+    },
+    {
+      "name": "Body_UpperLeg_L",
+      "joint": "UpperLeg_L",
+      "box": [0.15, 0.42, 0.16],
+      "from": [0.1, 0.5, 0]
+    },
+    {
+      "name": "Body_LowerLeg_L",
+      "joint": "LowerLeg_L",
+      "box": [0.12, 0.42, 0.13],
+      "from": [0.1, 0.08, 0]
+    },
+    { "name": "Body_Foot_L", "joint": "Foot_L", "box": [0.1, 0.09, 0.26], "from": [0.1, 0, 0.07] },
+    {
+      "name": "Body_UpperLeg_R",
+      "joint": "UpperLeg_R",
+      "box": [0.15, 0.42, 0.16],
+      "from": [-0.1, 0.5, 0]
+    },
+    {
+      "name": "Body_LowerLeg_R",
+      "joint": "LowerLeg_R",
+      "box": [0.12, 0.42, 0.13],
+      "from": [-0.1, 0.08, 0]
+    },
+    { "name": "Body_Foot_R", "joint": "Foot_R", "box": [0.1, 0.09, 0.26], "from": [-0.1, 0, 0.07] }
+  ],
+  "limits": { "triangles": 6000, "materials": 4, "fileKB": 1024 }
+}

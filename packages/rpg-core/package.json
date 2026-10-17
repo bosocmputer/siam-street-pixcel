@@ -1,0 +1,20 @@
+{
+  "name": "@newgame/rpg-core",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./config/*": "./config/*"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --coverage",
+    "check-model": "vite-node tools/check-model.ts"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "2.1.8",
+    "vitest": "2.1.8",
+    "vite-node": "2.1.8"
+  }
+}

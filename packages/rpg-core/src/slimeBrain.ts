@@ -1,11 +1,52 @@
 // What a wandering slime decides to do each frame. No three.js here so it can be tested on its own.
 
+import monstersJson from '../config/monsters.json';
+import { num, obj } from './config';
+
 export type SlimeMode = 'idle' | 'hop' | 'watch' | 'lunge';
 
+/** Read and check the slime numbers from config/monsters.json. */
+export function readSlime(raw: unknown): {
+  hop: { cycle: number; liftOff: number; land: number; distance: number };
+  near: { watch: number; lunge: number; forget: number };
+  vitals: { hp: number; hurt: number; melt: number; respawn: number; grow: number };
+  wander: number;
+} {
+  const w = 'monsters.slime';
+  const o = obj(obj(raw, 'monsters.json').slime, w);
+  const hop = obj(o.hop, `${w}.hop`);
+  const near = obj(o.near, `${w}.near`);
+  return {
+    hop: {
+      cycle: num(hop, 'cycle', `${w}.hop`, 0.01),
+      liftOff: num(hop, 'liftOff', `${w}.hop`),
+      land: num(hop, 'land', `${w}.hop`),
+      distance: num(hop, 'distance', `${w}.hop`),
+    },
+    near: {
+      watch: num(near, 'watch', `${w}.near`),
+      lunge: num(near, 'lunge', `${w}.near`),
+      forget: num(near, 'forget', `${w}.near`),
+    },
+    vitals: {
+      hp: num(o, 'hp', w, 1),
+      hurt: num(o, 'hurt', w),
+      melt: num(o, 'melt', w),
+      respawn: num(o, 'respawn', w),
+      grow: num(o, 'grow', w),
+    },
+    wander: num(o, 'wander', w),
+  };
+}
+
+const SLIME = readSlime(monstersJson);
+
 /** Timing of the model's Jumping clip: it leaves the ground at liftOff and lands at land (seconds). */
-export const HOP = { cycle: 1.6, liftOff: 0.3, land: 1.12, distance: 1.2 };
+export const HOP = SLIME.hop;
 /** Distances to the walker (metres) where a slime starts watching and lunging. */
-export const NEAR = { watch: 6, lunge: 2.2, forget: 7.5 };
+export const NEAR = SLIME.near;
+/** How far from home a slime wanders, metres. */
+export const WANDER = SLIME.wander;
 
 export interface SlimeBrain {
   x: number;
@@ -38,18 +79,6 @@ export function newBrain(x: number, z: number, wait = 0): SlimeBrain {
 export function airborne(phase: number): boolean {
   const t = phase % HOP.cycle;
   return t >= HOP.liftOff && t < HOP.land;
-}
-
-/** Seeded random numbers (mulberry32), so a herd behaves the same every time it starts. */
-export function seeded(seed: number): () => number {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
 }
 
 export function stepBrain(
@@ -126,7 +155,7 @@ export function stepBrain(
 }
 
 /** A slime's health. Hit points, and how long each stage after a hit lasts (seconds). */
-export const VITALS = { hp: 100, hurt: 0.35, melt: 0.9, respawn: 5, grow: 0.5 };
+export const VITALS = SLIME.vitals;
 
 /** alive → (hit) hurt → alive, or → (out of hp) melting → gone → growing back at home → alive */
 export type Life = 'alive' | 'hurt' | 'melting' | 'gone' | 'growing';

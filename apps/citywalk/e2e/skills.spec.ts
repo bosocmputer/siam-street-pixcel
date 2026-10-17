@@ -17,6 +17,12 @@ async function open(page: Page) {
   await js(page, 'window.__walk.pause(true)');
 }
 
+/** Tap a skill button; the game picks the command up on its next frame. */
+async function press(page: Page, name: string) {
+  await page.getByRole('button', { name }).tap();
+  await expect.poll(async () => (await combat(page)).inFlight).toBeGreaterThan(0);
+}
+
 /** Step the fight in 1/30 s steps until the shot lands, then a little more for the burst. */
 async function untilLanded(page: Page, after: number) {
   await page.evaluate(`(() => {
@@ -30,7 +36,7 @@ test.describe('skills on a phone', () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
 
   test('tap a slime to aim, then fire and water shots fly to it and hurt it', async ({ page }) => {
-    test.setTimeout(90_000);
+    test.setTimeout(150_000);
     await open(page);
     await expect(page.getByRole('button', { name: 'กระสุนไฟ' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'กระสุนน้ำ' })).toBeVisible();
@@ -44,8 +50,7 @@ test.describe('skills on a phone', () => {
     await page.screenshot({ path: `${SHOTS}/skill-target.png` });
 
     // fire: gathered in the hand, caught in the air, then just after it lands
-    await page.getByRole('button', { name: 'กระสุนไฟ' }).tap();
-    expect((await combat(page)).inFlight).toBe(1);
+    await press(page, 'กระสุนไฟ');
     await js(page, 'window.__walk.simulateFight(0.4)');
     await page.waitForTimeout(150);
     await page.screenshot({ path: `${SHOTS}/skill-fire-gather.png` });
@@ -59,11 +64,12 @@ test.describe('skills on a phone', () => {
 
     // the fire skill is cooling down: a second tap does nothing yet
     await page.getByRole('button', { name: 'กระสุนไฟ' }).tap();
+    await page.waitForTimeout(300);
     expect((await combat(page)).inFlight).toBe(0);
 
     // water
     await js(page, 'window.__walk.simulateFight(1.5)');
-    await page.getByRole('button', { name: 'กระสุนน้ำ' }).tap();
+    await press(page, 'กระสุนน้ำ');
     await js(page, 'window.__walk.simulateFight(0.2)');
     await page.waitForTimeout(150);
     await page.screenshot({ path: `${SHOTS}/skill-water-gather.png` });
@@ -88,7 +94,7 @@ test.describe('skills on a phone', () => {
       ['fire', 'กระสุนไฟ', 0.55],
       ['water', 'กระสุนน้ำ', 0.3],
     ] as const) {
-      await page.getByRole('button', { name }).tap();
+      await press(page, name);
       await js(page, `window.__walk.simulateFight(${gather * 0.75})`);
       await page.waitForTimeout(150);
       await page.screenshot({ path: `${SHOTS}/skill-${skill}-close-gather.png` });

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { Element, Vec3 } from './skills';
+import type { Element, Vec3 } from '@newgame/rpg-core';
 
 // Skill effects, all drawn in code: glowing orbs, trails, bursts, rings on the ground and marks
 // left behind. Positions are map metres; the effects live inside the city group so they follow the

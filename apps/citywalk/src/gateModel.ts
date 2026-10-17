@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { fetchModel } from './assets';
 import { clipHalfPlane } from './geo';
 import type { Landmark } from './types';
 
@@ -26,8 +25,8 @@ export interface PlacedModel {
  * Load the model and draw it with far fewer draw calls: parts that share a texture are merged into
  * one mesh, with each part's texture tiling baked into its UVs. It looks the same, only lighter.
  */
-export async function loadModel(url: string): Promise<THREE.Group> {
-  const gltf = await new GLTFLoader().parseAsync(await fetchModel(url), '');
+export async function loadModel(bytes: ArrayBuffer): Promise<THREE.Group> {
+  const gltf = await new GLTFLoader().parseAsync(bytes, '');
   const root = gltf.scene;
   root.updateMatrixWorld(true);
 

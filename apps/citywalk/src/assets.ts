@@ -1,4 +1,25 @@
-// Loading model files that the game ships next to the page.
+// The asset list (public/assets.json) and loading everything on it with progress.
+
+import type { WorldData } from './types';
+
+export interface ModelEntry {
+  id: string;
+  file: string;
+  /** animation names the game needs from the file */
+  clips?: string[];
+}
+
+export interface Manifest {
+  world: string;
+  models: ModelEntry[];
+}
+
+export interface Loaded {
+  world: WorldData;
+  /** file bytes by model id; a model that failed to load is missing */
+  models: Map<string, ArrayBuffer>;
+  manifest: Manifest;
+}
 
 /**
  * The .glb file, or the same bytes as base64 text next to it (`<name>.glb.b64.txt`) for hosts that
@@ -16,4 +37,45 @@ export async function fetchModel(url: string): Promise<ArrayBuffer> {
   const bytes = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
   return bytes.buffer;
+}
+
+async function json<T>(url: string): Promise<T> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`${url}: ${res.status}`);
+  return (await res.json()) as T;
+}
+
+/**
+ * Load the map and every model, reporting how many of them are done. The map is required (this
+ * throws without it); models are optional.
+ */
+export async function loadAssets(progress: (done: number, total: number) => void): Promise<Loaded> {
+  const manifest = await json<Manifest>('./assets.json');
+  const total = 1 + manifest.models.length;
+  let done = 0;
+  const tick = () => progress(++done, total);
+  progress(0, total);
+  const models = new Map<string, ArrayBuffer>();
+  const [world] = await Promise.all([
+    json<WorldData>(`./${manifest.world}`).then((w) => {
+      tick();
+      return w;
+    }),
+    ...manifest.models.map((m) =>
+      fetchModel(`./${m.file}`)
+        .then((bytes) => models.set(m.id, bytes))
+        .catch((err) => console.error(`model ${m.id} skipped:`, err))
+        .finally(tick),
+    ),
+  ]);
+  return { world, models, manifest };
+}
+
+/** Animation names a model entry asks for that the loaded file does not have. */
+export function missingClips(
+  entry: ModelEntry | undefined,
+  have: readonly { name: string }[],
+): string[] {
+  const names = new Set(have.map((c) => c.name));
+  return (entry?.clips ?? []).filter((c) => !names.has(c));
 }

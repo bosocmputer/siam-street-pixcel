@@ -13,6 +13,7 @@
     "e2e": "vite build && playwright test"
   },
   "dependencies": {
+    "@newgame/rpg-core": "workspace:*",
     "three": "0.170.0"
   },
   "devDependencies": {

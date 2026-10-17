@@ -1,5 +1,8 @@
 // Skill shots: what they do and how they fly. No three.js here so it can be tested on its own.
 
+import skillsJson from '../config/skills.json';
+import { num, obj, signed } from './config';
+
 export type Element = 'fire' | 'water';
 
 export interface SkillSpec {
@@ -21,40 +24,53 @@ export interface SkillSpec {
   splash: { radius: number; damage: number } | null;
 }
 
+/** Read and check the skill numbers from config/skills.json. */
+export function readSkills(raw: unknown): {
+  skills: Record<Element, SkillSpec>;
+  autoRange: number;
+  hitRadius: number;
+} {
+  const root = obj(raw, 'skills.json');
+  const list = obj(root.skills, 'skills.json skills');
+  const one = (name: Element): SkillSpec => {
+    const w = `skills.${name}`;
+    const o = obj(list[name], w);
+    const splash = o.splash === null ? null : obj(o.splash, `${w}.splash`);
+    return {
+      damage: num(o, 'damage', w),
+      speed: num(o, 'speed', w, 0.1),
+      cooldown: num(o, 'cooldown', w),
+      range: num(o, 'range', w, 0.1),
+      side: signed(o, 'side', w),
+      lift: signed(o, 'lift', w),
+      knock: num(o, 'knock', w),
+      charge: num(o, 'charge', w),
+      splash: splash && {
+        radius: num(splash, 'radius', `${w}.splash`),
+        damage: num(splash, 'damage', `${w}.splash`),
+      },
+    };
+  };
+  return {
+    skills: { fire: one('fire'), water: one('water') },
+    autoRange: num(root, 'autoRange', 'skills.json'),
+    hitRadius: num(root, 'hitRadius', 'skills.json', 0.01),
+  };
+}
+
+const CONFIG = readSkills(skillsJson);
+
 /**
  * Fire: a big ball of flame gathered in the hand, flies straight and fairly slowly, and bursts
  * wide enough to scorch slimes nearby. Water: drawn together quickly, shot like a short spear of
- * water, very fast, pushes the slime back hard.
+ * water, very fast, pushes the slime back hard. The numbers live in config/skills.json.
  */
-export const SKILLS: Record<Element, SkillSpec> = {
-  fire: {
-    damage: 40,
-    speed: 15,
-    cooldown: 1.6,
-    range: 32,
-    side: 0,
-    lift: 0.04,
-    knock: 0.7,
-    charge: 0.55,
-    splash: { radius: 2.8, damage: 15 },
-  },
-  water: {
-    damage: 20,
-    speed: 34,
-    cooldown: 0.7,
-    range: 32,
-    side: 0,
-    lift: 0,
-    knock: 1.3,
-    charge: 0.3,
-    splash: null,
-  },
-};
+export const SKILLS: Record<Element, SkillSpec> = CONFIG.skills;
 
 /** How far a slime can be and still be picked when no target is chosen. */
-export const AUTO_RANGE = 30;
+export const AUTO_RANGE = CONFIG.autoRange;
 /** a shot this close to a slime's middle hits it */
-export const HIT_RADIUS = 0.6;
+export const HIT_RADIUS = CONFIG.hitRadius;
 
 export type Vec3 = [number, number, number];
 
