@@ -390,6 +390,8 @@ async function start(): Promise<void> {
             scale: placed.scale,
             solids: placed.solids.length,
             meshes: placed.object.children[0]!.children.length,
+            opening: placed.object.children[0]!.userData.opening as number,
+            forts: world.forts.length,
           }
         : null,
       drawCalls: () => renderer.info.render.calls,

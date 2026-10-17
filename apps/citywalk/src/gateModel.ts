@@ -7,8 +7,8 @@ import type { Landmark } from './types';
 // The creator's model of Tha Phae Gate (public/models/thaphae_gate.glb). We only move, turn and
 // scale it to fit the map; its shapes and materials are kept as they are.
 
-/** gap between the two gate pillars in the model, in model metres */
-const MODEL_OPENING = 4.0;
+/** gap between the gate pillars when the model does not tell us, in model metres */
+const DEFAULT_OPENING = 4.0;
 /** names of the model parts the walker should bump into */
 const SOLID_PARTS = /^(Main_Pillar|Pillar_Base1|Wall_Body|Wall_Base)_/;
 
@@ -105,6 +105,13 @@ export async function loadModel(url: string): Promise<THREE.Group> {
     const box = new THREE.Box3().setFromObject(m);
     return [box.min.x, box.min.z, box.max.x, box.max.z];
   });
+  // the opening is the space between the inner faces of the two main pillars
+  const left = root.getObjectByName('Main_Pillar_Left');
+  const right = root.getObjectByName('Main_Pillar_Right');
+  out.userData.opening =
+    left && right
+      ? new THREE.Box3().setFromObject(right).min.x - new THREE.Box3().setFromObject(left).max.x
+      : DEFAULT_OPENING;
   return out;
 }
 
@@ -164,15 +171,18 @@ export function placeModel(
       if (v <= tGate) before = Math.max(before, v);
       else after = Math.min(after, v);
     }
-  const gap = Number.isFinite(before) && Number.isFinite(after) ? after - before : MODEL_OPENING;
+  const opening = (model.userData.opening as number | undefined) ?? DEFAULT_OPENING;
+  const gap = Number.isFinite(before) && Number.isFinite(after) ? after - before : opening;
   const tMid = Number.isFinite(before) && Number.isFinite(after) ? (before + after) / 2 : tGate;
-  const scale = Math.min(1.3, Math.max(0.9, gap / MODEL_OPENING));
+  // a model built to the map's size stays at its true size; others are scaled to fit the gap
+  const fit = gap / opening;
+  const scale = Math.abs(fit - 1) < 0.05 ? 1 : Math.min(1.3, Math.max(0.8, fit));
   // on the middle line of the wall, at the middle of the gap
   const px = cx + ax * tMid;
   const pz = cz + az * tMid;
-  // half the model's length along the wall, in map metres (measured before it is moved)
   const local = new THREE.Box3().setFromObject(model);
-  const half = Math.max(Math.abs(local.min.x), Math.abs(local.max.x)) * scale;
+  // how far the model reaches along the wall on each side, in map metres
+  const reach = { pos: local.max.x * scale, neg: -local.min.x * scale };
 
   const object = new THREE.Group();
   object.add(model);
@@ -207,6 +217,7 @@ export function placeModel(
     for (let i = 0; i < f.length; i += 2) sum += along(f[i]!, f[i + 1]!);
     const side = sum >= 0 ? 1 : -1;
     // keep the part of the wall piece beyond the model's end on its own side
+    const half = side > 0 ? reach.pos : reach.neg;
     const cut = clipHalfPlane(f, side * ax, side * az, side * (ax * px + az * pz) + half);
     if (cut.length) trimmed.push(cut);
   }
