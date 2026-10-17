@@ -1,0 +1,201 @@
+<title>แผนที่จริง 3D เชียงใหม่</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=IBM+Plex+Sans+Thai:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a surveyor's field report — one narrow reading column, contour-line header, tables as map legends */
+:root{
+  --paper:#f3f5f1; --ink:#17231f; --muted:#5a6b64; --line:#cfd8d2;
+  --river:#1f6f9a; --terrain:#4f7a3a; --warn:#b5541c; --card:#ffffff;
+  --display:"Chakra Petch","IBM Plex Sans Thai",system-ui,sans-serif;
+  --body:"IBM Plex Sans Thai",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#111816; --ink:#e3ebe6; --muted:#93a59d; --line:#2a3833;
+  --river:#6cb8e0; --terrain:#9cc77f; --warn:#f0965c; --card:#18221f; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#111816; --ink:#e3ebe6; --muted:#93a59d; --line:#2a3833;
+  --river:#6cb8e0; --terrain:#9cc77f; --warn:#f0965c; --card:#18221f; color-scheme:dark}
+body{background:var(--paper);color:var(--ink);font:16px/1.75 var(--body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 64px}
+main{max-width:46rem;margin:0 auto;display:grid;gap:44px}
+header{position:relative;padding-block:40px 8px;overflow:hidden}
+header svg.contours{position:absolute;inset:0;width:100%;height:100%;z-index:0;opacity:.55}
+header>*:not(svg){position:relative;z-index:1}
+.eyebrow{font:500 12px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--river)}
+h1{font:700 clamp(30px,6vw,46px)/1.15 var(--display);margin:12px 0 10px;text-wrap:balance}
+h2{font:700 24px/1.3 var(--display);margin:0 0 12px;text-wrap:balance;display:flex;gap:12px;align-items:baseline}
+h2 .n{font:500 13px var(--mono);color:var(--muted)}
+.meta{color:var(--muted);font-size:14px}
+p{margin:0 0 12px}
+ul,ol{margin:0;padding-left:1.3em;display:grid;gap:8px}
+a{color:var(--river)}
+a:focus-visible{outline:2px solid var(--river);outline-offset:2px}
+.verdict{display:grid;gap:10px;margin:0;padding:0;list-style:none}
+.verdict li{display:grid;grid-template-columns:88px 1fr;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+.verdict b{font:600 13px var(--mono);color:var(--terrain)}
+.verdict li.no b{color:var(--warn)}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:6px;background:var(--card)}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:14.5px}
+th,td{text-align:left;vertical-align:top;padding:10px 12px;border-bottom:1px solid var(--line)}
+th{font:600 12px var(--mono);letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
+tr:last-child td{border-bottom:0}
+.ok{color:var(--terrain);font-weight:600}.bad{color:var(--warn);font-weight:600}
+.ref{font:500 11px var(--mono);color:var(--muted);vertical-align:super}
+.callout{border-left:3px solid var(--river);padding:4px 0 4px 16px}
+.route{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:16px}
+.route svg{width:100%;height:auto;display:block}
+.route svg text{fill:var(--ink);font:13px var(--body)}
+.route svg .sub{fill:var(--muted);font:11px var(--mono)}
+.steps{counter-reset:s;list-style:none;padding:0;gap:14px}
+.steps li{counter-increment:s;display:grid;grid-template-columns:36px 1fr;gap:10px}
+.steps li::before{content:counter(s);font:700 18px/1.5 var(--display);color:var(--river)}
+.q li{padding-left:2px}
+.sources{font:13px/1.6 var(--mono);color:var(--muted);display:grid;gap:4px}
+.sources a{word-break:break-all}
+@media (prefers-reduced-motion:no-preference){header svg.contours path{stroke-dasharray:6 4;animation:drift 40s linear infinite}}
+@keyframes drift{to{stroke-dashoffset:-200}}
+</style>
+
+<main>
+<header>
+  <svg class="contours" viewBox="0 0 400 200" preserveAspectRatio="none" aria-hidden="true">
+    <g fill="none" stroke="var(--line)" stroke-width="1.2">
+      <path d="M-10 160 C80 120 140 175 220 140 S340 90 420 120"/>
+      <path d="M-10 130 C70 95 150 150 230 112 S330 60 420 88"/>
+      <path d="M-10 100 C90 70 150 120 240 84 S320 34 420 58"/>
+      <path d="M-10 70 C100 45 160 92 250 58 S320 10 420 28"/>
+    </g>
+    <path d="M300 -10 C280 60 330 110 290 210" fill="none" stroke="var(--river)" stroke-width="2.5" opacity=".5"/>
+  </svg>
+  <div class="eyebrow">รายงานค้นคว้า · 17 ต.ค. 2569</div>
+  <h1>เกม 3D แอ็กชันบนแผนที่จริงของไทย เริ่มที่เชียงใหม่</h1>
+  <p class="meta">desk research ยังไม่ได้ทดลองสร้างจริง และยังไม่ได้คุยกับผู้เล่น · ไฟล์ใน repo: newgame/real_map_research.md</p>
+</header>
+
+<section>
+  <h2><span class="n">1</span>คำตอบสั้น</h2>
+  <ul class="verdict">
+    <li><b>ไอเดีย</b><span>มีจุดแข็งจริง คนเห็นคูเมือง ดอย ตลาดที่ตัวเองรู้จักในเกมแล้วอยากแชร์ ยังไม่พบเกมไทยที่ทำ 3D บนแผนที่จริงแบบนี้ (ผลค้นหาไม่พอจะบอกว่าไม่มีเลย)</span></li>
+    <li><b>ข้อมูล</b><span>ถนน ตึก แม่น้ำ ความสูงภูเขา หาได้ฟรีจาก OpenStreetMap และข้อมูลดาวเทียม</span></li>
+    <li class="no"><b>ภาพ Google</b><span>ภาพ 3D แบบ Google Earth เอามาใส่เกมไม่ได้ ต้องดึงสดเท่านั้น ห้ามเก็บไว้ในเกม</span></li>
+    <li class="no"><b>ขนาด</b><span>“3D สมจริง + ทั้งประเทศ + MMORPG” พร้อมกัน คือโครงการงบหลายพันล้านบาท ทีมหลักร้อยคน 2–4 ปี</span></li>
+    <li><b>ทางที่ทำได้</b><span>เริ่มชิ้นเล็กที่เล่นได้ เช่น เมืองเก่าเชียงใหม่ย่อขนาด เล่นคนเดียวหรือ co-op 2–4 คน ถ้าคนชอบค่อยขยาย</span></li>
+  </ul>
+</section>
+
+<section>
+  <h2><span class="n">2</span>ใช้แผนที่จริงได้แค่ไหน</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>แหล่ง</th><th>ได้อะไร</th><th>ใช้ในเกม</th></tr></thead>
+    <tbody>
+      <tr><td>Google Photorealistic 3D Tiles</td><td>ภาพ 3D เหมือน Google Earth</td><td><span class="bad">ไม่เหมาะ</span> ต้องดึงสดทุกครั้ง ห้ามเก็บหรือเล่นออฟไลน์ ต้องแสดงเครดิต มีโควตาและค่าใช้จ่าย ข้อมูลเปลี่ยนเองได้ <span class="ref">G1–G4</span></td></tr>
+      <tr><td>OpenStreetMap / Overture</td><td>ถนน รูปตึก แม่น้ำ ชื่อสถานที่</td><td><span class="ok">ใช้ได้</span> ให้เครดิต และทำตามสัญญา ODbL ถ้าเผยแพร่ฐานข้อมูลที่ดัดแปลง <span class="ref">O1 O2</span></td></tr>
+      <tr><td>SRTM / Copernicus DEM</td><td>รูปทรงดอย หุบเขา</td><td><span class="ok">ใช้ได้</span> ข้อมูลละเอียดของ GISTDA ยังไม่ได้ยืนยันว่าเปิด <span class="ref">D1</span></td></tr>
+      <tr><td>โมเดลเชียงใหม่ที่ขาย</td><td>ตึกกล่องจากข้อมูล GIS</td><td>ใช้ได้ตามสัญญาซื้อ แต่หยาบ ไม่ช่วยเรื่องสมจริง <span class="ref">M1 M2</span></td></tr>
+      <tr><td>ถ่ายเองด้วยมือถือ</td><td>ซุ้ม ร้าน ของชิ้นเด่น</td><td><span class="ok">ใช้ได้</span> ฟรี (RealityScan) <span class="ref">P1</span></td></tr>
+      <tr><td>โดรน</td><td>มุมสูงทั้งพื้นที่</td><td>ต้องลงทะเบียน กสทช. และ CAAT มีเขตห้ามบิน <span class="ref">P2</span></td></tr>
+    </tbody>
+  </table></div>
+  <p class="callout" style="margin-top:16px">ใช้ข้อมูลจริงเป็น <b>โครงกระดูก</b> (ผังถนน คูเมือง ประตู ดอย แม่น้ำ) แล้วให้ทีมศิลป์สร้าง <b>เนื้อหนัง</b> เอง เกมใหญ่ที่อิงสถานที่จริงก็ทำแบบนี้</p>
+</section>
+
+<section>
+  <h2><span class="n">3</span>เครื่องมือที่มีอยู่แล้ว</h2>
+  <ul>
+    <li><b>Unreal Engine 5</b> ฟรีจนกว่าเกมทำเงินเกิน 1 ล้านดอลลาร์ แล้วจ่าย 5% (3.5% ถ้าเข้าโปรแกรม Launch Everywhere) <span class="ref">U1</span></li>
+    <li><b>Cesium / ArcGIS Maps SDK for Unreal</b> โหลดแผนที่จริงเข้า Unreal ใช้ทำต้นแบบดูภาพรวม <span class="ref">G1 A1</span></li>
+    <li><b>Blosm</b> ดึงตึกและถนนจาก OSM เข้า Blender เพื่อแต่งต่อ <span class="ref">B1</span> และมีเครื่องมือแปลง OSM เป็นเมือง UE5 ขายบน Fab <span class="ref">F1</span></li>
+    <li><b>AI สร้างโมเดล 3D</b> (Meshy, Tripo, TRELLIS) ช่วยทำของประกอบฉาก ต้องเช็กสิทธิ์ใช้เชิงพาณิชย์ทีละเจ้า <span class="ref">AI1</span></li>
+  </ul>
+</section>
+
+<section>
+  <h2><span class="n">4</span>ข้อเท็จจริงเรื่องขนาด</h2>
+  <p><b>แผนที่จริงต้องย่อ</b> Ghost of Tsushima ทำเกาะจริง 274 ตร.ไมล์ เหลือในเกมราว 11 ตร.ไมล์ ผู้พัฒนาเลือกความแน่นมากกว่าความใหญ่ <span class="ref">S1 S2</span> ถ้าทำเชียงใหม่ 1:1 จะได้ถนนยาวว่างเปล่า</p>
+  <p><b>77 จังหวัด</b> ถ้าละเอียดเท่าเชียงใหม่ทุกจังหวัด งานคูณ 77 ต้องเลือกจุดเด่นจังหวัดละไม่กี่แห่ง</p>
+  <p><b>MMORPG</b> งบเชิงพาณิชย์ราว 50 ล้านดอลลาร์ขึ้นไป ทีม 200–300 คน 2–4 ปีขึ้นไป <span class="ref">C1 C2</span> ตัวอย่างทีมเล็ก Brighter Shores พัฒนาตั้งแต่ 2016 เปิดทดลอง พ.ย. 2024 ผู้เล่นพร้อมกันลดจากราว 8,000 เหลือราว 250 (แหล่งรอง) <span class="ref">C3</span> MMO ต้องมีคนพร้อมกันมากถึงจะสนุก ถ้าคนน้อยโลกจะว่าง</p>
+</section>
+
+<section>
+  <h2><span class="n">5</span>ตลาดไทย</h2>
+  <ul>
+    <li>ตลาดเกมไทยราว 37,000 ล้านบาท มือถือราว 18,000 ล้าน พีซีราว 12,400 ล้าน (depa 2568 จากงานวิจัยเดิมของโครงการ) ผู้เล่นราว 41 ล้านคน ส่วนใหญ่เล่นมือถือ <span class="ref">K1 K2</span></li>
+    <li>3D สมจริงบนมือถือหนักมาก เริ่มบนพีซีภาพสวยกว่าแต่กลุ่มคนเล็กลง</li>
+    <li>ภาครัฐเคยสนใจเกมกับสถานที่จริง: Ragnarok Origin กับอยุธยา <span class="ref">R1</span> ททท. กับ Pokémon GO 24 จังหวัด <span class="ref">R2</span> และมีงานแฟนสร้างกรุงเทพฯ ใน Roblox <span class="ref">R3</span></li>
+    <li>เกม 3D ไทยที่พบ เช่น Dead Sea (CryEngine) ยังไม่ใช่โลกไทยจริงแบบที่เราคิด <span class="ref">R4</span></li>
+  </ul>
+</section>
+
+<section>
+  <h2><span class="n">6</span>วัฒนธรรมและกฎหมาย</h2>
+  <ul>
+    <li><b>วัดและศาสนสถาน</b> ห้ามเป็นสนามสู้ มอน หรือบอส Fight of Gods เคยถูกถอดจาก Steam ไทย <span class="ref">L1</span> เมืองเก่าเชียงใหม่มีวัดถี่มาก เส้นทางสู้ต้องเลี่ยง</li>
+    <li><b>ชื่อร้าน ตราหน่วยงาน เครื่องหมายการค้า</b> ใช้ชื่อทั่วไปแทน เว้นแต่ได้รับอนุญาต</li>
+    <li><b>บ้านคนจริง</b> ไม่ควรเป็นดันเจี้ยนที่ระบุตัวได้</li>
+    <li><b>ร่าง พ.ร.บ.ส่งเสริมอุตสาหกรรมเกม</b> อาจมีจัดเรตและลงทะเบียน สถานะยังไม่ยืนยัน <span class="ref">L2</span></li>
+  </ul>
+</section>
+
+<section>
+  <h2><span class="n">7</span>ข้อเสนอของผม</h2>
+  <p><b>ภาพ:</b> สมจริงแบบมีสไตล์ ผังเมืองจริง แสงสวย วัสดุเหมือนจริงแต่ไม่ใช่สแกน ทำง่ายกว่า โหลดเบากว่า และไม่ต้องพึ่งภาพของ Google</p>
+  <p><b>เนื้อเรื่อง:</b> แก่นของ “ทวนน้ำ” เข้ากับไทยจริงได้ดี แม่น้ำปิงไหลจากเชียงใหม่ลงเจ้าพระยา และเคยเป็นเส้นทางเรือขึ้นล่องจริง แม่น้ำจึงเป็นเส้นทางขยายจังหวัดตามธรรมชาติ ตัดโลกแฟนตาซีทิ้ง เหลือแก่น “เสียงที่ถูกลืมของแต่ละที่”</p>
+  <div class="route" role="img" aria-label="เส้นทางขยายตามแม่น้ำปิงและเจ้าพระยา จากเชียงใหม่ ลำพูน ตาก นครสวรรค์ อยุธยา ถึงกรุงเทพฯ">
+    <svg viewBox="0 0 640 150">
+      <path d="M30 40 C120 40 140 110 230 100 S360 30 450 70 S560 120 610 110" fill="none" stroke="var(--river)" stroke-width="4" stroke-linecap="round"/>
+      <g fill="var(--card)" stroke="var(--river)" stroke-width="3">
+        <circle cx="30" cy="40" r="9" fill="var(--river)"/><circle cx="120" cy="52" r="7"/><circle cx="230" cy="100" r="7"/>
+        <circle cx="360" cy="52" r="7"/><circle cx="500" cy="96" r="7"/><circle cx="610" cy="110" r="7"/>
+      </g>
+      <text x="30" y="20" text-anchor="start">เชียงใหม่</text><text class="sub" x="30" y="70">ขั้นแรก</text>
+      <text x="120" y="84" text-anchor="middle">ลำพูน</text>
+      <text x="230" y="134" text-anchor="middle">ตาก</text>
+      <text x="360" y="30" text-anchor="middle">นครสวรรค์</text>
+      <text x="500" y="128" text-anchor="middle">อยุธยา</text>
+      <text x="610" y="88" text-anchor="end">กรุงเทพฯ</text>
+    </svg>
+  </div>
+  <p style="margin-top:20px"><b>ขั้นตอน</b></p>
+  <ol class="steps">
+    <li><span><b>กระดาษ (1–2 สัปดาห์)</b> เลือก 8–12 จุดในเชียงใหม่ที่คนจำได้ เช่น คูเมือง ประตูท่าแพ กาดหลวง นิมมาน ริมปิง ป่าและถนนขึ้นดอยสุเทพ (ไม่ใช้วัด) วางเส้นเรื่อง จุดสู้ จุดพัก</span></li>
+    <li><span><b>ต้นแบบดูผังในเว็บ (ผมทำได้เลยในคลาวด์)</b> ดึง OSM เมืองเก่าเชียงใหม่ขึ้นเป็นกล่อง 3D เดินดูในเบราว์เซอร์ ทดลองย่อขนาดว่าย่อแค่ไหนยังจำได้</span></li>
+    <li><span><b>ต้นแบบเล่นได้ (2–4 เดือน)</b> ต้องมีคนทำ Unreal อย่างน้อย 1–2 คน พื้นที่ราว 1 ตร.กม. การต่อสู้ 1 แบบ ศัตรู 3 ชนิด บอส 1 ตัว เล่น 20–30 นาที</span></li>
+    <li><span><b>ทดสอบกับคนเชียงใหม่ 10–20 คน</b> วัดว่าอินเพราะคุ้นเคยจริงไหม</span></li>
+    <li><span><b>ถ้าผ่าน</b> เพิ่ม co-op ออนไลน์ 2–4 คน แล้วจังหวัดที่ 2 แล้วพื้นที่ส่วนกลาง (MMO-lite) และ MMO เต็มเมื่อมีทุนและผู้เล่นพอ</span></li>
+  </ol>
+</section>
+
+<section>
+  <h2><span class="n">8</span>ต้องให้ผู้สร้างตัดสินใจ</h2>
+  <ol class="q">
+    <li>เครื่องเล่นหลัก: พีซี (ภาพสวย) หรือมือถือ (คนเยอะ ภาพต้องเบา)</li>
+    <li>ระดับภาพ: สมจริงแบบมีสไตล์ (แนะนำ) หรือเหมือนภาพถ่าย</li>
+    <li>ผู้เล่นพร้อมกัน: เริ่มคนเดียวหรือ co-op (แนะนำ) หรือ MMO ตั้งแต่แรก</li>
+    <li>ทีมและงบ: หาคนทำ Unreal และ 3D artist ได้ไหม งบคร่าว ๆ เท่าไร</li>
+    <li>เนื้อเรื่อง: ใช้แก่น “ทวนน้ำ” ตามแม่น้ำจริง หรือเขียนใหม่</li>
+  </ol>
+</section>
+
+<section>
+  <h2><span class="n">ref</span>แหล่งอ้างอิง</h2>
+  <div class="sources">
+    <span>G1 <a href="https://cesium.com/learn/unreal/unreal-photorealistic-3d-tiles/">cesium.com — Photorealistic 3D Tiles in Unreal</a></span>
+    <span>G2 <a href="https://developers.google.com/maps/documentation/tile/policies">Google Map Tiles API policies</a></span>
+    <span>G3 <a href="https://community.cesium.com/t/can-i-make-a-videogame-with-cesium-for-unreal/28962">Cesium forum — videogame with Cesium</a></span>
+    <span>G4 <a href="https://community.cesium.com/t/google-tiles-limitations/31034">Cesium forum — Google tiles limitations</a> · <a href="https://community.cesium.com/t/google-photorealistic-3d-tiles-changed-over-time-is-there-any-way-to-lock-or-preserve-previous-data/44682">tiles change over time</a></span>
+    <span>O1 <a href="https://overturemaps.org/?p=349">Overture buildings</a> · O2 <a href="https://lwn.net/Articles/996576">LWN — Overture &amp; OSM licence</a></span>
+    <span>D1 <a href="https://github.com/pnphannisa/awesome-thai-gis">awesome-thai-gis</a></span>
+    <span>M1 <a href="https://www.turbosquid.com/es/3d-models/chiang-mai-city-and-surroundings-1502206">TurboSquid Chiang Mai</a> · M2 <a href="https://www.renderhub.com/3dstudio/chiang-mai-thailand-40km">RenderHub Chiang Mai 40 km</a></span>
+    <span>P1 <a href="https://hothardware.com/news/epic-realityscan-smartphone-3d-scanner">RealityScan mobile</a> · P2 <a href="https://www.tatnews.org/2025/06/flying-a-drone-in-thailand-updated-guide-for-tourists/">TAT drone guide 2025</a></span>
+    <span>U1 <a href="https://www.unrealengine.com/license">Unreal Engine license</a> · A1 <a href="https://www.esri.com/arcgis-blog/products/unreal-engine/developers/announcing-arcgis-maps-sdk-2-0-for-unreal-engine">ArcGIS Maps SDK for Unreal</a></span>
+    <span>B1 <a href="https://github.com/vvoovv/blosm">Blosm</a> · F1 <a href="https://www.fab.com/listings/17fa4dce-17b2-4812-8dda-4e8d651c167b">Fab OSM city listing</a> · AI1 <a href="https://app.cinevva.com/guides/ai-3d-model-generators">AI 3D generators guide</a></span>
+    <span>S1 <a href="https://twinfinite.net/2020/07/how-big-ghost-of-tsushimas-map-is-measured/">Ghost of Tsushima map size</a> · S2 <a href="https://automaton-media.com/en/news/ghost-of-yoteis-map-is-about-the-same-size-as-ghost-of-tsushimas-the-devs-didnt-want-to-compromise-on-density-for-a-larger-map/">Ghost of Yōtei density</a></span>
+    <span>C1 <a href="https://cyberpost.co/how-much-does-the-average-mmo-budget/">MMO budget</a> · C2 <a href="https://online.maryville.edu/blog/what-goes-into-an-mmo-software-development-team/">MMO team</a> · C3 <a href="https://www.gamersunchained.com/news/from-launch-to-life-support-brighter-shores-lost-97-of-its-players">Brighter Shores</a></span>
+    <span>K1 <a href="https://www.imarcgroup.com/thailand-gaming-market">IMARC Thailand</a> · K2 <a href="https://allcorrectgames.com/insights/the-gaming-market-in-thailand-2026/">Allcorrect Thailand 2026</a></span>
+    <span>R1 <a href="https://www.tin.media/news/details/thailand-plans-to-boost-tourism-through-a-mobile-game">Ragnarok Origin tourism</a> · R2 <a href="https://www.pattayamail.com/thailandnews/tat-names-24-provinces-hunting-rare-pokemon-characters-146852">TAT × Pokémon GO</a> · R3 <a href="https://www.roblox.com/games/94609520850236">Roblox Mahanakhon Thonburi</a> · R4 <a href="https://80.lv/articles/dead-sea-cryengine-from-thailand">Dead Sea</a></span>
+    <span>L1 <a href="https://www.khaosodenglish.com/life/arts/2017/09/14/thailand-bans-fight-gods-game/">Fight of Gods ban</a> · L2 <a href="https://www.tilleke.com/insights/thailand-advances-draft-act-to-promote-online-gaming-industry">Draft gaming act</a></span>
+  </div>
+</section>
+</main>
