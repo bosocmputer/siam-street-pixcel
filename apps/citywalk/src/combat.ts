@@ -4,10 +4,13 @@ import type { Fx, Orb } from './fx';
 import type { SlimeHerd } from './slime';
 import {
   HIT_RADIUS,
-  SKILLS,
+  PLAYER,
+  SLIME,
   chooseTarget,
   launch,
   readyCooldowns,
+  skill,
+  skillDamage,
   spent,
   splashed,
   stepShot,
@@ -15,6 +18,7 @@ import {
   useSkill,
   type Element,
   type Shot,
+  type SkillSpec,
   type Vec3,
 } from '@newgame/rpg-core';
 
@@ -28,7 +32,7 @@ const unit = (v: Vec3): Vec3 => {
 
 /** a ball being gathered in the hand */
 interface Charging {
-  element: Element;
+  skill: SkillSpec;
   hand: () => Vec3;
   /** where to throw if there is no target, radians, 0 = +z */
   heading: number;
@@ -48,6 +52,7 @@ interface Flying {
 }
 
 export interface HitEvent {
+  skill: string;
   element: Element;
   slime: number;
   damage: number;
@@ -72,6 +77,8 @@ export class Combat {
     private herd: SlimeHerd,
     private collider: Collider,
     parent: THREE.Object3D,
+    /** the player's level, which makes skills hit harder */
+    private level: () => number,
   ) {
     // a dashed ring under the chosen slime and a small arrow over it
     const c = document.createElement('canvas');
@@ -128,17 +135,14 @@ export class Combat {
    * the hand is now (it moves with the walker); `player.heading` (0 = +z) is where to throw with
    * no target. Returns false while the skill cools down or another one is being gathered.
    */
-  cast(
-    element: Element,
-    hand: () => Vec3,
-    player: { x: number; z: number; heading: number },
-  ): boolean {
+  cast(id: string, hand: () => Vec3, player: { x: number; z: number; heading: number }): boolean {
     if (this.charging) return false;
     this.ensureTarget(player);
-    if (!useSkill(this.cooldowns, element)) return false;
-    const orb = this.fx.orb(element);
+    if (!useSkill(this.cooldowns, id)) return false;
+    const spec = skill(id);
+    const orb = this.fx.orb(spec.element);
     this.fx.addOrb(orb);
-    this.charging = { element, hand, heading: player.heading, orb, t: 0 };
+    this.charging = { skill: spec, hand, heading: player.heading, orb, t: 0 };
     return true;
   }
 
@@ -163,22 +167,23 @@ export class Combat {
       if (s.target !== null) f.aim = this.herd.aimPoint(s.target) ?? f.aim;
       const from = s.travelled;
       // small steps so a fast shot cannot skip through a slime
-      const steps = Math.max(1, Math.ceil((SKILLS[s.element].speed * dt) / 0.25));
+      const steps = Math.max(1, Math.ceil((s.skill.speed * dt) / 0.25));
       for (let n = 0; n < steps; n++) {
         stepShot(s, dt / steps, f.aim);
         const hit = this.touching(s.pos);
         if (hit !== null) {
-          const spec = SKILLS[s.element];
+          const spec = s.skill;
+          const amount = this.damage(spec.damage, spec.element);
           const result = this.herd.hit(
             hit,
-            spec.damage,
+            amount,
             s.pos[0] - s.dir[0],
             s.pos[2] - s.dir[2],
             spec.knock,
-            HIT_COLOR[s.element],
+            HIT_COLOR[spec.element],
           );
-          this.fx.impact(s.element, s.pos, GROUND, s.dir);
-          hits.push(this.hitEvent(s.element, hit, spec.damage, result, s.pos));
+          this.fx.impact(spec.element, s.pos, GROUND, s.dir);
+          hits.push(this.hitEvent(spec, hit, amount, result, s.pos));
           this.burst(s, hit, hits);
           return this.land(f);
         }
@@ -187,17 +192,17 @@ export class Combat {
           f.aim && aimGone && Math.hypot(s.pos[0] - f.aim[0], s.pos[2] - f.aim[2]) < 0.3;
         if (s.pos[1] < 0.1 || this.collider.solid(s.pos[0], s.pos[2]) || atAim) {
           const low = s.pos[1] < 1.5;
-          this.fx.impact(s.element, s.pos, GROUND, s.dir, !low);
+          this.fx.impact(s.skill.element, s.pos, GROUND, s.dir, !low);
           if (low) this.burst(s, null, hits);
           return this.land(f);
         }
         if (spent(s)) {
-          this.fx.impact(s.element, s.pos, GROUND, s.dir, true);
+          this.fx.impact(s.skill.element, s.pos, GROUND, s.dir, true);
           return this.land(f);
         }
       }
       f.orb.place(s.pos, s.dir, f.time, 1, true);
-      this.fx.trail(f.orb, s.element, s.pos, s.dir, s.travelled - from, dt);
+      this.fx.trail(f.orb, s.skill.element, s.pos, s.dir, s.travelled - from, dt);
       return true;
     });
     this.updateMarker();
@@ -209,34 +214,40 @@ export class Combat {
     const c = this.charging;
     if (!c) return;
     c.t += dt;
-    const spec = SKILLS[c.element];
+    const spec = c.skill;
     const t = Math.min(1, c.t / spec.charge);
-    const at = this.fx.chargePos(c.element, c.hand(), t, this.time);
+    const at = this.fx.chargePos(spec.element, c.hand(), t, this.time);
     const aim = this.target !== null ? this.herd.aimPoint(this.target) : null;
     const toAim = aim ? unit([aim[0] - at[0], aim[1] - at[1], aim[2] - at[2]]) : null;
     const grow = 1 - (1 - t) * (1 - t);
     c.orb.place(at, toAim ?? [Math.sin(c.heading), 0, Math.cos(c.heading)], this.time, grow, false);
-    this.fx.gather(c.orb, c.element, at, t, dt);
+    this.fx.gather(c.orb, spec.element, at, t, dt);
     if (t < 1) return;
-    const shot = launch(c.element, at, c.heading, aim, this.target);
-    this.fx.release(c.element, at, shot.dir);
+    const shot = launch(spec, at, c.heading, aim, this.target);
+    this.fx.release(spec.element, at, shot.dir);
     this.flying.push({ shot, orb: c.orb, aim, time: 0 });
     this.charging = null;
   }
 
   /** A fire burst also scorches the slimes standing close by. */
   private burst(s: Shot, direct: number | null, hits: HitEvent[]): void {
-    const splash = SKILLS[s.element].splash;
+    const spec = s.skill;
+    const splash = spec.splash;
     if (!splash) return;
     for (const i of splashed(s.pos, this.candidates(), splash.radius, direct)) {
-      const result = this.herd.hit(i, splash.damage, s.pos[0], s.pos[2], 0.7, HIT_COLOR[s.element]);
-      if (result !== 'ignored')
-        hits.push(this.hitEvent(s.element, i, splash.damage, result, s.pos));
+      const amount = this.damage(splash.damage, spec.element);
+      const result = this.herd.hit(i, amount, s.pos[0], s.pos[2], 0.7, HIT_COLOR[spec.element]);
+      if (result !== 'ignored') hits.push(this.hitEvent(spec, i, amount, result, s.pos));
     }
   }
 
+  /** a skill's damage at the player's level, against how much of the element a slime takes */
+  private damage(base: number, element: Element): number {
+    return skillDamage(base, this.level(), PLAYER.damagePerLevel, SLIME.takes[element]);
+  }
+
   private hitEvent(
-    element: Element,
+    spec: SkillSpec,
     slime: number,
     damage: number,
     result: 'hurt' | 'defeated' | 'ignored',
@@ -249,7 +260,7 @@ export class Combat {
       this.fx.melt(at, GROUND);
       if (this.target === slime) this.target = null;
     }
-    return { element, slime, damage, defeated, at };
+    return { skill: spec.id, element: spec.element, slime, damage, defeated, at };
   }
 
   private land(f: Flying): false {

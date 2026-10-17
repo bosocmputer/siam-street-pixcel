@@ -7,10 +7,13 @@ import {
   hittable,
   newBrain,
   newVitals,
+  provoke,
   seeded,
+  ATTACK,
   stepBrain,
   stepVitals,
   type BrainWorld,
+  type Prey,
   type SlimeBrain,
   type SlimeMode,
   type Vitals,
@@ -24,6 +27,7 @@ const CLIP: Record<SlimeMode, string> = {
   hop: 'Jumping',
   watch: 'Squishing',
   lunge: 'Attacking',
+  chase: 'Jumping',
 };
 /** spheres smaller than this (radius, metres) are face details drawn with fewer triangles */
 const SMALL = 0.02;
@@ -210,7 +214,12 @@ export class SlimeHerd {
     s.current = idle;
   }
 
-  update(dt: number, player: { x: number; z: number }): void {
+  /**
+   * Move every slime on by dt. Returns the blows angry slimes landed on the player this step,
+   * with where each came from (map metres).
+   */
+  update(dt: number, player: Prey): { damage: number; from: [number, number] }[] {
+    const blows: { damage: number; from: [number, number] }[] = [];
     for (const s of this.slimes) {
       const v = s.vitals;
       const changed = stepVitals(v, dt);
@@ -221,8 +230,10 @@ export class SlimeHerd {
         s.root.visible = true;
       }
       if (changed === 'gone') s.root.visible = false;
-      if (v.life === 'alive') stepBrain(s.brain, dt, player, this.world);
-      else if (v.life === 'hurt' && (s.knock[0] || s.knock[1])) {
+      if (v.life === 'alive') {
+        stepBrain(s.brain, dt, player, this.world);
+        if (s.brain.struck) blows.push({ damage: ATTACK.damage, from: [s.brain.x, s.brain.z] });
+      } else if (v.life === 'hurt' && (s.knock[0] || s.knock[1])) {
         const [nx, nz] = this.world.move(s.brain.x, s.brain.z, s.knock[0] * dt, s.knock[1] * dt);
         s.brain.x = nx;
         s.brain.z = nz;
@@ -241,6 +252,7 @@ export class SlimeHerd {
       }
       s.mixer.update(dt);
     }
+    return blows;
   }
 
   /** Squash when hit, flatten into a puddle when beaten, pop back up when growing again. */
@@ -306,6 +318,7 @@ export class SlimeHerd {
     s.brain.heading = Math.atan2(-dx, -dz);
     s.brain.mode = 'watch';
     s.brain.target = null;
+    provoke(s.brain); // it fights back now
     s.playing = null; // replay the squish
     s.flash = FLASH;
     s.flashColor.setHex(color);
@@ -340,6 +353,7 @@ export class SlimeHerd {
       hp: s.vitals.hp,
       life: s.vitals.life,
       alive: hittable(s.vitals),
+      angry: s.brain.anger > 0,
     }));
   }
 }

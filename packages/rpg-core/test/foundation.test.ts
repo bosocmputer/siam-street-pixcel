@@ -76,10 +76,32 @@ describe('save', () => {
     savedAt: 1_700_000_000_000,
     player: { x: 120.5, z: -40, heading: 1.2 },
     settings: { mode: 'run', scale: 0.5, labels: false, haze: true },
+    stats: { level: 4, exp: 12, hp: 80.5, energy: 33 },
   };
 
   it('reads back exactly what was saved', () => {
     expect(decodeSave(encodeSave(good))).toEqual(good);
+  });
+
+  it('a save from before levels comes back at level 1 with full health', () => {
+    const old: Record<string, unknown> = { ...good, version: 1 };
+    delete old.stats;
+    const fresh = { level: 1, exp: 0, hp: 100, energy: 100 };
+    expect(decodeSave(JSON.stringify(old), fresh)).toEqual({
+      ...good,
+      version: SAVE_VERSION,
+      stats: fresh,
+    });
+    expect(decodeSave(JSON.stringify(old))!.stats.level).toBe(1);
+  });
+
+  it('refuses broken stats', () => {
+    const bad = (stats: unknown) => decodeSave(JSON.stringify({ ...good, stats }));
+    expect(bad(undefined)).toBeNull();
+    expect(bad({ ...good.stats, level: 0 })).toBeNull();
+    expect(bad({ ...good.stats, level: 2.5 })).toBeNull();
+    expect(bad({ ...good.stats, hp: -1 })).toBeNull();
+    expect(bad({ ...good.stats, exp: 'x' })).toBeNull();
   });
 
   it('starts fresh from a missing, broken, newer or out-of-range save', () => {
@@ -118,14 +140,19 @@ describe('screens', () => {
 
 describe('config checks', () => {
   it('reads the real config files', () => {
-    expect(readSkills(skillsJson).skills.fire.damage).toBeGreaterThan(0);
+    expect(readSkills(skillsJson).skills.fireball!.damage).toBeGreaterThan(0);
     expect(readSlime({ slime: { ...validSlime() } }).vitals.hp).toBe(100);
   });
 
   it('names the exact place of a bad number', () => {
-    const broken = structuredClone(skillsJson) as { skills: { fire: { speed: unknown } } };
-    broken.skills.fire.speed = 'fast';
-    expect(() => readSkills(broken)).toThrow(/skills.fire.speed/);
+    const broken = structuredClone(skillsJson) as unknown as {
+      skills: { fireball: { speed: unknown } };
+    };
+    broken.skills.fireball.speed = 'fast';
+    expect(() => readSkills(broken)).toThrow(/skills.fireball.speed/);
+    expect(() =>
+      readSlime({ slime: { ...validSlime(), attack: { ...validSlime().attack, strikeAt: 9 } } }),
+    ).toThrow(/strikeAt/);
     expect(() => readSlime({ slime: { ...validSlime(), hp: -1 } })).toThrow(/monsters.slime.hp/);
     expect(() => readSkills(null)).toThrow(ConfigError);
   });
@@ -139,8 +166,12 @@ function validSlime() {
     respawn: 5,
     grow: 0.5,
     wander: 8,
+    exp: 20,
+    takes: { fire: 1, water: 1 },
     hop: { cycle: 1.6, liftOff: 0.3, land: 1.12, distance: 1.2 },
     near: { watch: 6, lunge: 2.2, forget: 7.5 },
+    attack: { damage: 8, reach: 1.8, cycle: 1.5, strikeAt: 0.6 },
+    anger: { time: 8, leash: 20 },
   };
 }
 

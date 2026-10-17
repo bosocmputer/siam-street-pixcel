@@ -19,6 +19,7 @@ test('the walk is saved on this device and carries on after a reload', async ({ 
     w.setYaw(Math.PI / 2);
     w.simulate(1, 0, 6);
   })()`);
+  await page.evaluate('window.__walk.setStats({ level: 3, exp: 7 })');
   await page.getByRole('button', { name: 'วิ่ง' }).click();
   await page.locator('[data-chip="haze"]').click();
   await expect.poll(async () => (await state(page)).mode).toBe('run');
@@ -35,6 +36,9 @@ test('the walk is saved on this device and carries on after a reload', async ({ 
   expect(back.z).toBeCloseTo(moved.z, 3);
   expect(back.mode).toBe('run');
   expect(back.haze).toBe(true);
+  const kept = (await page.evaluate('window.__walk.stats()')) as { level: number; exp: number };
+  expect([kept.level, kept.exp]).toEqual([3, 7]);
+  await expect(page.locator('.player')).toContainText('Lv 3');
   await expect(page.locator('[data-chip="haze"]')).toContainText('เปิด');
 
   // or start again at the gate

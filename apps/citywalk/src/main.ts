@@ -1,13 +1,23 @@
 import * as THREE from 'three';
 import {
+  PLAYER,
   SAVE_VERSION,
+  SLIME,
   WANDER,
   advance,
+  gainExp,
+  hurt,
+  maxEnergy,
+  maxHp,
   newClock,
+  newStats,
   nextScreen,
+  skill,
+  spend,
+  stepStats,
   worldRuns,
-  type Element,
   type MoveMode,
+  type PlayerStats,
   type SaveData,
   type Screen,
   type ScreenEvent,
@@ -29,6 +39,7 @@ import type { Landmark, WorldData } from './types';
 import { CombatHud } from './ui/combatHud';
 import { $ } from './ui/dom';
 import { Hud } from './ui/hud';
+import { PlayerHud } from './ui/playerHud';
 import { makeWalker } from './walker';
 import { buildWorld, gateTowers } from './world';
 import './style.css';
@@ -39,8 +50,10 @@ const SCALES = [1, 0.5, 1 / 3];
 const RADIUS = 0.4;
 const SKY = 0xbfd8ea;
 const HAZE = 0xb9b2a4;
-/** the skills on the two buttons (Q and E), in order */
-const SLOTS: Element[] = ['fire', 'water'];
+/** the skills on the two buttons (Q and E), in order, from config/player.json */
+const SLOTS = PLAYER.slots;
+/** height of the paved square */
+const GROUND = 0.04;
 /** seconds between automatic saves while playing */
 const AUTOSAVE = 5;
 const DEBUG = new URLSearchParams(location.search).has('debug');
@@ -153,7 +166,9 @@ async function start(): Promise<void> {
   // skill effects and shots live in the city too, so they shrink with it
   const fx = new Fx();
   city.add(fx.object);
-  const combat = herd ? new Combat(fx, herd, collider, city) : null;
+  // the player's health, energy and level
+  const stats: PlayerStats = newStats();
+  const combat = herd ? new Combat(fx, herd, collider, city, () => stats.level) : null;
   scene.add(city);
   const walker = makeWalker();
   scene.add(walker.body);
@@ -217,6 +232,7 @@ async function start(): Promise<void> {
   const combatHud = combat
     ? new CombatHud(hud.root, SLOTS, (i) => input.trigger(i === 0 ? 'skill1' : 'skill2'))
     : null;
+  const playerHud = new PlayerHud(hud.top);
   const minimap = new Minimap(world);
   if (plaza) minimap.addArea(plaza.outline, '#d8b48c');
   hud.root.append(minimap.canvas);
@@ -234,6 +250,7 @@ async function start(): Promise<void> {
     savedAt: Date.now(),
     player: { x: state.x, z: state.z, heading: state.heading },
     settings: { mode: state.mode, scale: state.scale, labels: state.labels, haze: state.haze },
+    stats: { level: stats.level, exp: stats.exp, hp: stats.hp, energy: stats.energy },
   });
   const save = () => (screen === 'play' || screen === 'paused' ? writeSave(snapshot()) : false);
   const saved = readSave();
@@ -246,6 +263,11 @@ async function start(): Promise<void> {
       state.yaw = d.player.heading;
     }
     Object.assign(state, d.settings);
+    // a save made while lying down comes back standing, with a little health
+    stats.level = Math.min(d.stats.level, PLAYER.maxLevel);
+    stats.exp = d.stats.exp;
+    stats.hp = Math.min(maxHp(stats.level), Math.max(1, d.stats.hp));
+    stats.energy = Math.min(maxEnergy(stats.level), d.stats.energy);
     applyScale();
     applySky();
     hud.paintChips();
@@ -324,15 +346,20 @@ async function start(): Promise<void> {
       (walker.body.position.z + fz * 0.35 + fx * 0.5) / s,
     ];
   };
-  const castSkill = (e: Element) => {
-    if (!combat || combat.gathering || combat.cooldowns[e] > 0) return;
+  const castSkill = (id: string) => {
+    if (!combat || stats.down > 0 || combat.gathering || (combat.cooldowns[id] ?? 0) > 0) return;
+    if (!spend(stats, skill(id).cost)) {
+      combatHud?.refuse(id);
+      hud.say(TH.noEnergy, true);
+      return;
+    }
     const me = { x: state.x, z: state.z, heading: lookHeading() };
     combat.ensureTarget(me);
     // turn to the target (or keep looking ahead) and gather the ball in the right hand
     const [fx, fz] = throwDir();
     state.heading = Math.atan2(-fx, -fz);
     walker.body.rotation.y = state.heading;
-    combat.cast(e, hand, { ...me, heading: Math.atan2(fx, fz) });
+    combat.cast(id, hand, { ...me, heading: Math.atan2(fx, fz) });
   };
 
   /** pick the slime nearest to a tap on the screen, if one is close enough */
@@ -359,12 +386,40 @@ async function start(): Promise<void> {
   let held = false;
   /** slimes and shots for one step of game time */
   const fight = (dt: number) => {
-    herd?.update(dt, state);
+    const s = state.scale;
+    const blows = herd?.update(dt, { x: state.x, z: state.z, down: stats.down > 0 }) ?? [];
+    for (const b of blows) {
+      const result = hurt(stats, b.damage);
+      if (result === 'ignored') continue;
+      // knocked back a little, away from the slime
+      const dx = state.x - b.from[0],
+        dz = state.z - b.from[1];
+      const d = Math.hypot(dx, dz) || 1;
+      [state.x, state.z] = collider.move(state.x, state.z, (dx / d) * 0.6, (dz / d) * 0.6, RADIUS);
+      fx.playerHit([state.x - (dx / d) * 0.3, 1.1 / s, state.z - (dz / d) * 0.3]);
+      playerHud.hurt();
+      shake = Math.max(shake, 0.18);
+      if (result === 'down') {
+        hud.say(TH.down, true);
+        if (combat) combat.target = null;
+      }
+    }
+    if (stepStats(stats, dt) === 'up') {
+      // back on their feet at the rest point in front of the gate, nothing lost
+      Object.assign(state, { x: startX, z: startZ, yaw: startYaw, heading: startYaw });
+      walker.body.rotation.y = startYaw;
+      hud.say(TH.up, true);
+    }
     combatHud?.age(dt);
     for (const h of combat?.update(dt) ?? []) {
       freeze = Math.max(freeze, h.element === 'fire' ? 0.08 : 0.04);
       shake = Math.max(shake, h.element === 'fire' ? 0.22 : 0.09);
       combatHud?.hit(h, herd?.height ?? 0.9);
+      if (h.defeated && gainExp(stats, SLIME.exp) > 0) {
+        hud.say(TH.levelUp(stats.level), true);
+        fx.levelUp([state.x, 0, state.z], GROUND);
+        save();
+      }
     }
   };
   const effects = (dt: number) => fx.update(dt, camera, canvas.height, state.scale);
@@ -385,7 +440,8 @@ async function start(): Promise<void> {
   /** one fixed step of the game: walking, then the world */
   let walked = 0;
   const simStep = (dt: number): number => {
-    const { forward, right } = input.read();
+    // lying down after running out of health: no walking until back up
+    const { forward, right } = stats.down > 0 ? { forward: 0, right: 0 } : input.read();
     step(dt, forward, right);
     if (forward !== 0 || right !== 0) walked += dt;
     if (combat?.gathering) {
@@ -428,6 +484,9 @@ async function start(): Promise<void> {
       const moving = walked > 0;
       phase = moving ? phase + dt * (state.mode === 'walk' ? 9 : 14) : 0;
       walker.bob(phase, moving, state.mode === 'bike');
+      // fall over while down, stand up again after
+      const lie = stats.down > 0 ? 1.45 : 0;
+      walker.body.rotation.z += (lie - walker.body.rotation.z) * Math.min(1, dt * 8);
       place();
       if (shake > 0.002) {
         camera.position.x += (Math.random() - 0.5) * shake;
@@ -435,15 +494,16 @@ async function start(): Promise<void> {
         shake *= Math.exp(-dt * 12);
       }
       renderer.render(scene, camera);
-      // name tags stay below the buttons and the minimap at the top of the screen
-      const below =
-        Math.max(
-          hud.top.getBoundingClientRect().bottom,
-          minimap.canvas.getBoundingClientRect().bottom,
-        ) + 30;
-      hud.landmarks(state, state.scale, state.labels, camera, below, screen === 'play');
+      // name tags never cover the panel and buttons at the top or the minimap
+      const covered = [
+        ...Array.from(hud.top.children),
+        ...Array.from(hud.top.querySelectorAll('.chip')),
+        minimap.canvas,
+      ].map((e) => e.getBoundingClientRect());
+      hud.landmarks(state, state.scale, state.labels, camera, covered, screen === 'play');
       minimap.draw(state.x, state.z, state.heading, state.labels, herd?.dots());
-      if (combat && herd) combatHud?.draw(combat, herd, screenOf);
+      if (combat && herd) combatHud?.draw(combat, herd, screenOf, stats.energy);
+      playerHud.draw(stats);
     } catch (err) {
       // one bad frame should not freeze the game
       console.error(err);
@@ -530,7 +590,9 @@ async function start(): Promise<void> {
           effects(1 / 30);
         }
       },
-      cast: (e: Element) => castSkill(e),
+      cast: (id: string) => castSkill(id),
+      stats: () => ({ ...stats }),
+      setStats: (patch: Partial<PlayerStats>) => Object.assign(stats, patch),
       combat: () =>
         combat
           ? { target: combat.target, cooldowns: { ...combat.cooldowns }, inFlight: combat.inFlight }

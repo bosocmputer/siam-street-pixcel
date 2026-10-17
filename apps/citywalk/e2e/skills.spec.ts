@@ -116,7 +116,7 @@ test('a beaten slime melts away and grows back at home', async ({ page }) => {
   await open(page);
   await js(page, 'window.__walk.setTarget(0)');
   for (let i = 0; i < 3; i++) {
-    await js(page, "window.__walk.cast('fire')");
+    await js(page, "window.__walk.cast('fireball')");
     await untilLanded(page, 1.4);
   }
   // 3 × 40 is more than its 100 hit points

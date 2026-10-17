@@ -27,6 +27,7 @@ export class Hud {
   private tags: { m: Landmark; t: HTMLElement }[];
   private visited = new Set<string>();
   private toastTimer = 0;
+  private holdUntil = 0;
   private v = new THREE.Vector3();
 
   constructor(
@@ -79,7 +80,14 @@ export class Hud {
     for (const b of this.modeButtons) b.setAttribute('aria-pressed', String(b.dataset.mode === m));
   }
 
-  say(text: string): void {
+  /**
+   * Show a short message. An `important` one (level up, falling down) is not covered by an
+   * ordinary one until it has had its time on screen.
+   */
+  say(text: string, important = false): void {
+    const now = performance.now();
+    if (!important && now < this.holdUntil) return;
+    if (important) this.holdUntil = now + 2000;
     this.toast.textContent = text;
     this.toast.classList.add('show');
     window.clearTimeout(this.toastTimer);
@@ -92,7 +100,8 @@ export class Hud {
 
   /**
    * Move the name tags over their places, show the nearest place, and say when one is reached.
-   * `below` is the screen height the tags must stay under (the top buttons and minimap); places
+   * Tags are hidden where they would cover `covered` (screen boxes of the top panel and
+   * minimap); places
    * are only announced while `playing`.
    */
   landmarks(
@@ -100,7 +109,7 @@ export class Hud {
     scale: number,
     labels: boolean,
     camera: THREE.Camera,
-    below: number,
+    covered: readonly DOMRect[],
     playing: boolean,
   ): void {
     let best: Landmark | null = null;
@@ -113,10 +122,14 @@ export class Hud {
       }
       this.v.set(m.x * scale, 5.5 * Math.max(scale, 0.5), m.z * scale).project(camera);
       const sy = ((1 - this.v.y) / 2) * window.innerHeight;
-      const show = labels && this.v.z < 1 && d * scale < 450 && sy > below;
+      const sx = ((this.v.x + 1) / 2) * window.innerWidth;
+      // a tag is about 120 px wide and sits above its point
+      const hidden = covered.some(
+        (r) => sx > r.left - 60 && sx < r.right + 60 && sy > r.top && sy < r.bottom + 30,
+      );
+      const show = labels && this.v.z < 1 && d * scale < 450 && !hidden;
       t.hidden = !show;
-      if (show)
-        t.style.transform = `translate(-50%, -100%) translate(${((this.v.x + 1) / 2) * window.innerWidth}px, ${sy}px)`;
+      if (show) t.style.transform = `translate(-50%, -100%) translate(${sx}px, ${sy}px)`;
       if (playing && d < 25 && !this.visited.has(m.name)) {
         this.visited.add(m.name);
         if (labels) this.say(TH.arrived(m.name));

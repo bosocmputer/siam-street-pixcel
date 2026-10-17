@@ -1,0 +1,12 @@
+{
+  "about": "The player's numbers. hp and energy grow by perLevel each level. Energy refills by regen per second; hp starts refilling after hpRegen.delay seconds without being hit. expToNext(level) = round(exp.base * level ^ exp.growth). Skill damage grows by damagePerLevel for each level above 1. After a hit the player cannot be hurt for `invulnerable` seconds; when hp runs out they stay down for downTime seconds, then get up at the rest point with everything full and nothing lost. slots: the skills on the buttons, in order.",
+  "hp": { "base": 100, "perLevel": 12 },
+  "energy": { "base": 100, "perLevel": 5, "regen": 14 },
+  "hpRegen": { "delay": 6, "perSecond": 5 },
+  "exp": { "base": 40, "growth": 1.35 },
+  "maxLevel": 30,
+  "damagePerLevel": 0.08,
+  "invulnerable": 0.8,
+  "downTime": 3,
+  "slots": ["fireball", "waterball"]
+}

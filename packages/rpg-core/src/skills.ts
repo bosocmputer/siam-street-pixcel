@@ -1,11 +1,18 @@
-// Skill shots: what they do and how they fly. No three.js here so it can be tested on its own.
+// Skills: what each one does and how its shot flies. Every skill is one entry in
+// config/skills.json, so a new skill of a known kind needs no new code. No three.js here.
 
 import skillsJson from '../config/skills.json';
-import { num, obj, signed } from './config';
+import { ConfigError, num, obj, signed } from './config';
 
 export type Element = 'fire' | 'water';
+export const ELEMENTS: Element[] = ['fire', 'water'];
 
 export interface SkillSpec {
+  id: string;
+  /** decides the look and how much each monster takes from it */
+  element: Element;
+  /** energy it uses */
+  cost: number;
   damage: number;
   /** metres per second */
   speed: number;
@@ -16,27 +23,33 @@ export interface SkillSpec {
   /** how hard it swings out to the side (+ right, - left) and up as it leaves the hand */
   side: number;
   lift: number;
-  /** how far the slime is pushed back, metres */
+  /** how far the monster is pushed back, metres */
   knock: number;
   /** seconds spent gathering the ball in the hand before it flies */
   charge: number;
-  /** slimes this close to where it bursts (metres) also take `damage` */
+  /** monsters this close to where it bursts (metres) also take `damage` */
   splash: { radius: number; damage: number } | null;
 }
 
 /** Read and check the skill numbers from config/skills.json. */
 export function readSkills(raw: unknown): {
-  skills: Record<Element, SkillSpec>;
+  skills: Record<string, SkillSpec>;
   autoRange: number;
   hitRadius: number;
 } {
   const root = obj(raw, 'skills.json');
   const list = obj(root.skills, 'skills.json skills');
-  const one = (name: Element): SkillSpec => {
-    const w = `skills.${name}`;
-    const o = obj(list[name], w);
+  const skills: Record<string, SkillSpec> = {};
+  for (const id of Object.keys(list)) {
+    const w = `skills.${id}`;
+    const o = obj(list[id], w);
+    const element = ELEMENTS.find((e) => e === o.element);
+    if (!element) throw new ConfigError(`${w}.element: expected one of ${ELEMENTS.join(', ')}`);
     const splash = o.splash === null ? null : obj(o.splash, `${w}.splash`);
-    return {
+    skills[id] = {
+      id,
+      element,
+      cost: num(o, 'cost', w),
       damage: num(o, 'damage', w),
       speed: num(o, 'speed', w, 0.1),
       cooldown: num(o, 'cooldown', w),
@@ -50,9 +63,10 @@ export function readSkills(raw: unknown): {
         damage: num(splash, 'damage', `${w}.splash`),
       },
     };
-  };
+  }
+  if (Object.keys(skills).length === 0) throw new ConfigError('skills.json: no skills');
   return {
-    skills: { fire: one('fire'), water: one('water') },
+    skills,
     autoRange: num(root, 'autoRange', 'skills.json'),
     hitRadius: num(root, 'hitRadius', 'skills.json', 0.01),
   };
@@ -61,25 +75,32 @@ export function readSkills(raw: unknown): {
 const CONFIG = readSkills(skillsJson);
 
 /**
- * Fire: a big ball of flame gathered in the hand, flies straight and fairly slowly, and bursts
- * wide enough to scorch slimes nearby. Water: drawn together quickly, shot like a short spear of
- * water, very fast, pushes the slime back hard. The numbers live in config/skills.json.
+ * Every skill by id. fireball: a big ball of flame gathered in the hand, flies straight and fairly
+ * slowly, and bursts wide enough to scorch monsters nearby. waterball: drawn together quickly,
+ * shot like a short spear of water, very fast, pushes hard.
  */
-export const SKILLS: Record<Element, SkillSpec> = CONFIG.skills;
+export const SKILLS: Readonly<Record<string, SkillSpec>> = CONFIG.skills;
 
-/** How far a slime can be and still be picked when no target is chosen. */
+/** One skill by id; an id that is not in the config is a mistake in the code or config. */
+export function skill(id: string): SkillSpec {
+  const s = SKILLS[id];
+  if (!s) throw new ConfigError(`unknown skill: ${id}`);
+  return s;
+}
+
+/** How far a monster can be and still be picked when no target is chosen. */
 export const AUTO_RANGE = CONFIG.autoRange;
-/** a shot this close to a slime's middle hits it */
+/** a shot this close to a monster's middle hits it */
 export const HIT_RADIUS = CONFIG.hitRadius;
 
 export type Vec3 = [number, number, number];
 
 export interface Shot {
-  element: Element;
+  skill: SkillSpec;
   pos: Vec3;
   /** current direction of travel, length 1 */
   dir: Vec3;
-  /** index of the slime it chases, or null to fly straight */
+  /** index of the monster it chases, or null to fly straight */
   target: number | null;
   travelled: number;
 }
@@ -94,20 +115,19 @@ const norm = (v: Vec3): Vec3 => {
  * then curls in; without one it flies straight along `heading` (radians, 0 = +z).
  */
 export function launch(
-  element: Element,
+  s: SkillSpec,
   from: Vec3,
   heading: number,
   aim: Vec3 | null,
   target: number | null,
 ): Shot {
-  const s = SKILLS[element];
   let fwd: Vec3 = [Math.sin(heading), 0, Math.cos(heading)];
   if (aim) fwd = norm([aim[0] - from[0], aim[1] - from[1], aim[2] - from[2]]);
-  if (!aim) return { element, pos: [...from], dir: fwd, target: null, travelled: 0 };
+  if (!aim) return { skill: s, pos: [...from], dir: fwd, target: null, travelled: 0 };
   // right of the walker when facing fwd
   const right: Vec3 = norm([-fwd[2], 0, fwd[0]]);
   const dir = norm([fwd[0] + right[0] * s.side, fwd[1] + s.lift, fwd[2] + right[2] * s.side]);
-  return { element, pos: [...from], dir, target, travelled: 0 };
+  return { skill: s, pos: [...from], dir, target, travelled: 0 };
 }
 
 /**
@@ -115,7 +135,7 @@ export function launch(
  * gets, so a chased target is always reached.
  */
 export function stepShot(shot: Shot, dt: number, aim: Vec3 | null): void {
-  const s = SKILLS[shot.element];
+  const s = shot.skill;
   if (aim) {
     const to: Vec3 = [aim[0] - shot.pos[0], aim[1] - shot.pos[1], aim[2] - shot.pos[2]];
     const d = Math.hypot(to[0], to[1], to[2]);
@@ -140,7 +160,7 @@ export function stepShot(shot: Shot, dt: number, aim: Vec3 | null): void {
 
 /** A shot that has flown its full range with nothing to hit. */
 export function spent(shot: Shot): boolean {
-  return shot.travelled > SKILLS[shot.element].range;
+  return shot.travelled > shot.skill.range;
 }
 
 /**
@@ -189,18 +209,27 @@ export function splashed(
   return out;
 }
 
-/** Seconds left before each skill can be used again. */
-export type Cooldowns = Record<Element, number>;
+/** Seconds left before each skill can be used again, by skill id. */
+export type Cooldowns = Record<string, number>;
 
-export const readyCooldowns = (): Cooldowns => ({ fire: 0, water: 0 });
+export const readyCooldowns = (): Cooldowns =>
+  Object.fromEntries(Object.keys(SKILLS).map((id) => [id, 0]));
 
 export function tickCooldowns(cd: Cooldowns, dt: number): void {
-  for (const k of Object.keys(cd) as Element[]) cd[k] = Math.max(0, cd[k] - dt);
+  for (const k of Object.keys(cd)) cd[k] = Math.max(0, cd[k]! - dt);
 }
 
 /** Use a skill if it is ready; returns whether it was used. */
-export function useSkill(cd: Cooldowns, element: Element): boolean {
-  if (cd[element] > 0) return false;
-  cd[element] = SKILLS[element].cooldown;
+export function useSkill(cd: Cooldowns, id: string): boolean {
+  if ((cd[id] ?? 0) > 0) return false;
+  cd[id] = skill(id).cooldown;
   return true;
+}
+
+/**
+ * Damage a skill does: its base damage, a little more for each level above 1, times how much of
+ * that element the monster takes. Rounded to whole points.
+ */
+export function skillDamage(base: number, level: number, perLevel: number, takes = 1): number {
+  return Math.round(base * (1 + perLevel * Math.max(0, level - 1)) * takes);
 }

@@ -349,3 +349,131 @@ body {
   outline: 3px solid var(--accent);
   outline-offset: 2px;
 }
+.player {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 4px;
+  width: min(230px, 100%);
+  background: var(--panel);
+  color: var(--panel-text);
+  padding: 6px 10px 7px;
+  border-radius: 10px;
+}
+.player-lv {
+  grid-row: 1;
+  font-weight: 800;
+  font-size: 15px;
+  white-space: nowrap;
+}
+.player-bars {
+  display: grid;
+  gap: 3px;
+}
+.player-exp {
+  grid-column: 1 / -1;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.18);
+  overflow: hidden;
+}
+.player-exp-fill {
+  height: 100%;
+  background: #ffcf4a;
+}
+.pbar {
+  display: grid;
+  grid-template-columns: 30px 1fr auto;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  line-height: 1;
+}
+.pbar-label {
+  color: var(--muted);
+}
+.pbar-track {
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.18);
+  overflow: hidden;
+}
+.pbar-fill {
+  height: 100%;
+  transition: width 0.15s;
+}
+.pbar-hp .pbar-fill {
+  background: linear-gradient(#f2645a, #c8322b);
+}
+.pbar-energy .pbar-fill {
+  background: linear-gradient(#5fd0ff, #2a8ad8);
+}
+.pbar-text {
+  min-width: 46px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.player[data-low-hp='true'] .pbar-hp .pbar-track {
+  animation: low 0.8s ease-in-out infinite alternate;
+}
+.player[data-down='true'] {
+  opacity: 0.6;
+}
+@keyframes low {
+  to {
+    background: rgba(242, 100, 90, 0.45);
+  }
+}
+.hurt-flash {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 90px 30px rgba(210, 30, 25, 0.75);
+  opacity: 0;
+}
+.hurt-flash.on {
+  animation: hurt 0.5s ease-out;
+}
+@keyframes hurt {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+.skill-cost {
+  position: absolute;
+  top: 6px;
+  right: 50%;
+  transform: translateX(50%);
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+.skill[data-low='true'] {
+  filter: grayscale(0.8) brightness(0.75);
+}
+.skill.refused {
+  animation: refuse 0.3s;
+}
+@keyframes refuse {
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
+}
+@media (max-width: 480px) {
+  .chip {
+    font-size: 13px;
+    padding: 4px 9px;
+    min-height: 32px;
+  }
+  .chips {
+    gap: 5px;
+  }
+}

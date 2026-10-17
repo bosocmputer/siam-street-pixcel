@@ -2,21 +2,32 @@
 
 import monstersJson from '../config/monsters.json';
 import { num, obj } from './config';
+import type { Element } from './skills';
 
-export type SlimeMode = 'idle' | 'hop' | 'watch' | 'lunge';
+export type SlimeMode = 'idle' | 'hop' | 'watch' | 'lunge' | 'chase';
 
-/** Read and check the slime numbers from config/monsters.json. */
-export function readSlime(raw: unknown): {
+export interface SlimeSpec {
   hop: { cycle: number; liftOff: number; land: number; distance: number };
   near: { watch: number; lunge: number; forget: number };
   vitals: { hp: number; hurt: number; melt: number; respawn: number; grow: number };
   wander: number;
-} {
+  exp: number;
+  takes: Record<Element, number>;
+  attack: { damage: number; reach: number; cycle: number; strikeAt: number };
+  anger: { time: number; leash: number };
+}
+
+/** Read and check the slime numbers from config/monsters.json. */
+export function readSlime(raw: unknown): SlimeSpec {
   const w = 'monsters.slime';
   const o = obj(obj(raw, 'monsters.json').slime, w);
-  const hop = obj(o.hop, `${w}.hop`);
-  const near = obj(o.near, `${w}.near`);
-  return {
+  const part = (key: string) => obj(o[key], `${w}.${key}`);
+  const hop = part('hop'),
+    near = part('near'),
+    takes = part('takes'),
+    attack = part('attack'),
+    anger = part('anger');
+  const spec: SlimeSpec = {
     hop: {
       cycle: num(hop, 'cycle', `${w}.hop`, 0.01),
       liftOff: num(hop, 'liftOff', `${w}.hop`),
@@ -36,10 +47,23 @@ export function readSlime(raw: unknown): {
       grow: num(o, 'grow', w),
     },
     wander: num(o, 'wander', w),
+    exp: num(o, 'exp', w),
+    takes: { fire: num(takes, 'fire', `${w}.takes`), water: num(takes, 'water', `${w}.takes`) },
+    attack: {
+      damage: num(attack, 'damage', `${w}.attack`),
+      reach: num(attack, 'reach', `${w}.attack`),
+      cycle: num(attack, 'cycle', `${w}.attack`, 0.1),
+      strikeAt: num(attack, 'strikeAt', `${w}.attack`),
+    },
+    anger: { time: num(anger, 'time', `${w}.anger`), leash: num(anger, 'leash', `${w}.anger`) },
   };
+  if (spec.attack.strikeAt >= spec.attack.cycle)
+    throw new Error(`${w}.attack.strikeAt must be inside the attack cycle`);
+  return spec;
 }
 
-const SLIME = readSlime(monstersJson);
+/** All the slime numbers. */
+export const SLIME = readSlime(monstersJson);
 
 /** Timing of the model's Jumping clip: it leaves the ground at liftOff and lands at land (seconds). */
 export const HOP = SLIME.hop;
@@ -47,6 +71,9 @@ export const HOP = SLIME.hop;
 export const NEAR = SLIME.near;
 /** How far from home a slime wanders, metres. */
 export const WANDER = SLIME.wander;
+/** How a slime attacks, and how long it stays angry after being hit. */
+export const ATTACK = SLIME.attack;
+export const ANGER = SLIME.anger;
 
 export interface SlimeBrain {
   x: number;
@@ -60,10 +87,16 @@ export interface SlimeBrain {
   wait: number;
   /** time into the current hop cycle */
   phase: number;
+  /** seconds left being angry (it was hit); only an angry slime hurts */
+  anger: number;
+  /** time into the current attack */
+  attackT: number;
+  /** set on the step an angry slime's blow lands on the player */
+  struck: boolean;
 }
 
 export interface BrainWorld {
-  /** how far from home a slime may wander */
+  /** how far from home a slime wanders */
   wander: number;
   rng: () => number;
   /** move from (x, z) by (dx, dz) as far as walls allow */
@@ -72,8 +105,27 @@ export interface BrainWorld {
   allowed: (x: number, z: number) => boolean;
 }
 
+/** Where the player is; a player who is down is left alone. */
+export interface Prey {
+  x: number;
+  z: number;
+  down?: boolean;
+}
+
 export function newBrain(x: number, z: number, wait = 0): SlimeBrain {
-  return { x, z, home: [x, z], heading: 0, mode: 'idle', target: null, wait, phase: 0 };
+  return {
+    x,
+    z,
+    home: [x, z],
+    heading: 0,
+    mode: 'idle',
+    target: null,
+    wait,
+    phase: 0,
+    anger: 0,
+    attackT: 0,
+    struck: false,
+  };
 }
 
 export function airborne(phase: number): boolean {
@@ -81,25 +133,94 @@ export function airborne(phase: number): boolean {
   return t >= HOP.liftOff && t < HOP.land;
 }
 
-export function stepBrain(
-  b: SlimeBrain,
-  dt: number,
-  player: { x: number; z: number },
-  w: BrainWorld,
-): void {
+/** Make a slime angry at whoever hit it. */
+export function provoke(b: SlimeBrain): void {
+  b.anger = ANGER.time;
+}
+
+/** Hop along towards `target`, moving only while in the air. Returns false when it bumped. */
+function hopTowards(b: SlimeBrain, dt: number, w: BrainWorld): void {
+  const wasUp = airborne(b.phase);
+  b.phase += dt;
+  if (!b.target) return;
+  const tx = b.target[0] - b.x,
+    tz = b.target[1] - b.z;
+  const left = Math.hypot(tx, tz);
+  b.heading = Math.atan2(tx, tz);
+  if (wasUp && left > 0.05) {
+    const speed = HOP.distance / (HOP.land - HOP.liftOff);
+    const step = Math.min(left, speed * dt);
+    const [nx, nz] = w.move(b.x, b.z, (tx / left) * step, (tz / left) * step);
+    const moved = Math.hypot(nx - b.x, nz - b.z);
+    b.x = nx;
+    b.z = nz;
+    if (moved < step * 0.3) b.target = null; // bumped into something: give up after landing
+  }
+  if (left < 0.4) b.target = null;
+}
+
+/** One step of an attack: the blow lands once per cycle, at strikeAt, if the player is in reach. */
+function attack(b: SlimeBrain, dt: number, dPlayer: number, hurts: boolean): void {
+  const before = b.attackT;
+  b.attackT = (b.attackT + dt) % ATTACK.cycle;
+  const crossed =
+    before < ATTACK.strikeAt
+      ? b.attackT >= ATTACK.strikeAt || b.attackT < before
+      : b.attackT < before && b.attackT >= ATTACK.strikeAt;
+  if (hurts && crossed && dPlayer <= ATTACK.reach) b.struck = true;
+}
+
+export function stepBrain(b: SlimeBrain, dt: number, player: Prey, w: BrainWorld): void {
+  b.struck = false;
   const px = player.x - b.x,
     pz = player.z - b.z;
-  const dPlayer = Math.hypot(px, pz);
-  const busyWithPlayer = b.mode === 'watch' || b.mode === 'lunge';
+  const dPlayer = player.down ? Infinity : Math.hypot(px, pz);
+  if (player.down) b.anger = 0;
+  b.anger = Math.max(0, b.anger - dt);
+  // an angry slime that strays too far from home calms down and goes back
+  if (b.anger > 0 && Math.hypot(b.x - b.home[0], b.z - b.home[1]) > ANGER.leash) {
+    b.anger = 0;
+    b.target = [...b.home];
+    b.mode = 'hop';
+  }
+  const flying = (b.mode === 'hop' || b.mode === 'chase') && airborne(b.phase);
 
-  // the walker comes first: watch when near, lunge when very near, but finish a hop in the air
-  if (dPlayer < NEAR.watch && !(b.mode === 'hop' && airborne(b.phase))) {
-    b.mode = dPlayer < NEAR.lunge ? 'lunge' : 'watch';
+  // close enough to the player: attack (or, if not angry, only threaten); finish a hop first
+  if (dPlayer < NEAR.lunge && !flying) {
+    if (b.mode !== 'lunge') b.attackT = 0;
+    b.mode = 'lunge';
+    b.heading = Math.atan2(px, pz);
+    b.target = null;
+    attack(b, dt, dPlayer, b.anger > 0);
+    return;
+  }
+  // angry and out of reach: hop after the player
+  if (b.anger > 0) {
+    if (b.mode !== 'chase' || (!b.target && !airborne(b.phase))) {
+      if (b.mode !== 'chase') b.phase = 0;
+      b.mode = 'chase';
+      b.target = [player.x, player.z];
+    }
+    hopTowards(b, dt, w);
+    return;
+  }
+  if (b.mode === 'chase' && flying) {
+    hopTowards(b, dt, w); // calmed down mid-air: land first
+    return;
+  }
+  if (b.mode === 'chase') {
+    b.mode = 'idle';
+    b.wait = 1;
+  }
+
+  // the walker comes first: watch when near, but finish a hop in the air
+  if (dPlayer < NEAR.watch && !flying) {
+    b.mode = 'watch';
     b.heading = Math.atan2(px, pz);
     b.target = null;
     return;
   }
-  if (busyWithPlayer) {
+  if (b.mode === 'watch' || b.mode === 'lunge') {
     // a little out of reach: keep an eye on the walker until they are well away
     if (dPlayer < NEAR.forget) {
       b.mode = 'watch';
@@ -129,24 +250,7 @@ export function stepBrain(
   }
 
   // hopping: only move while in the air, so the body never slides on the ground
-  const wasUp = airborne(b.phase);
-  b.phase += dt;
-  if (b.target) {
-    const tx = b.target[0] - b.x,
-      tz = b.target[1] - b.z;
-    const left = Math.hypot(tx, tz);
-    b.heading = Math.atan2(tx, tz);
-    if (wasUp && left > 0.05) {
-      const speed = HOP.distance / (HOP.land - HOP.liftOff);
-      const step = Math.min(left, speed * dt);
-      const [nx, nz] = w.move(b.x, b.z, (tx / left) * step, (tz / left) * step);
-      const moved = Math.hypot(nx - b.x, nz - b.z);
-      b.x = nx;
-      b.z = nz;
-      if (moved < step * 0.3) b.target = null; // bumped into something: give up after landing
-    }
-    if (left < 0.4) b.target = null;
-  }
+  hopTowards(b, dt, w);
   // a hop ends on the ground; with nowhere left to go, rest a while
   if (!b.target && !airborne(b.phase)) {
     b.mode = 'idle';

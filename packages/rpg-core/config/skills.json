@@ -1,9 +1,11 @@
 {
-  "about": "Skill numbers. Distances in metres, times in seconds. side/lift bend the path as it leaves the hand (0 = straight). splash: other slimes this close to the burst also take damage.",
+  "about": "Skill numbers, one entry per skill id. element picks the look (fire or water) and how much each monster takes from it. cost is energy. Distances in metres, times in seconds. side/lift bend the path as it leaves the hand (0 = straight). splash: other monsters this close to the burst also take damage.",
   "autoRange": 30,
   "hitRadius": 0.6,
   "skills": {
-    "fire": {
+    "fireball": {
+      "element": "fire",
+      "cost": 25,
       "damage": 40,
       "speed": 15,
       "cooldown": 1.6,
@@ -14,7 +16,9 @@
       "charge": 0.55,
       "splash": { "radius": 2.8, "damage": 15 }
     },
-    "water": {
+    "waterball": {
+      "element": "water",
+      "cost": 10,
       "damage": 20,
       "speed": 34,
       "cooldown": 0.7,

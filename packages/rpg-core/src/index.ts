@@ -8,3 +8,4 @@ export * from './screens';
 export * from './skills';
 export * from './slimeBrain';
 export * from './glb';
+export * from './stats';

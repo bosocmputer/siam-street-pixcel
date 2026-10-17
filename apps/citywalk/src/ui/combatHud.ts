@@ -1,6 +1,6 @@
 // Skill buttons with their cooldown, the chosen slime's health bar, and damage numbers.
 
-import { SKILLS, type Element, type Vec3 } from '@newgame/rpg-core';
+import { skill, type Vec3 } from '@newgame/rpg-core';
 import type { Combat, HitEvent } from '../combat';
 import type { SlimeHerd } from '../slime';
 import { TH } from '../th';
@@ -17,29 +17,34 @@ interface Floating {
 }
 
 export class CombatHud {
-  private buttons = new Map<Element, HTMLButtonElement>();
+  private buttons = new Map<string, HTMLButtonElement>();
   private bar = el('div', 'hpbar');
   private fill = el('div', 'hpfill');
   private numbers: Floating[] = [];
 
-  /** `slots` are the skills on the buttons, in order; pressing one calls `onPress(slot)`. */
+  /** `slots` are the skill ids on the buttons, in order; pressing one calls `onPress(slot)`. */
   constructor(
     private root: HTMLElement,
-    slots: Element[],
+    slots: string[],
     onPress: (slot: number) => void,
   ) {
     const box = el('div', 'skills');
-    slots.forEach((e, i) => {
-      const b = el('button', `skill skill-${e}`);
+    slots.forEach((id, i) => {
+      const spec = skill(id);
+      const b = el('button', `skill skill-${spec.element}`);
       b.type = 'button';
-      b.dataset.skill = e;
-      b.append(el('span', 'skill-orb'), el('span', 'skill-name', TH.skills[e]));
+      b.dataset.skill = id;
+      b.append(
+        el('span', 'skill-orb'),
+        el('span', 'skill-name', TH.skills[id] ?? id),
+        el('span', 'skill-cost', String(spec.cost)),
+      );
       b.addEventListener('click', () => {
         onPress(i);
         b.blur(); // keep the keyboard for walking
       });
       box.append(b);
-      this.buttons.set(e, b);
+      this.buttons.set(id, b);
     });
     this.bar.append(this.fill);
     this.bar.hidden = true;
@@ -65,11 +70,22 @@ export class CombatHud {
     for (const n of this.numbers) n.t += dt;
   }
 
-  draw(combat: Combat, herd: SlimeHerd, toScreen: ToScreen): void {
-    for (const [e, b] of this.buttons) {
-      const left = combat.cooldowns[e] / SKILLS[e].cooldown;
+  /** Shake a button whose skill could not be used (not enough energy). */
+  refuse(id: string): void {
+    const b = this.buttons.get(id);
+    if (!b) return;
+    b.classList.remove('refused');
+    void b.offsetWidth; // restart the animation
+    b.classList.add('refused');
+  }
+
+  draw(combat: Combat, herd: SlimeHerd, toScreen: ToScreen, energy: number): void {
+    for (const [id, b] of this.buttons) {
+      const spec = skill(id);
+      const left = (combat.cooldowns[id] ?? 0) / spec.cooldown;
       b.style.setProperty('--cd', left.toFixed(3));
       b.dataset.ready = String(left === 0);
+      b.dataset.low = String(energy < spec.cost);
     }
     const t = combat.target;
     const aim = t !== null ? herd.aimPoint(t) : null;

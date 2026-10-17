@@ -803,6 +803,50 @@ export class Fx {
     this.stain(at(0.055), 2.4, 0x1e4f73, 0.42, 2.8);
   }
 
+  /** A new level: golden rings rise around the player and sparks fly up. */
+  levelUp(p: Vec3, ground: number): void {
+    for (let i = 0; i < 3; i++)
+      this.ring(
+        [p[0], ground + 0.1, p[2]],
+        0xffd45a,
+        0.3,
+        2.4 + i * 0.6,
+        0.8,
+        i * 0.18,
+        0.9,
+        THREE.AdditiveBlending,
+      );
+    for (let i = 0; i < 50; i++) {
+      const a = rand(0, Math.PI * 2),
+        r = rand(0.3, 0.8);
+      this.bright.emit({
+        pos: [p[0] + Math.cos(a) * r, ground + rand(0.1, 0.6), p[2] + Math.sin(a) * r],
+        vel: [Math.cos(a) * 0.4, rand(2, 4.5), Math.sin(a) * 0.4],
+        life: rand(0.8, 1.3),
+        size: [rand(0.08, 0.14), 0.02],
+        color: [0xfff3c4, 0xffb020],
+        alpha: [1, 0],
+        drag: 1,
+      });
+    }
+  }
+
+  /** The player is hit: a small red-orange burst where the blow landed. */
+  playerHit(p: Vec3): void {
+    for (let i = 0; i < 18; i++) {
+      const d = anyway();
+      this.bright.emit({
+        pos: p,
+        vel: [d[0] * rand(2, 4), Math.abs(d[1]) * 3, d[2] * rand(2, 4)],
+        life: rand(0.25, 0.4),
+        size: [0.1, 0.02],
+        color: [0xffe0c0, 0xff4a2a],
+        alpha: [1, 0],
+        drag: 3,
+      });
+    }
+  }
+
   /** A defeated slime melts into a puddle with a few drops. */
   melt(p: Vec3, ground: number): void {
     for (let i = 0; i < 26; i++) {
