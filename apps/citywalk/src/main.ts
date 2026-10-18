@@ -204,6 +204,7 @@ async function start(): Promise<void> {
         city,
         () => stats.level,
         (id, o) => sound.play(id, o),
+        (id) => sound.hold(id),
       )
     : null;
   scene.add(city);
@@ -764,7 +765,17 @@ async function start(): Promise<void> {
         measure: async (id: string, stretch = 1) => {
           const spec = soundRecipe(id);
           const buf = await renderSound(spec, { stretch }, () => 0.5);
-          return { ...soundStats(buf.getChannelData(0), buf.sampleRate), recipe: spec.length };
+          const d = buf.getChannelData(0);
+          // loudness every 50 ms, to see the shape of a sound (a boom, then crackles)
+          const step = Math.round(buf.sampleRate * 0.05);
+          const shape: number[] = [];
+          for (let i = 0; i < d.length; i += step) {
+            let peak = 0;
+            for (let j = i; j < Math.min(d.length, i + step); j++)
+              peak = Math.max(peak, Math.abs(d[j]!));
+            shape.push(Math.round(peak * 100) / 100);
+          }
+          return { ...soundStats(d, buf.sampleRate), recipe: spec.length, shape };
         },
       },
       pickups: () =>

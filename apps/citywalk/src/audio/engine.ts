@@ -1,4 +1,4 @@
-import { newMixer, request, sound, spatialize } from '@newgame/rpg-core';
+import { newMixer, release, request, sound, spatialize } from '@newgame/rpg-core';
 import { NoiseBank, defaults, playSound, type Voice } from './synth';
 
 /** What a caller can ask of a sound. */
@@ -132,9 +132,29 @@ export class Sound {
 
   /** Play a sound. Returns whether anything was started. */
   play(id: string, o: SoundCall = {}): boolean {
+    return this.begin(id, o) !== 0;
+  }
+
+  /**
+   * Start a held sound (one that lasts until told to stop, like a fireball's roar while it flies).
+   * Returns the way to stop it: a short fade, then its place is free for other sounds.
+   */
+  hold(id: string, o: SoundCall = {}): (fade?: number) => void {
+    const uid = this.begin(id, o);
+    return (fade = 0.12) => {
+      const v = this.voices.get(uid);
+      if (!v || !this.ctx) return;
+      v.stop(fade);
+      release(this.mixer, uid, this.ctx.currentTime, fade);
+      this.voices.delete(uid);
+    };
+  }
+
+  /** Start a sound; its number, or 0 if nothing was started. */
+  private begin(id: string, o: SoundCall): number {
     const ctx = this.ctx;
     if (!ctx || !this.main || !this.alert || !this.noise || this.muted || ctx.state !== 'running')
-      return false;
+      return 0;
     const spec = sound(id);
     let gain = o.gain ?? 1;
     let pan = o.pan ?? 0;
@@ -144,12 +164,12 @@ export class Sound {
       if (o.pan === undefined) pan = s.pan;
     }
     // too far away to hear: do not even start it
-    if (gain < 0.02) return false;
+    if (gain < 0.02) return 0;
     const stretch = o.fit ? Math.max(0.5, Math.min(2, o.fit / spec.length)) : 1;
     const length = spec.length * stretch;
     const now = ctx.currentTime;
     const d = request(this.mixer, spec, now, length);
-    if (!d.play) return false;
+    if (!d.play) return 0;
     if (d.steal !== null) this.voices.get(d.steal)?.stop();
 
     const bus = spec.alert ? this.alert : this.main;
@@ -170,6 +190,6 @@ export class Sound {
     window.setTimeout(() => this.voices.delete(d.uid), (length + 0.2) * 1000);
     this.log.push(id);
     if (this.log.length > 80) this.log.shift();
-    return true;
+    return d.uid;
   }
 }

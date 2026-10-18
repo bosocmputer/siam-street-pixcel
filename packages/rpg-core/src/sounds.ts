@@ -18,6 +18,12 @@ export interface Sweep {
   curve: 'exp' | 'lin';
 }
 
+export interface Wobble {
+  from: number;
+  to: number;
+  depth: number;
+}
+
 export interface FilterSpec {
   type: FilterType;
   from: number;
@@ -46,6 +52,10 @@ export interface Layer {
   repeat: { count: number; spread: number };
   /** how much each copy's pitch may differ, as a fraction */
   jitter: number;
+  /** loudness throbbing (a whirr, a flutter): `from` → `to` beats a second, `depth` 0..1 */
+  wobble: Wobble | null;
+  /** 0..1, roughens the layer (crunchy fire); 0 leaves it clean */
+  drive: number;
   /** seconds this layer sounds for: attack + hold + release */
   length: number;
 }
@@ -56,6 +66,8 @@ export interface SoundSpec {
   priority: 1 | 2 | 3;
   cooldown: number;
   spatial: boolean;
+  /** plays until the game stops it (a fireball's roar while it flies); the recipe is the longest */
+  held: boolean;
   alert: boolean;
   /** level other sounds drop to while an alert plays (1 = no change) */
   duck: number;
@@ -115,6 +127,19 @@ function readLayer(raw: unknown, w: string): Layer {
     throw new ConfigError(`${w}.repeat.count: expected a whole number from 1 to 40`);
   const jitter = numOr(o, 'jitter', w, 0);
   if (jitter > 0.9) throw new ConfigError(`${w}.jitter: expected 0..0.9, got ${jitter}`);
+  let wobble: Wobble | null = null;
+  if (o.wobble !== undefined) {
+    const b = obj(o.wobble, `${w}.wobble`);
+    wobble = {
+      from: num(b, 'from', `${w}.wobble`, 0.1),
+      to: num(b, 'to', `${w}.wobble`, 0.1),
+      depth: num(b, 'depth', `${w}.wobble`),
+    };
+    if (wobble.from > 60 || wobble.to > 60 || wobble.depth > 1)
+      throw new ConfigError(`${w}.wobble: expected up to 60 beats a second and depth 0..1`);
+  }
+  const drive = numOr(o, 'drive', w, 0);
+  if (drive > 1) throw new ConfigError(`${w}.drive: expected 0..1, got ${drive}`);
   return {
     kind,
     wave: pick(o, 'wave', w, WAVES, 'sine'),
@@ -125,6 +150,8 @@ function readLayer(raw: unknown, w: string): Layer {
     at: numOr(o, 'at', w, 0),
     repeat,
     jitter,
+    wobble,
+    drive,
     length: env.attack + env.hold + env.release,
   };
 }
@@ -155,6 +182,7 @@ export function readSounds(raw: unknown): SoundsConfig {
       priority,
       cooldown: numOr(o, 'cooldown', w, 0),
       spatial: flag(o, 'spatial', w, false),
+      held: flag(o, 'held', w, false),
       alert,
       duck,
       layers,

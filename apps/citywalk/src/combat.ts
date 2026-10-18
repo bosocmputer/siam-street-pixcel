@@ -5,6 +5,7 @@ import type { SlimeHerd } from './slime';
 import {
   HIT_RADIUS,
   PLAYER,
+  SOUNDS,
   chooseTarget,
   launch,
   readyCooldowns,
@@ -20,6 +21,9 @@ import {
   type SkillSpec,
   type Vec3,
 } from '@newgame/rpg-core';
+
+/** an element has a flying sound only if the recipes have one (water's whoosh is in its release) */
+const hasSound = (id: string): boolean => id in SOUNDS;
 
 /** height of the paved square, where bursts and stains sit */
 const GROUND = 0.04;
@@ -48,6 +52,8 @@ interface Flying {
   /** where the target last was, kept if it melts away mid-flight */
   aim: Vec3 | null;
   time: number;
+  /** stops the sound of it flying */
+  hush: () => void;
 }
 
 export interface HitEvent {
@@ -86,6 +92,8 @@ export class Combat {
     private level: () => number,
     /** tells the sound system what just happened (a skill being gathered, released, landing) */
     private say: (id: string, o?: { gain?: number; fit?: number }) => void = () => undefined,
+    /** starts a sound that lasts while a shot flies; returns how to stop it */
+    private hold: (id: string) => () => void = () => () => undefined,
   ) {
     // a dashed ring under the chosen slime and a small arrow over it
     const c = document.createElement('canvas');
@@ -238,7 +246,9 @@ export class Combat {
     const shot = launch(spec, at, c.heading, aim, this.target);
     this.fx.release(spec.element, at, shot.dir);
     this.say(`${spec.element}.release`);
-    this.flying.push({ shot, orb: c.orb, aim, time: 0 });
+    const flight = `${spec.element}.flight`;
+    const hush = hasSound(flight) ? this.hold(flight) : () => undefined;
+    this.flying.push({ shot, orb: c.orb, aim, time: 0, hush });
     this.charging = null;
   }
 
@@ -287,6 +297,7 @@ export class Combat {
   }
 
   private land(f: Flying): false {
+    f.hush();
     this.fx.removeOrb(f.orb);
     return false;
   }

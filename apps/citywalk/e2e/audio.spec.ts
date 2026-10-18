@@ -30,7 +30,7 @@ test('every sound comes out audible, whole and not clipped', async ({ page }) =>
   await open(page);
   expect(await js(page, 'window.__walk.sound.ready()')).toBe(true);
   const ids = await js<string[]>(page, 'window.__walk.sound.ids()');
-  expect(ids.length).toBe(25);
+  expect(ids.length).toBe(26);
   for (const id of ids) {
     const m = await js<{
       peak: number;
@@ -55,6 +55,7 @@ test('skills, hits and drops make their sounds', async ({ page }) => {
   let log = await heard(page);
   expect(log).toContain('fire.gather');
   expect(log).toContain('fire.release');
+  expect(log).toContain('fire.flight');
   expect(log).toContain('fire.impact');
   expect(log).toContain('slime.hurt');
 
@@ -161,7 +162,7 @@ test('the listening room opens from the first page and plays every sound', async
   await page.getByRole('button', { name: 'ฟังเสียงทั้งหมด' }).click();
   await page.waitForFunction(() => '__walk' in window);
   await expect(page.locator('.lab')).toBeVisible();
-  await expect(page.locator('.lab-play')).toHaveCount(25);
+  await expect(page.locator('.lab-play')).toHaveCount(26);
   // spectrograms are painted one by one; wait for the last
   await expect
     .poll(
@@ -177,7 +178,7 @@ test('the listening room opens from the first page and plays every sound', async
         }),
       { timeout: 30_000 },
     )
-    .toBe(25);
+    .toBe(26);
   await page.waitForTimeout(200);
   await page.screenshot({ path: `${SHOTS}/lab.png` });
 

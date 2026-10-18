@@ -1,5 +1,5 @@
 {
-  "about": "Every sound in the game, made by the browser's own sound maker, not from files. A sound is layers played together. Layer kinds: osc = a tone (wave: sine, triangle, square, sawtooth) whose pitch glides freq.from → freq.to in Hz (curve exp or lin); noise = hiss (color: white is bright, pink is softer, brown is a low rumble). filter shapes a layer: type lowpass (keeps low), highpass (keeps high) or bandpass (keeps a band), sweeping from → to in Hz, q is how narrow the band is. env is the loudness over time: it rises over attack seconds to peak, stays for hold, then dies away over release. at starts the layer later (seconds); repeat makes count copies spread over spread seconds (bubbles, crackles); jitter makes each copy's pitch differ by up to that fraction, so repeats never sound alike. volume sets the whole sound's loudness. priority (1..3): when too many sounds play at once the quietest-priority ones are cut first. cooldown: the shortest time between two plays of the same sound. spatial: comes from where it happens (left, right, far away) instead of straight ahead. alert with duck (0..1): other sounds drop to that level while it plays. A real recorded file can replace any of these later by giving the sound a file name in place of layers.",
+  "about": "Every sound in the game, made by the browser's own sound maker, not from files. A sound is layers played together. Layer kinds: osc = a tone (wave: sine, triangle, square, sawtooth) whose pitch glides freq.from → freq.to in Hz (curve exp or lin); noise = hiss (color: white is bright, pink is softer, brown is a low rumble). filter shapes a layer: type lowpass (keeps low), highpass (keeps high) or bandpass (keeps a band), sweeping from → to in Hz, q is how narrow the band is. env is the loudness over time: it rises over attack seconds to peak, stays for hold, then dies away over release. at starts the layer later (seconds); repeat makes count copies spread over spread seconds (bubbles, crackles); jitter makes each copy's pitch differ by up to that fraction, so repeats never sound alike. volume sets the whole sound's loudness. priority (1..3): when too many sounds play at once the quietest-priority ones are cut first. cooldown: the shortest time between two plays of the same sound. wobble makes a layer's loudness throb from → to beats a second (a whirr speeding up, a roar's flutter), depth 0..1. drive 0..1 roughens it (crunchy fire). held: the sound lasts until the game stops it (a fireball's roar while it flies). spatial: comes from where it happens (left, right, far away) instead of straight ahead. alert with duck (0..1): other sounds drop to that level while it plays. A real recorded file can replace any of these later by giving the sound a file name in place of layers.",
   "limits": { "voices": 16 },
   "spatial": { "near": 4, "far": 45 },
   "footsteps": { "walk": 0.5, "run": 0.32, "bike": 0.2 },
@@ -41,158 +41,234 @@
       ]
     },
     "fire.gather": {
-      "volume": 0.82,
+      "volume": 0.36,
       "priority": 2,
       "layers": [
         {
           "kind": "noise",
           "color": "pink",
-          "filter": { "type": "bandpass", "from": 250, "to": 2200, "q": 1.4 },
-          "env": { "attack": 0.45, "release": 0.1, "peak": 0.7 }
-        },
-        {
-          "kind": "osc",
-          "wave": "sawtooth",
-          "freq": { "from": 80, "to": 230 },
-          "filter": { "type": "lowpass", "from": 500, "to": 2600, "q": 0.7 },
-          "env": { "attack": 0.45, "release": 0.1, "peak": 0.25 }
-        },
-        {
-          "kind": "noise",
-          "color": "white",
-          "filter": { "type": "highpass", "from": 4000, "to": 4000 },
-          "repeat": { "count": 9, "spread": 0.5 },
-          "jitter": 0.2,
-          "env": { "attack": 0.002, "release": 0.025, "peak": 0.35 }
-        }
-      ]
-    },
-    "fire.release": {
-      "volume": 0.75,
-      "priority": 2,
-      "layers": [
-        {
-          "kind": "noise",
-          "color": "pink",
-          "filter": { "type": "bandpass", "from": 3200, "to": 500, "q": 1 },
-          "env": { "attack": 0.01, "release": 0.32, "peak": 0.9 }
-        },
-        {
-          "kind": "osc",
-          "wave": "sine",
-          "freq": { "from": 170, "to": 55 },
-          "env": { "attack": 0.003, "release": 0.16, "peak": 0.8 }
-        },
-        {
-          "kind": "noise",
-          "color": "white",
-          "filter": { "type": "highpass", "from": 2500, "to": 2500 },
-          "at": 0.05,
-          "env": { "attack": 0.05, "release": 0.5, "peak": 0.18 }
-        }
-      ]
-    },
-    "fire.impact": {
-      "volume": 0.72,
-      "priority": 3,
-      "layers": [
-        {
-          "kind": "osc",
-          "wave": "sine",
-          "freq": { "from": 130, "to": 38 },
-          "env": { "attack": 0.004, "release": 0.45 }
+          "filter": { "type": "bandpass", "from": 300, "to": 1900, "q": 1.2 },
+          "wobble": { "from": 5, "to": 24, "depth": 0.75 },
+          "drive": 0.35,
+          "env": { "attack": 0.42, "hold": 0.03, "release": 0.1, "peak": 0.85 }
         },
         {
           "kind": "noise",
           "color": "brown",
-          "filter": { "type": "lowpass", "from": 1400, "to": 120, "q": 0.7 },
-          "env": { "attack": 0.005, "release": 0.7, "peak": 0.9 }
+          "filter": { "type": "lowpass", "from": 220, "to": 800, "q": 0.8 },
+          "drive": 0.6,
+          "env": { "attack": 0.45, "release": 0.1, "peak": 0.8 }
+        },
+        {
+          "kind": "osc",
+          "wave": "sawtooth",
+          "freq": { "from": 65, "to": 150 },
+          "filter": { "type": "lowpass", "from": 350, "to": 1100, "q": 0.8 },
+          "wobble": { "from": 5, "to": 24, "depth": 0.5 },
+          "env": { "attack": 0.45, "release": 0.1, "peak": 0.22 }
         },
         {
           "kind": "noise",
           "color": "white",
-          "filter": { "type": "bandpass", "from": 1800, "to": 400, "q": 0.8 },
-          "env": { "attack": 0.002, "release": 0.15, "peak": 0.6 }
+          "filter": { "type": "highpass", "from": 3000, "to": 3000 },
+          "repeat": { "count": 10, "spread": 0.45 },
+          "jitter": 0.3,
+          "env": { "attack": 0.001, "release": 0.025, "peak": 0.32 }
+        }
+      ]
+    },
+    "fire.release": {
+      "volume": 0.49,
+      "priority": 2,
+      "layers": [
+        {
+          "kind": "noise",
+          "color": "brown",
+          "filter": { "type": "lowpass", "from": 2600, "to": 280, "q": 0.8 },
+          "drive": 0.65,
+          "env": { "attack": 0.008, "release": 0.5, "peak": 1 }
+        },
+        {
+          "kind": "noise",
+          "color": "pink",
+          "filter": { "type": "bandpass", "from": 1400, "to": 380, "q": 1 },
+          "env": { "attack": 0.005, "release": 0.35, "peak": 0.7 }
+        },
+        {
+          "kind": "osc",
+          "wave": "sine",
+          "freq": { "from": 150, "to": 48 },
+          "env": { "attack": 0.003, "release": 0.15, "peak": 0.8 }
+        }
+      ]
+    },
+    "fire.flight": {
+      "volume": 0.35,
+      "priority": 2,
+      "held": true,
+      "layers": [
+        {
+          "kind": "noise",
+          "color": "brown",
+          "filter": { "type": "lowpass", "from": 950, "to": 800, "q": 0.7 },
+          "wobble": { "from": 9, "to": 12, "depth": 0.3 },
+          "drive": 0.7,
+          "env": { "attack": 0.06, "hold": 2.2, "release": 0.2, "peak": 0.95 }
+        },
+        {
+          "kind": "noise",
+          "color": "pink",
+          "filter": { "type": "bandpass", "from": 1700, "to": 1300, "q": 0.8 },
+          "wobble": { "from": 14, "to": 17, "depth": 0.4 },
+          "env": { "attack": 0.05, "hold": 2.2, "release": 0.2, "peak": 0.45 }
         },
         {
           "kind": "noise",
           "color": "white",
           "filter": { "type": "highpass", "from": 3500, "to": 3500 },
           "at": 0.1,
-          "repeat": { "count": 14, "spread": 0.6 },
-          "jitter": 0.3,
-          "env": { "attack": 0.002, "release": 0.03, "peak": 0.3 }
+          "repeat": { "count": 30, "spread": 2.2 },
+          "jitter": 0.4,
+          "env": { "attack": 0.001, "release": 0.03, "peak": 0.2 }
+        }
+      ]
+    },
+    "fire.impact": {
+      "volume": 0.37,
+      "priority": 3,
+      "layers": [
+        {
+          "kind": "osc",
+          "wave": "sine",
+          "freq": { "from": 105, "to": 30 },
+          "env": { "attack": 0.003, "hold": 0.1, "release": 1.2, "peak": 1 }
+        },
+        {
+          "kind": "noise",
+          "color": "brown",
+          "filter": { "type": "lowpass", "from": 2200, "to": 90, "q": 0.7 },
+          "drive": 0.85,
+          "env": { "attack": 0.004, "release": 1.4, "peak": 1, "hold": 0.1 }
+        },
+        {
+          "kind": "noise",
+          "color": "white",
+          "filter": { "type": "bandpass", "from": 2600, "to": 300, "q": 0.6 },
+          "drive": 0.4,
+          "env": { "attack": 0.002, "release": 0.26, "peak": 0.8 }
+        },
+        {
+          "kind": "noise",
+          "color": "white",
+          "filter": { "type": "highpass", "from": 2500, "to": 2500 },
+          "at": 0.25,
+          "repeat": { "count": 18, "spread": 1.0 },
+          "jitter": 0.4,
+          "env": { "attack": 0.001, "release": 0.03, "peak": 0.55 }
+        },
+        {
+          "kind": "noise",
+          "color": "pink",
+          "filter": { "type": "bandpass", "from": 900, "to": 900, "q": 3 },
+          "at": 0.3,
+          "repeat": { "count": 8, "spread": 0.9 },
+          "jitter": 0.4,
+          "env": { "attack": 0.001, "release": 0.05, "peak": 0.35 }
         }
       ]
     },
     "water.gather": {
-      "volume": 0.87,
+      "volume": 1.33,
       "priority": 2,
       "layers": [
         {
-          "kind": "osc",
-          "wave": "sine",
-          "freq": { "from": 380, "to": 1100 },
-          "repeat": { "count": 7, "spread": 0.22 },
-          "jitter": 0.3,
-          "env": { "attack": 0.004, "release": 0.05, "peak": 0.5 }
+          "kind": "noise",
+          "color": "white",
+          "filter": { "type": "bandpass", "from": 900, "to": 3400, "q": 4 },
+          "wobble": { "from": 12, "to": 30, "depth": 0.65 },
+          "env": { "attack": 0.25, "release": 0.05, "peak": 0.85 }
         },
         {
           "kind": "noise",
           "color": "pink",
-          "filter": { "type": "bandpass", "from": 500, "to": 1600, "q": 2 },
-          "env": { "attack": 0.26, "release": 0.04, "peak": 0.35 }
+          "filter": { "type": "highpass", "from": 1500, "to": 3200 },
+          "env": { "attack": 0.27, "release": 0.04, "peak": 0.35 }
+        },
+        {
+          "kind": "osc",
+          "wave": "triangle",
+          "freq": { "from": 2300, "to": 1900 },
+          "repeat": { "count": 5, "spread": 0.22 },
+          "jitter": 0.25,
+          "env": { "attack": 0.002, "release": 0.07, "peak": 0.35 }
         }
       ]
     },
     "water.release": {
-      "volume": 0.95,
+      "volume": 0.9,
       "priority": 2,
       "layers": [
         {
+          "kind": "osc",
+          "wave": "sine",
+          "freq": { "from": 320, "to": 950 },
+          "env": { "attack": 0.003, "release": 0.06, "peak": 0.8 }
+        },
+        {
           "kind": "noise",
           "color": "white",
-          "filter": { "type": "bandpass", "from": 600, "to": 4200, "q": 1.2 },
-          "env": { "attack": 0.004, "release": 0.12, "peak": 0.8 }
+          "filter": { "type": "bandpass", "from": 6500, "to": 1700, "q": 2.5 },
+          "at": 0.03,
+          "env": { "attack": 0.04, "release": 0.17, "peak": 0.95 }
         },
         {
           "kind": "osc",
           "wave": "sine",
-          "freq": { "from": 1100, "to": 360 },
-          "env": { "attack": 0.002, "release": 0.09, "peak": 0.5 }
+          "freq": { "from": 2600, "to": 1300 },
+          "at": 0.03,
+          "env": { "attack": 0.02, "release": 0.15, "peak": 0.12 }
         }
       ]
     },
     "water.impact": {
-      "volume": 0.84,
+      "volume": 0.7,
       "priority": 3,
       "layers": [
         {
+          "kind": "osc",
+          "wave": "sine",
+          "freq": { "from": 150, "to": 55 },
+          "env": { "attack": 0.002, "release": 0.13, "peak": 1 }
+        },
+        {
+          "kind": "noise",
+          "color": "brown",
+          "filter": { "type": "lowpass", "from": 700, "to": 150, "q": 0.8 },
+          "drive": 0.35,
+          "env": { "attack": 0.002, "release": 0.11, "peak": 0.9 }
+        },
+        {
           "kind": "noise",
           "color": "white",
-          "filter": { "type": "bandpass", "from": 2200, "to": 500, "q": 0.8 },
-          "env": { "attack": 0.004, "release": 0.3, "peak": 0.9 }
+          "filter": { "type": "bandpass", "from": 3600, "to": 900, "q": 0.7 },
+          "at": 0.02,
+          "env": { "attack": 0.01, "hold": 0.08, "release": 0.5, "peak": 0.9 }
         },
         {
           "kind": "noise",
           "color": "pink",
-          "filter": { "type": "lowpass", "from": 900, "to": 300, "q": 0.7 },
-          "env": { "attack": 0.01, "release": 0.35, "peak": 0.5 }
-        },
-        {
-          "kind": "osc",
-          "wave": "sine",
-          "freq": { "from": 150, "to": 70 },
-          "env": { "attack": 0.003, "release": 0.12, "peak": 0.7 }
-        },
-        {
-          "kind": "osc",
-          "wave": "sine",
-          "freq": { "from": 900, "to": 1700 },
+          "filter": { "type": "highpass", "from": 1600, "to": 800 },
           "at": 0.05,
-          "repeat": { "count": 10, "spread": 0.45 },
-          "jitter": 0.35,
-          "env": { "attack": 0.002, "release": 0.035, "peak": 0.35 }
+          "env": { "attack": 0.03, "release": 0.6, "peak": 0.4 }
+        },
+        {
+          "kind": "osc",
+          "wave": "sine",
+          "freq": { "from": 900, "to": 1600 },
+          "at": 0.12,
+          "repeat": { "count": 9, "spread": 0.5 },
+          "jitter": 0.4,
+          "env": { "attack": 0.002, "release": 0.04, "peak": 0.25 }
         }
       ]
     },

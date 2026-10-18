@@ -71,6 +71,14 @@ export function request(
   return { play: true, steal, uid };
 }
 
+/**
+ * A held sound (a fireball's roar while it flies) was cut short at `now`: its place is free once
+ * its fade of `fade` seconds is over, not when its recipe would have ended.
+ */
+export function release(m: Mixer, uid: number, now: number, fade = 0): void {
+  for (const v of m.voices) if (v.uid === uid) v.end = Math.min(v.end, now + fade);
+}
+
 /** How much to turn the other sounds down at this moment (1 = not at all). */
 export const duckGain = (m: Mixer, now: number): number => (now < m.duckUntil ? m.duckLevel : 1);
 

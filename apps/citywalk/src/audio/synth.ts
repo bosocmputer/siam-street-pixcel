@@ -18,8 +18,8 @@ export interface PlayOptions {
 export interface Voice {
   /** seconds from the start until it has died away */
   length: number;
-  /** fade it out quickly (to make room for another sound) */
-  stop(): void;
+  /** fade it out over `fade` seconds (to make room for another sound, or when a shot lands) */
+  stop(fade?: number): void;
 }
 
 export const defaults = (): PlayOptions => ({ gain: 1, pan: 0, pitch: 1, stretch: 1 });
@@ -75,6 +75,21 @@ export class NoiseBank {
 }
 
 const TINY = 0.0001;
+
+const curves = new Map<number, Float32Array>();
+/** The bend that roughens a layer: soft clipping, harder the more `drive`. */
+function driveCurve(drive: number): Float32Array {
+  let c = curves.get(drive);
+  if (c) return c;
+  c = new Float32Array(1024);
+  const k = 1 + drive * 30;
+  for (let i = 0; i < c.length; i++) {
+    const x = (i / (c.length - 1)) * 2 - 1;
+    c[i] = Math.tanh(k * x) / Math.tanh(k);
+  }
+  curves.set(drive, c);
+  return c;
+}
 
 /** Glide an audio setting to `to` by time `t`. */
 function sweep(param: AudioParam, curve: 'exp' | 'lin', to: number, t: number): void {
@@ -148,6 +163,13 @@ export function playSound(
         src.connect(bq);
         node = bq;
       }
+      if (layer.drive > 0) {
+        const shaper = ctx.createWaveShaper();
+        shaper.curve = driveCurve(layer.drive);
+        shaper.oversample = '2x';
+        node.connect(shaper);
+        node = shaper;
+      }
       const env = ctx.createGain();
       const e = layer.env;
       env.gain.setValueAtTime(TINY, start);
@@ -155,7 +177,24 @@ export function playSound(
       env.gain.setValueAtTime(e.peak, start + (e.attack + e.hold) * o.stretch);
       env.gain.exponentialRampToValueAtTime(TINY, start + len);
       node.connect(env);
-      env.connect(voice);
+      let lfo: OscillatorNode | null = null;
+      if (layer.wobble) {
+        // loudness throbs between 1 - depth and 1, the beat speeding up or slowing down
+        const w = layer.wobble;
+        const trem = ctx.createGain();
+        trem.gain.value = 1 - w.depth / 2;
+        const swing = ctx.createGain();
+        swing.gain.value = w.depth / 2;
+        lfo = ctx.createOscillator();
+        lfo.frequency.setValueAtTime(Math.max(0.1, w.from), start);
+        lfo.frequency.exponentialRampToValueAtTime(Math.max(0.1, w.to), start + len);
+        lfo.connect(swing);
+        swing.connect(trem.gain);
+        env.connect(trem);
+        trem.connect(voice);
+        lfo.start(start);
+        lfo.stop(start + len + 0.03);
+      } else env.connect(voice);
 
       src.onended = finished;
       pending++;
@@ -167,10 +206,10 @@ export function playSound(
   }
   return {
     length: end - startAt,
-    stop: () => {
+    stop: (fade = 0.03) => {
       const t = ctx.currentTime;
       voice.gain.cancelScheduledValues(t);
-      voice.gain.setTargetAtTime(0, t, 0.01);
+      voice.gain.setTargetAtTime(0, t, fade / 3);
     },
   };
 }

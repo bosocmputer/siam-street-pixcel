@@ -6,6 +6,7 @@ import {
   newMixer,
   newStepClock,
   nextCombo,
+  release,
   request,
   spatialize,
 } from '../src/audioMath';
@@ -64,6 +65,19 @@ describe('how many sounds play at once', () => {
     request(full, fake('y', 2), 0, 5, 2);
     expect(request(full, fake('z', 1), 0.1, 1, 2)).toEqual({ play: false, steal: null, uid: 0 });
     expect(full.voices).toHaveLength(2);
+  });
+
+  it('a held sound cut short frees its place after its fade', () => {
+    const m = newMixer();
+    const roar = request(m, fake('roar', 2), 0, 3, 1);
+    // a held 3-second roar stopped at 1 s with a 0.1 s fade
+    release(m, roar.uid, 1, 0.1);
+    expect(m.voices[0]!.end).toBeCloseTo(1.1);
+    expect(request(m, fake('next', 1), 1.2, 1, 1)).toMatchObject({ play: true, steal: null });
+    // releasing never makes a sound last longer, and an unknown one is ignored
+    release(m, 999, 5);
+    release(m, m.voices[0]!.uid, 50);
+    expect(m.voices[0]!.end).toBeCloseTo(2.2);
   });
 
   it('an alert holds the other sounds down only while it lasts', () => {

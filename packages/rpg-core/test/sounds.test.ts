@@ -22,6 +22,7 @@ describe('sound recipes', () => {
       'ui.deny',
       'fire.gather',
       'fire.release',
+      'fire.flight',
       'fire.impact',
       'water.gather',
       'water.release',
@@ -47,8 +48,10 @@ describe('sound recipes', () => {
       expect(SOUNDS[id], id).toBeDefined();
     for (const s of Object.values(SOUNDS)) {
       expect(s.length).toBeGreaterThan(0.04);
-      expect(s.length).toBeLessThan(2); // short effects, never a long clip
+      // short effects, never a long clip; a held one lasts as long as the longest flight
+      expect(s.length, s.id).toBeLessThan(s.held ? 3 : 2);
     }
+    expect(sound('fire.flight').held).toBe(true);
     expect(SOUND_LIMITS.voices).toBeGreaterThan(4);
     expect(SPATIAL.far).toBeGreaterThan(SPATIAL.near);
     expect(FOOTSTEPS.run).toBeLessThan(FOOTSTEPS.walk);
@@ -74,7 +77,10 @@ describe('sound recipes', () => {
     expect(layer.repeat).toEqual({ count: 1, spread: 0 });
     expect(layer.freq!.curve).toBe('exp');
     expect(layer.filter).toBeNull();
+    expect(layer.wobble).toBeNull();
+    expect(layer.drive).toBe(0);
     expect(click.spatial).toBe(false);
+    expect(click.held).toBe(false);
     expect(click.alert).toBe(false);
     expect(click.length).toBeCloseTo(0.053);
     // a late layer, and a repeated one spread over time, both stretch the whole sound
@@ -128,6 +134,17 @@ describe('sound recipes', () => {
       /whole number/,
     );
     expect(bad((c) => (c.sounds['ui.click']!.layers[0]!.jitter = 2))).toThrow(/jitter/);
+    expect(
+      bad((c) => (c.sounds['ui.click']!.layers[0]!.wobble = { from: 5, to: 99, depth: 0.5 })),
+    ).toThrow(/60 beats/);
+    expect(
+      bad((c) => (c.sounds['ui.click']!.layers[0]!.wobble = { from: 5, to: 9, depth: 2 })),
+    ).toThrow(/depth 0..1/);
+    expect(bad((c) => (c.sounds['ui.click']!.layers[0]!.wobble = { from: 5, to: 9 }))).toThrow(
+      /wobble.depth/,
+    );
+    expect(bad((c) => (c.sounds['ui.click']!.layers[0]!.drive = 3))).toThrow(/drive/);
+    expect(bad((c) => (c.sounds['ui.click']!.held = 1))).toThrow(/held: expected true or false/);
     expect(bad((c) => (c.sounds['ui.click']!.layers = []))).toThrow(/at least one layer/);
     expect(bad((c) => (c.sounds['ui.click']!.priority = 7))).toThrow(/priority/);
     expect(bad((c) => (c.sounds['ui.click']!.volume = 9))).toThrow(/volume/);
