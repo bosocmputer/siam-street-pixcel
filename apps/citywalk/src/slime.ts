@@ -11,7 +11,9 @@ import {
   seeded,
   stepBrain,
   stepVitals,
+  CHATTER,
   type BrainWorld,
+  type ChatEvent,
   type Element,
   type MonsterSpec,
   type Prey,
@@ -143,6 +145,18 @@ interface Slime {
   lastMode: SlimeMode;
   /** push-back still to travel, metres per second */
   knock: [number, number];
+  /** its place in the herd */
+  index: number;
+  /** a sprite's own clock, the spring after landing (1 → 0), and eyes shut for this long */
+  time: number;
+  land: number;
+  blinking: number;
+}
+
+/** Something that happened to a slime that it may say something about. */
+export interface SlimeEvent {
+  i: number;
+  kind: ChatEvent;
 }
 
 /** how long a slime glows after being hit, seconds */
@@ -203,6 +217,7 @@ export class SlimeHerd {
   private world: BrainWorld;
   private noises: SlimeSound[] = [];
   private shocks: Shock[] = [];
+  private events: SlimeEvent[] = [];
 
   /**
    * `templates` are the loaded models by id; a monster whose model did not load is left out.
@@ -253,6 +268,10 @@ export class SlimeHerd {
         air: false,
         lastMode: brain.mode,
         knock: [0, 0],
+        index: this.slimes.length,
+        time: rng() * 10,
+        land: 0,
+        blinking: 0,
       };
       mixer.addEventListener('finished', (e) => this.settle(slime, e.action));
       this.slimes.push(slime);
@@ -311,6 +330,7 @@ export class SlimeHerd {
         s.root.visible = true;
         s.lastMode = s.brain.mode;
         this.noise(s, 'slime.respawn');
+        this.tell(s, 'respawn');
       }
       if (changed === 'gone') s.root.visible = false;
       if (v.life === 'alive') {
@@ -341,6 +361,12 @@ export class SlimeHerd {
         this.glow(s, s.flash / FLASH);
       }
       if (s.actor) {
+        s.time += dt;
+        s.land = Math.max(0, s.land - dt * CHATTER.squash.recover);
+        if (s.blinking > 0) {
+          s.blinking -= dt;
+          if (s.blinking <= 0 && s.actor.playing === 'Blink') s.actor.play(CLIP.idle, s.spec.pace);
+        }
         s.actor.update(dt);
         // after the squish of noticing, it breathes while it keeps watching
         if (s.playing === 'watch' && s.actor.done) s.actor.play(CLIP.idle, s.spec.pace);
@@ -367,14 +393,26 @@ export class SlimeHerd {
       return;
     }
     const air = (b.mode === 'hop' || b.mode === 'chase') && airborne(b.phase);
-    if (s.air && !air) this.noise(s, 'slime.hop');
+    if (s.air && !air) {
+      this.noise(s, 'slime.hop');
+      s.land = 1;
+    }
     s.air = air;
     if (b.mode !== s.lastMode) {
       // noticing the walker, and a lower, threatening one when it squares up to attack
-      if (b.mode === 'watch' && s.lastMode !== 'lunge') this.noise(s, 'slime.watch');
-      if (b.mode === 'lunge') this.noise(s, 'slime.watch', 0.8);
+      if (b.mode === 'watch' && s.lastMode !== 'lunge') {
+        this.noise(s, 'slime.watch');
+        this.tell(s, 'notice');
+      }
+      if (b.mode === 'lunge') {
+        this.noise(s, 'slime.watch', 0.8);
+        this.tell(s, 'attack');
+      }
       // a boss roars as it starts a special move
-      if (b.mode === 'charge' || b.mode === 'slam') this.noise(s, 'boss.roar');
+      if (b.mode === 'charge' || b.mode === 'slam') {
+        this.noise(s, 'boss.roar');
+        this.tell(s, b.mode);
+      }
       s.lastMode = b.mode;
     }
     if (b.shock) {
@@ -383,6 +421,29 @@ export class SlimeHerd {
     }
     if (b.struck)
       this.noise(s, b.mode === 'slam' || b.mode === 'charge' ? 'boss.slam' : 'slime.attack');
+  }
+
+  private tell(s: Slime, kind: ChatEvent): void {
+    this.events.push({ i: s.index, kind });
+  }
+
+  /** What happened to the slimes since the last call (for what they say). */
+  takeEvents(): SlimeEvent[] {
+    const out = this.events;
+    this.events = [];
+    return out;
+  }
+
+  /**
+   * Shut slime i's eyes for a moment, if it is a sprite standing still (its blink is a picture
+   * of its standing pose).
+   */
+  blink(i: number): void {
+    const s = this.slimes[i];
+    const a = s?.actor;
+    if (!s || !a || a.playing !== CLIP.idle || !a.has('Blink')) return;
+    s.blinking = CHATTER.blinkFor;
+    a.play('Blink');
   }
 
   /** The ground slams that landed since the last call (for shaking the screen and a ring). */
@@ -419,8 +480,23 @@ export class SlimeHerd {
       const b = 1 + 2.7 * Math.pow(t - 1, 3) + 1.7 * Math.pow(t - 1, 2);
       y = xz = Math.max(0.01, b);
     }
-    if (s.actor) s.actor.object.scale.set(xz, y, 1);
-    else {
+    if (s.actor) {
+      // a sprite breathes while still, stretches in the air and squashes as it lands
+      const q = CHATTER.squash;
+      const b = s.brain;
+      if (v.life === 'alive') {
+        if (s.actor.playing === CLIP.idle || s.actor.playing === 'Blink')
+          y *= 1 + q.breathe * Math.sin(s.time * 3);
+        if (s.air && (b.mode === 'hop' || b.mode === 'chase')) {
+          y *= 1 + q.stretch;
+          xz *= 1 - q.stretch * 0.6;
+        }
+        y *= 1 - q.land * s.land;
+        xz *= 1 + q.land * 0.8 * s.land;
+      }
+      // whole sprite pixels: the edges stay sharp
+      s.actor.object.scale.set(Math.round(xz * 32) / 32, Math.round(y * 32) / 32, 1);
+    } else {
       const k = s.spec.scale;
       s.root.scale.set(xz * k, y * k, xz * k);
     }
@@ -447,6 +523,12 @@ export class SlimeHerd {
     const s = this.slimes[i];
     if (!s || !hittable(s.vitals)) return null;
     return [s.brain.x, this.heightOf(i) * 0.45, s.brain.z];
+  }
+
+  /** Where slime i is (map metres), whatever state it is in. */
+  positionOf(i: number): [number, number] {
+    const s = this.slimes[i];
+    return s ? [s.brain.x, s.brain.z] : [0, 0];
   }
 
   /** How tall slime i is, metres (a giant is taller, a mini shorter, a boss much taller). */
@@ -510,6 +592,7 @@ export class SlimeHerd {
       s.lastMode = 'watch'; // already looking at them: not a new "noticed" sound
     }
     this.noise(s, result === 'defeated' ? 'slime.melt' : 'slime.hurt');
+    this.tell(s, result === 'defeated' ? 'defeated' : 'hurt');
     s.flash = FLASH;
     s.flashColor.setHex(color);
     return result;

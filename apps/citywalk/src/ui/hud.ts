@@ -139,7 +139,8 @@ export class Hud {
           ty = r.bottom + 30;
       const show = labels && this.v.z < 1 && d * scale < 450 && ty < window.innerHeight * 0.6;
       t.hidden = !show;
-      if (show) t.style.transform = `translate(-50%, -100%) translate(${sx}px, ${ty}px)`;
+      if (show)
+        t.style.transform = `translate(-50%, -100%) translate(${Math.round(sx)}px, ${Math.round(ty)}px)`;
       if (playing && d < 25 && !this.visited.has(m.name)) {
         this.visited.add(m.name);
         if (labels) this.say(TH.arrived(m.name));

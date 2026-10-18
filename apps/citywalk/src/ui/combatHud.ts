@@ -5,6 +5,7 @@ import type { Combat, HitEvent } from '../combat';
 import type { SlimeHerd } from '../slime';
 import { TH } from '../th';
 import { el } from './dom';
+import { ICONS, pxIcon, type IconName } from './pixelIcons';
 
 /** turns a point in map metres into screen pixels, or null when it is behind the camera */
 export type ToScreen = (p: Vec3 | null) => [number, number] | null;
@@ -38,8 +39,11 @@ export class CombatHud {
       const b = el('button', `skill skill-${spec.element}`);
       b.type = 'button';
       b.dataset.skill = id;
+      const pic = el('span', 'skill-pic');
+      pic.innerHTML = spec.element in ICONS ? pxIcon(spec.element as IconName, 'px-ico') : '';
       b.append(
         el('span', 'skill-orb'),
+        pic,
         el('span', 'skill-name', TH.skills[id] ?? id),
         el('span', 'skill-cost', String(spec.cost)),
       );
@@ -99,7 +103,7 @@ export class CombatHud {
     const at = aim && t !== null ? toScreen([aim[0], herd.heightOf(t) + 1.0, aim[2]]) : null;
     this.box.hidden = !at;
     if (at && t !== null) {
-      this.box.style.transform = `translate(-50%, -100%) translate(${at[0]}px, ${at[1]}px)`;
+      this.box.style.transform = `translate(-50%, -100%) translate(${Math.round(at[0])}px, ${Math.round(at[1])}px)`;
       this.fill.style.width = `${(100 * herd.hpRatio(t)).toFixed(1)}%`;
       const spec = herd.species(t);
       if (spec.id !== this.shownName) {
@@ -119,7 +123,9 @@ export class CombatHud {
         continue;
       }
       n.e.style.opacity = n.t < 0 ? '0' : String(Math.min(1, (1 - k) * 2.5));
-      n.e.style.transform = `translate(-50%, -50%) translate(${p[0]}px, ${p[1]}px) scale(${1 + Math.max(0, 0.25 - k) * 2})`;
+      // whole pixels keep the pixel font sharp; a number hops up at first, then drifts
+      const hop = k < 0.12 ? -8 : 0;
+      n.e.style.transform = `translate(-50%, -50%) translate(${Math.round(p[0])}px, ${Math.round(p[1]) + hop}px)`;
     }
   }
 }

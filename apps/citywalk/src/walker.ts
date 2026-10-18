@@ -26,14 +26,26 @@ export interface Walker {
   showing?(): string;
 }
 
-/** A soft round shadow under someone, `radius` metres. */
+/** A round shadow under someone, `radius` metres, drawn as a stepped pixel disc. */
 export function makeShadow(radius: number): THREE.Mesh {
+  const n = 16;
+  const c = document.createElement('canvas');
+  c.width = c.height = n;
+  const g = c.getContext('2d')!;
+  g.fillStyle = '#000';
+  for (let y = 0; y < n; y++)
+    for (let x = 0; x < n; x++)
+      if (Math.hypot(x + 0.5 - n / 2, y + 0.5 - n / 2) < n / 2 - 0.2) g.fillRect(x, y, 1, 1);
+  const map = new THREE.CanvasTexture(c);
+  map.magFilter = map.minFilter = THREE.NearestFilter;
+  map.generateMipmaps = false;
   const shadow = new THREE.Mesh(
-    new THREE.CircleGeometry(radius, 20),
+    new THREE.PlaneGeometry(radius * 2, radius * 2),
     new THREE.MeshBasicMaterial({
+      map,
       color: 0x000000,
       transparent: true,
-      opacity: 0.22,
+      opacity: 0.24,
       depthWrite: false,
     }),
   );

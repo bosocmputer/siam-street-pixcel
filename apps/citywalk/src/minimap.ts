@@ -1,6 +1,8 @@
 import type { WorldData } from './types';
 
 const SIZE = 132;
+/** the map is drawn at half size and shown doubled, so it reads as pixels like the rest */
+const PIXEL = 0.5;
 
 /** North-up overview of the whole test area with the walker's position and direction. */
 export class Minimap {
@@ -12,14 +14,14 @@ export class Minimap {
   private z0: number;
 
   constructor(private world: WorldData) {
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dpr = PIXEL;
     const [x0, z0, x1, z1] = world.bounds;
     this.x0 = x0;
     this.z0 = z0;
     this.k = (SIZE * dpr) / Math.max(x1 - x0, z1 - z0);
 
     this.canvas = document.createElement('canvas');
-    this.canvas.className = 'minimap';
+    this.canvas.className = 'minimap px';
     this.canvas.width = this.canvas.height = SIZE * dpr;
     this.g = this.canvas.getContext('2d')!;
 
@@ -71,37 +73,29 @@ export class Minimap {
     dots: readonly number[] = [],
   ): void {
     const g = this.g;
-    const dpr = this.canvas.width / SIZE;
     g.drawImage(this.base, 0, 0);
+    const dot = (x: number, z: number, n: number, c: string) => {
+      const [mx, mz] = this.px(x, z);
+      g.fillStyle = c;
+      g.fillRect(Math.round(mx - n / 2), Math.round(mz - n / 2), n, n);
+    };
     // monsters
-    g.fillStyle = '#19b6d6';
-    for (let i = 0; i < dots.length; i += 2) {
-      const [mx, mz] = this.px(dots[i]!, dots[i + 1]!);
-      g.beginPath();
-      g.arc(mx, mz, 1.8 * dpr, 0, Math.PI * 2);
-      g.fill();
-    }
+    for (let i = 0; i < dots.length; i += 2) dot(dots[i]!, dots[i + 1]!, 1, '#2ce8f5');
     if (showMarks)
-      for (const m of this.world.landmarks) {
-        const [mx, mz] = this.px(m.x, m.z);
-        g.fillStyle = m.kind === 'gate' ? '#7a2e1c' : '#a9573c';
-        g.fillRect(mx - 2 * dpr, mz - 2 * dpr, 4 * dpr, 4 * dpr);
-      }
-    const [px, pz] = this.px(x, z);
-    g.save();
-    g.translate(px, pz);
-    g.rotate(-heading);
-    g.beginPath();
-    g.moveTo(0, -7 * dpr);
-    g.lineTo(5 * dpr, 5 * dpr);
-    g.lineTo(0, 2 * dpr);
-    g.lineTo(-5 * dpr, 5 * dpr);
-    g.closePath();
-    g.fillStyle = '#e0773a';
-    g.strokeStyle = '#ffffff';
-    g.lineWidth = 1.5 * dpr;
-    g.fill();
-    g.stroke();
-    g.restore();
+      for (const m of this.world.landmarks)
+        dot(m.x, m.z, 2, m.kind === 'gate' ? '#7a2e1c' : '#a9573c');
+    // the walker: a dark-edged square with a dot on the side it faces
+    const [px, pz] = this.px(x, z).map(Math.round) as [number, number];
+    g.fillStyle = '#181425';
+    g.fillRect(px - 2, pz - 2, 5, 5);
+    g.fillStyle = '#f77622';
+    g.fillRect(px - 1, pz - 1, 3, 3);
+    g.fillStyle = '#fee761';
+    g.fillRect(
+      px + Math.round(-Math.sin(heading) * 3),
+      pz + Math.round(-Math.cos(heading) * 3),
+      1,
+      1,
+    );
   }
 }

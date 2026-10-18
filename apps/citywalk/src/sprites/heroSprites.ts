@@ -2,7 +2,7 @@
 // code as the 3D body (hero.ts), with a bigger head for chibi proportions.
 
 import * as THREE from 'three';
-import { APPEARANCE, SPRITES, type Look } from '@newgame/rpg-core';
+import { APPEARANCE, SPRITES, type AnimSpec, type Look } from '@newgame/rpg-core';
 import { makeHero, type Motion } from '../hero';
 import { buildLook, styleFor } from '../lookModel';
 import { bake, cartoon, type Baked, type Mark } from './bake';
@@ -13,7 +13,12 @@ export const HERO_GAIT = {
   run: { speed: 8, cycle: 4.2 },
 };
 
-export function bakeHero(look: Look, spec = SPRITES): Baked {
+/** Draw the sheet for a look; `anims` picks fewer animations (a quick preview). */
+export function bakeHero(
+  look: Look,
+  spec = SPRITES,
+  anims: [string, AnimSpec][] = Object.entries(spec.hero.anims),
+): Baked {
   lookNow = look;
   const built = buildLook(look);
   const w = makeHero(
@@ -29,7 +34,7 @@ export function bakeHero(look: Look, spec = SPRITES): Baked {
   const run = (m: Partial<Motion>, dt: number, n = 1) => {
     for (let k = 0; k < n; k++) animate(dt, { ...still, ...m });
   };
-  return bake(
+  const sheet = bake(
     {
       root: w.body,
       marks: () => {
@@ -77,10 +82,20 @@ export function bakeHero(look: Look, spec = SPRITES): Baked {
     {
       frame: spec.hero.frame,
       anchor: spec.hero.anchor,
-      anims: Object.entries(spec.hero.anims),
+      anims,
     },
     spec,
   );
+  // the model was only needed for drawing
+  w.body.traverse((o) => {
+    if (!(o instanceof THREE.Mesh)) return;
+    o.geometry.dispose();
+    for (const m of [o.material].flat() as THREE.MeshBasicMaterial[]) {
+      m.map?.dispose();
+      m.dispose();
+    }
+  });
+  return sheet;
 }
 
 /**

@@ -9,6 +9,7 @@ import {
   SAVE_VERSION,
   SOUNDS,
   SPAWNS,
+  SPRITES,
   addItem,
   attrBonus,
   defaultLook,
@@ -70,6 +71,7 @@ import { clearSave, readPrefs, readSave, writePrefs, writeSave } from './storage
 import { TH } from './th';
 import type { Landmark, WorldData } from './types';
 import { CombatHud } from './ui/combatHud';
+import { Chatter } from './ui/chatter';
 import { $ } from './ui/dom';
 import { Hud } from './ui/hud';
 import { PlayerHud } from './ui/playerHud';
@@ -81,6 +83,7 @@ import { bakeHero } from './sprites/heroSprites';
 import { bakeMonster } from './sprites/monsterSprites';
 import { loadSheet, sheetFromBaked, type SpriteSheet } from './sprites/sheet';
 import { makeSpriteHero } from './sprites/spriteHero';
+import { PixelPass } from './sprites/pixelPass';
 import './style.css';
 
 /** screen speed in metres per second, whatever the city scale */
@@ -206,6 +209,9 @@ async function start(): Promise<void> {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
   renderer.setSize(window.innerWidth, window.innerHeight);
   const canvas = renderer.domElement;
+  // skill effects and drops as pixels, like the characters
+  const pixelFx = art === 'pixel' ? new PixelPass(renderer, SPRITES.fxPixel) : null;
+  pixelFx?.resize(canvas.width, canvas.height);
   canvas.id = 'view';
   document.body.prepend(canvas);
 
@@ -385,6 +391,8 @@ async function start(): Promise<void> {
   const combatHud = combat
     ? new CombatHud(hud.root, SLOTS, (i) => input.trigger(i === 0 ? 'skill1' : 'skill2'))
     : null;
+  // what monsters say, and the marks over their heads
+  const chatter = herd ? new Chatter(hud.root, seeded((seedParam || 1) + 11)) : null;
   const playerHud = new PlayerHud(hud.top);
   // the status window: tap the player panel; the world waits while it is open
   const status = new StatsPanel(
@@ -629,7 +637,9 @@ async function start(): Promise<void> {
       hud.say(TH.up, true);
     }
     combatHud?.age(dt);
-    for (const h of combat?.update(dt) ?? []) {
+    const hits = combat?.update(dt) ?? [];
+    if (herd) chatter?.update(dt, herd, state);
+    for (const h of hits) {
       freeze = Math.max(freeze, h.element === 'fire' ? 0.08 : 0.04);
       shake = Math.max(shake, h.element === 'fire' ? 0.22 : 0.09);
       combatHud?.hit(h);
@@ -678,7 +688,8 @@ async function start(): Promise<void> {
       freeze = Math.max(freeze, 0.06);
     }
   };
-  const effects = (dt: number) => fx.update(dt, camera, canvas.height, state.scale);
+  const effects = (dt: number) =>
+    fx.update(dt, camera, pixelFx?.height ?? canvas.height, state.scale);
 
   /** commands from keys and buttons, once per frame */
   let lastTurn = -1e9;
@@ -792,7 +803,14 @@ async function start(): Promise<void> {
       }
       walker.draw?.(camera);
       herd?.draw(camera);
-      renderer.render(scene, camera);
+      if (pixelFx)
+        pixelFx.render(
+          scene,
+          camera,
+          [fx.object, pickups.object],
+          herd ? [walker.body, herd.object] : [walker.body],
+        );
+      else renderer.render(scene, camera);
       // name tags never cover the panel and buttons at the top or the minimap
       const covered = [
         ...Array.from(hud.top.querySelectorAll('.title, .player, .near, .chip')),
@@ -802,6 +820,7 @@ async function start(): Promise<void> {
       minimap.draw(state.x, state.z, state.heading, state.labels, herd?.dots());
       sound.hear(state.x, state.z, state.yaw);
       if (combat && herd) combatHud?.draw(combat, herd, screenOf, stats.energy);
+      if (herd) chatter?.draw(herd, screenOf);
       playerHud.draw(stats);
     } catch (err) {
       // one bad frame should not freeze the game
@@ -819,6 +838,7 @@ async function start(): Promise<void> {
 
   window.addEventListener('resize', () => {
     renderer.setSize(window.innerWidth, window.innerHeight);
+    pixelFx?.resize(canvas.width, canvas.height);
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
   });
@@ -852,6 +872,7 @@ async function start(): Promise<void> {
     },
     defaultLook('m'),
     () => sound.play('ui.click'),
+    art === 'pixel',
   );
   document.body.append(creator.root);
   const create = () => {
@@ -962,6 +983,8 @@ async function start(): Promise<void> {
       walkerOnScreen: () => screenOf([state.x, 1.2, state.z]),
       stats: () => ({ ...stats }),
       look: () => ({ ...look }),
+      /** the lines monsters have said */
+      said: () => chatter?.said ?? [],
       /** how characters are drawn, and whether the player is a sprite now */
       art: () => ({
         mode: art,

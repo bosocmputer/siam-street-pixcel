@@ -45,6 +45,8 @@ export interface SpriteSpec {
   supersample: number;
   /** the most pixels a frame may be drawn at before shrinking (big monsters are supersampled less) */
   maxRender: number;
+  /** skill effects are drawn in pixels this many screen pixels across */
+  fxPixel: number;
   hero: {
     frame: [number, number];
     anchor: [number, number];
@@ -106,6 +108,7 @@ export function readSprites(raw: unknown): SpriteSpec {
     outline,
     supersample: num(o, 'supersample', w, 1),
     maxRender: num(o, 'maxRender', w, 16),
+    fxPixel: num(o, 'fxPixel', w, 1),
     hero: {
       frame,
       anchor,

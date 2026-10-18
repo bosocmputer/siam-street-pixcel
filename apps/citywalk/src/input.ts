@@ -3,6 +3,7 @@
 // -1..1), camera turns and taps.
 
 import { BINDINGS, moveFrom, type HoldAction, type PressAction } from '@newgame/rpg-core';
+import { pxRing, pxSvg } from './ui/pixelIcons';
 
 export interface InputState {
   forward: number;
@@ -45,6 +46,8 @@ export class Input {
     const label = document.createElement('span');
     label.className = 'stick-hint';
     label.textContent = hint;
+    // a stepped pixel ring
+    this.base.innerHTML = pxSvg(pxRing(28, 2), '');
     this.base.append(this.knob, label);
     this.base.hidden = !this.touchScreen;
     document.body.append(this.base);

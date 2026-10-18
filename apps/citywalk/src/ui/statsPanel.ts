@@ -14,6 +14,7 @@ import {
 } from '@newgame/rpg-core';
 import { TH } from '../th';
 import { el } from './dom';
+import { pxIcon, type IconName } from './pixelIcons';
 
 /** colour of each attribute (also the aura colours in the GDD) */
 export const ATTR_COLOR: Record<Attr, string> = {
@@ -23,14 +24,14 @@ export const ATTR_COLOR: Record<Attr, string> = {
   int: '#4aa8ff',
   vit: '#ffc845',
 };
-const JOB_ICON: Record<string, string> = {
-  striker: '<path d="M5 19 19 5M14 5h5v5M5 14l5 5M3 21l3-3"/>',
-  ranger: '<path d="M6 3c7 3 7 15 0 18M6 3v18M4 12h16M17 9l3 3-3 3"/>',
-  elementalist: '<path d="M12 3c3 4 5 6 5 9a5 5 0 0 1-10 0c0-3 2-5 5-9Z"/>',
-  cleric: '<path d="M5 19c0-8 5-14 14-14 0 9-6 14-14 14Z"/><path d="M5 19 13 11"/>',
-  guardian: '<path d="M12 3 5 6v6c0 4 3 7 7 9 4-2 7-5 7-9V6l-7-3Z"/>',
-  freelancer: '<path d="M12 3 20 12 12 21 4 12Z"/><path d="M4 12h16M12 3v18"/>',
-};
+const JOB_ICONS = new Set<string>([
+  'striker',
+  'ranger',
+  'elementalist',
+  'cleric',
+  'guardian',
+  'freelancer',
+]);
 const ZERO = (): Attrs => ({ str: 0, agi: 0, dex: 0, int: 0, vit: 0 });
 
 export interface StatusOf {
@@ -78,8 +79,7 @@ export class StatsPanel {
     const close = el('button', 'cr-icon st-close');
     close.type = 'button';
     close.setAttribute('aria-label', S.close);
-    close.innerHTML =
-      '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>';
+    close.innerHTML = pxIcon('close', 'ico');
     close.addEventListener('click', () => {
       this.tap();
       this.close();
@@ -88,7 +88,8 @@ export class StatsPanel {
     const bar = el('div', 'st-xp');
     bar.append(this.xp);
 
-    this.radar.setAttribute('viewBox', '0 0 300 268');
+    this.radar.setAttribute('viewBox', '0 0 150 134');
+    this.radar.setAttribute('shape-rendering', 'crispEdges');
     this.radar.setAttribute('class', 'st-radar');
     this.radar.setAttribute('role', 'img');
 
@@ -114,8 +115,7 @@ export class StatsPanel {
     const foot = el('div', 'st-foot');
     this.undo.type = 'button';
     this.undo.setAttribute('aria-label', S.undo);
-    this.undo.innerHTML =
-      '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4.5h4.5"/></svg>';
+    this.undo.innerHTML = pxIcon('undo', 'ico');
     this.undo.addEventListener('click', () => {
       this.tap();
       this.add = ZERO();
@@ -242,7 +242,7 @@ export class StatsPanel {
     const spec = ATTR.jobs.find((j) => j.id === pick.job);
     const [a, b] = spec ? spec.between.map((x) => ATTR_COLOR[x]) : ['#ffffff', '#c9c4ff'];
     this.job.innerHTML = `
-      <div class="st-ic" style="--a:${a};--b:${b}"><svg viewBox="0 0 24 24" aria-hidden="true">${JOB_ICON[pick.job] ?? ''}</svg></div>
+      <div class="st-ic" style="--a:${a};--b:${b}">${JOB_ICONS.has(pick.job) ? pxIcon(pick.job as IconName) : ''}</div>
       <div><div class="st-k">${TH.status.jobAt(ATTR.jobLevel)}</div><div class="st-n">${TH.jobs[pick.job]}</div></div>
       <span class="st-r">${TH.jobRoles[pick.job]}</span>`;
     if (this.shown && this.shown !== pick.job) {
@@ -256,50 +256,108 @@ export class StatsPanel {
     this.confirm.disabled = !dirty;
   }
 
+  /**
+   * The attribute wheel drawn in pixels: a 150×134 grid shown at twice the size. Lines are laid
+   * pixel by pixel, the areas filled with a checker so the grid shows through.
+   */
   private drawRadar(locked: Attrs, v: Attrs, job: string, ties: string[]): void {
-    const cx = 150,
-      cy = 138,
-      R = 90;
+    const cx = 75,
+      cy = 69,
+      R = 45;
     const order = ATTR.order;
     const top = Math.max(18, Math.ceil(Math.max(...order.map((k) => v[k])) * 1.12));
-    const pt = (i: number, r: number) => {
+    const pt = (i: number, r: number): [number, number] => {
       const a = ((-90 + i * 72) * Math.PI) / 180;
-      return [cx + Math.cos(a) * r, cy + Math.sin(a) * r] as const;
+      return [Math.round(cx + Math.cos(a) * r), Math.round(cy + Math.sin(a) * r)];
     };
-    const poly = (a: Attrs) =>
-      order
-        .map((k, i) =>
-          pt(i, (R * a[k]) / top)
-            .map((n) => n.toFixed(1))
-            .join(','),
-        )
-        .join(' ');
-    let s = `<defs><filter id="st-glow" filterUnits="userSpaceOnUse" x="0" y="0" width="300" height="268"><feGaussianBlur stdDeviation="3.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>`;
-    ATTR.jobs.forEach((j, i) => {
-      const [x1, y1] = pt(i, R),
-        [x2, y2] = pt((i + 1) % order.length, R);
-      s += `<linearGradient id="st-e${i}" gradientUnits="userSpaceOnUse" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"><stop offset="0" stop-color="${ATTR_COLOR[j.between[0]]}"/><stop offset="1" stop-color="${ATTR_COLOR[j.between[1]]}"/></linearGradient>`;
-    });
-    s += '</defs>';
+    const shape = (a: Attrs) => order.map((k, i) => pt(i, (R * a[k]) / top));
+    const layers: { cls?: string; job?: string; px: Map<string, string> }[] = [];
+    const layer = (cls?: string, jobId?: string) => {
+      const l = { cls, job: jobId, px: new Map<string, string>() };
+      layers.push(l);
+      return l.px;
+    };
+    const line = (
+      px: Map<string, string>,
+      [x0, y0]: [number, number],
+      [x1, y1]: [number, number],
+      colour: (t: number) => string,
+      thick = 1,
+    ) => {
+      const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0), 1);
+      for (let s = 0; s <= n; s++) {
+        const x = Math.round(x0 + ((x1 - x0) * s) / n),
+          y = Math.round(y0 + ((y1 - y0) * s) / n);
+        for (let d = 0; d < thick; d++) px.set(`${x + d},${y}`, colour(s / n));
+      }
+    };
+    const ring = (px: Map<string, string>, pts: [number, number][], colour: string) =>
+      pts.forEach((p, i) => line(px, p, pts[(i + 1) % pts.length]!, () => colour));
+    const fill = (px: Map<string, string>, pts: [number, number][], colour: string) => {
+      for (let y = 0; y < 134; y++)
+        for (let x = 0; x < 150; x++) {
+          if ((x + y) % 2) continue;
+          let inside = false;
+          for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+            const [xi, yi] = pts[i]!,
+              [xj, yj] = pts[j]!;
+            if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+          }
+          if (inside) px.set(`${x},${y}`, colour);
+        }
+    };
+    const grid = layer();
     for (const k of [0.34, 0.67, 1])
-      s += `<polygon points="${order.map((_, i) => pt(i, R * k).join(',')).join(' ')}" fill="none" stroke="rgba(255,255,255,${k === 1 ? 0.12 : 0.06})"/>`;
+      ring(
+        grid,
+        order.map((_, i) => pt(i, R * k)),
+        k === 1 ? '#5a6988' : '#3a4466',
+      );
     ATTR.jobs.forEach((j, i) => {
       const on = j.id === job,
         tie = !on && ties.includes(j.id);
       if (!on && !tie) return;
-      const [x1, y1] = pt(i, R),
-        [x2, y2] = pt((i + 1) % order.length, R);
-      s += `<line class="${tie ? 'st-tie' : 'st-on'}" data-job="${j.id}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="url(#st-e${i})" stroke-width="${on ? 4 : 3}" stroke-linecap="round" ${on ? 'filter="url(#st-glow)"' : 'opacity="0.7"'}/>`;
+      const [a, b] = j.between.map((x) => ATTR_COLOR[x]);
+      line(
+        layer(tie ? 'st-tie' : 'st-on', j.id),
+        pt(i, R),
+        pt((i + 1) % order.length, R),
+        (t) => (t < 0.5 ? a! : b!),
+        on ? 2 : 1,
+      );
     });
-    s += `<polygon points="${poly(locked)}" fill="rgba(238,240,246,0.08)" stroke="rgba(238,240,246,0.55)" stroke-width="1.2" stroke-linejoin="round"/>`;
-    if (ATTRS.some((k) => this.add[k]))
-      s += `<polygon points="${poly(v)}" fill="rgba(255,149,0,0.12)" stroke="#ff9500" stroke-width="1.6" stroke-linejoin="round"/>`;
+    const shapes = layer();
+    fill(shapes, shape(locked), '#5a6988');
+    ring(shapes, shape(locked), '#c0cbdc');
+    if (ATTRS.some((k) => this.add[k])) {
+      fill(shapes, shape(v), '#be4a2f');
+      ring(shapes, shape(v), '#f77622');
+    }
     order.forEach((k, i) => {
       const [x, y] = pt(i, (R * v[k]) / top);
-      s += `<circle cx="${x}" cy="${y}" r="3.2" fill="${ATTR_COLOR[k]}"/>`;
-      const [lx, ly] = pt(i, R + 24);
-      s += `<text x="${lx}" y="${ly - 3}" text-anchor="middle" class="st-tl">${TH.attrs[k]}</text>`;
-      s += `<text x="${lx}" y="${ly + 14}" text-anchor="middle" class="st-tv${this.add[k] ? ' up' : ''}">${v[k]}</text>`;
+      for (const [dx, dy] of [
+        [-1, -1],
+        [0, -1],
+        [-1, 0],
+        [0, 0],
+      ])
+        shapes.set(`${x + dx!},${y + dy!}`, ATTR_COLOR[k]);
+    });
+    let s = '';
+    for (const l of layers) {
+      const byColour = new Map<string, string>();
+      for (const [key, c] of l.px) {
+        const [x, y] = key.split(',');
+        byColour.set(c, (byColour.get(c) ?? '') + `M${x} ${y}h1v1h-1z`);
+      }
+      let body = '';
+      for (const [c, d] of byColour) body += `<path d="${d}" fill="${c}"/>`;
+      s += l.cls ? `<g class="${l.cls}" data-job="${l.job}">${body}</g>` : body;
+    }
+    order.forEach((k, i) => {
+      const [lx, ly] = pt(i, R + 14);
+      s += `<text x="${lx}" y="${ly - 1}" text-anchor="middle" class="st-tl">${TH.attrs[k]}</text>`;
+      s += `<text x="${lx}" y="${ly + 8}" text-anchor="middle" class="st-tv${this.add[k] ? ' up' : ''}">${v[k]}</text>`;
     });
     this.radar.innerHTML = s;
     this.radar.setAttribute(

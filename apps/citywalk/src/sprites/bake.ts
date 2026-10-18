@@ -27,6 +27,8 @@ export interface Mark {
   eye: [string, string, string];
   /** a small eye is 2×2 pixels, a normal one 2×3 */
   small?: boolean;
+  /** shut: a short dark line */
+  shut?: boolean;
 }
 
 export interface BakeOptions {
@@ -79,16 +81,18 @@ export function cartoon(root: THREE.Object3D): void {
  */
 function paintEye(img: Img, x: number, y: number, m: Mark): void {
   const [ink, iris, shine] = m.eye.map((h) => new THREE.Color(h));
-  const pattern = m.small
-    ? [
-        [ink!, shine!],
-        [ink!, ink!],
-      ]
-    : [
-        [ink!, ink!],
-        [ink!, shine!],
-        [iris!, iris!],
-      ];
+  const pattern = m.shut
+    ? [[ink!, ink!]]
+    : m.small
+      ? [
+          [ink!, shine!],
+          [ink!, ink!],
+        ]
+      : [
+          [ink!, ink!],
+          [ink!, shine!],
+          [iris!, iris!],
+        ];
   const x0 = Math.round(x - 1),
     y0 = Math.round(y - pattern.length / 2);
   pattern.forEach((row, dy) =>
@@ -105,6 +109,20 @@ function paintEye(img: Img, x: number, y: number, m: Mark): void {
   );
 }
 
+// one drawing surface for every sheet (a page may only have a few at a time)
+let shared: THREE.WebGLRenderer | null = null;
+function drawer(): THREE.WebGLRenderer {
+  if (!shared) {
+    shared = new THREE.WebGLRenderer({
+      alpha: true,
+      antialias: false,
+      preserveDrawingBuffer: true,
+    });
+    shared.setPixelRatio(1);
+  }
+  return shared;
+}
+
 export function bake(subject: Bakeable, o: BakeOptions, spec = SPRITES): Baked {
   const [fw, fh] = o.frame;
   // a big frame is drawn less oversized, to keep the drawing within what a phone handles
@@ -112,12 +130,7 @@ export function bake(subject: Bakeable, o: BakeOptions, spec = SPRITES): Baked {
   const dirs = spec.dirs;
   const layout = sheetLayout(o.anims);
 
-  const renderer = new THREE.WebGLRenderer({
-    alpha: true,
-    antialias: false,
-    preserveDrawingBuffer: true,
-  });
-  renderer.setPixelRatio(1);
+  const renderer = drawer();
   renderer.setSize(fw * ss, fh * ss, false);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.setClearColor(0x000000, 0);
@@ -175,8 +188,7 @@ export function bake(subject: Bakeable, o: BakeOptions, spec = SPRITES): Baked {
       }
     }
   }
-  renderer.dispose();
-  renderer.forceContextLoss();
+  scene.remove(subject.root);
 
   // one palette for the whole sheet, then the eyes and the edges
   const pal = fitPalette(

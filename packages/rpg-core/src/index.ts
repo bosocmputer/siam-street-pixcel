@@ -2,6 +2,7 @@ export * from './actions';
 export * from './attributes';
 export * from './audioMath';
 export * from './camera';
+export * from './chatter';
 export * from './clock';
 export * from './config';
 export * from './drops';

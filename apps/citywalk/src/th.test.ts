@@ -11,6 +11,7 @@ import {
   SKILLS,
   SOUNDS,
   choices,
+  type ChatEvent,
 } from '@newgame/rpg-core';
 import { SOUND_GROUPS } from './audio/groups';
 import { TH } from './th';
@@ -18,7 +19,7 @@ import { TH } from './th';
 // Every kind of thing the game data can name must have a Thai name for the player, and no name
 // may be left over for something that no longer exists.
 describe('Thai names cover the game data', () => {
-  const same = (names: Record<string, string>, ids: string[]) =>
+  const same = (names: Record<string, unknown>, ids: string[]) =>
     expect(Object.keys(names).sort()).toEqual([...ids].sort());
 
   it('monsters', () => same(TH.monsters, Object.keys(MONSTERS)));
@@ -41,6 +42,22 @@ describe('Thai names cover the game data', () => {
     for (const p of LOOK_PARTS) same(TH.create.names[p]!, choices(p));
     same(TH.create.parts, [...LOOK_PARTS]);
     same(TH.create.bodies, APPEARANCE.bodies);
+  });
+  it('every monster has short lines for what happens to it', () => {
+    same(TH.chatter, Object.keys(MONSTERS));
+    for (const [id, lines] of Object.entries(TH.chatter)) {
+      const needed: ChatEvent[] = ['idle', 'notice', 'attack', 'hurt', 'defeated', 'respawn'];
+      // a boss also speaks as it starts its special moves
+      const sp = MONSTERS[id]!.specials;
+      if (sp.charge) needed.push('charge');
+      if (sp.slam) needed.push('slam');
+      same(lines, needed);
+      for (const list of Object.values(lines))
+        for (const line of list) {
+          expect(line.trim().length).toBeGreaterThan(0);
+          expect([...line].length).toBeLessThanOrEqual(22);
+        }
+    }
   });
   it('every sound is on the listening page exactly once', () => {
     const listed = SOUND_GROUPS.flatMap((g) => g.ids);

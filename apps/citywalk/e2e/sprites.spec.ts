@@ -14,17 +14,26 @@ test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
 // drawing every sheet in software WebGL takes a while
 test.describe.configure({ timeout: 240_000 });
 
-async function open(page: Page, query = '') {
+async function open(page: Page, query = '', shot = '') {
   await page.goto(`./?debug=1&seed=7&art=pixel${query}`);
   await page.getByRole('button', { name: 'เริ่มเดิน' }).waitFor({ timeout: 200_000 });
-  await newGame(page);
+  if (shot) {
+    // the character screen shows the character as its sprite
+    await page.getByRole('button', { name: 'เริ่มเดิน' }).click();
+    await expect(page.locator('.cr-thumb.wait')).toHaveCount(0, { timeout: 120_000 });
+    await page.screenshot({ path: `${SHOTS}/${shot}.png` });
+    await page.getByRole('button', { name: 'ถัดไป' }).click();
+    await page.getByLabel('ตั้งชื่อ').fill('ทดสอบ');
+    await page.getByRole('button', { name: 'ตื่นขึ้น' }).click();
+    await page.getByRole('button', { name: 'รับทราบ' }).click();
+  } else await newGame(page);
   await page.waitForFunction(() => '__walk' in window);
 }
 
 test('the player and every monster are pixel sprites that move, fight and face the camera', async ({
   page,
 }) => {
-  await open(page);
+  await open(page, '', 'pixel-creator');
   const a = await art(page);
   expect(a.mode).toBe('pixel');
   expect(a.heroSprite).toBe(true);
@@ -38,8 +47,7 @@ test('the player and every monster are pixel sprites that move, fight and face t
   // walking shows the walk
   await js(page, 'window.__walk.pause(true)');
   await page.keyboard.down('KeyW');
-  await page.waitForTimeout(700);
-  expect((await art(page)).anim).toBe('walk');
+  await expect.poll(async () => (await art(page)).anim, { timeout: 15_000 }).toBe('walk');
   await page.screenshot({ path: `${SHOTS}/pixel-walk.png` });
   await page.keyboard.up('KeyW');
 
@@ -57,9 +65,8 @@ test('the player and every monster are pixel sprites that move, fight and face t
     w.setTarget(2);
     w.cast('waterball');
   })()`);
-  await page.waitForTimeout(60);
-  await js(page, 'window.__walk.simulateFight(0.05)');
-  expect((await art(page)).anim).toBe('cast');
+  // (software drawing is slow: the next frame may take a moment to show it)
+  await expect.poll(async () => (await art(page)).anim, { timeout: 15_000 }).toBe('cast');
   await page.waitForTimeout(250);
   await page.screenshot({ path: `${SHOTS}/pixel-cast.png` });
   await page.evaluate(`(() => {
@@ -67,6 +74,22 @@ test('the player and every monster are pixel sprites that move, fight and face t
     for (let n = 0; n < 150 && w.combat().inFlight > 0; n++) w.simulateFight(1 / 30);
   })()`);
   expect((await js<{ hp: number }[]>(page, 'window.__walk.slimes()'))[2]!.hp).toBeLessThan(hp);
+
+  // monsters talk: a hit slime may say something, a beaten one always does, in a bubble
+  await page.evaluate(`(() => {
+    const w = window.__walk;
+    w.setStats({ level: 10 });
+    for (let n = 0; n < 8 && w.slimes()[2].alive; n++) {
+      w.setStats({ hp: 200, energy: 200 });
+      w.cast('waterball');
+      for (let k = 0; k < 90 && w.combat().inFlight > 0; k++) w.simulateFight(1 / 30);
+      w.simulateFight(0.4);
+    }
+  })()`);
+  const said = await js<{ i: number; kind: string; text: string }[]>(page, 'window.__walk.said()');
+  expect(said.some((l) => l.i === 2 && l.kind === 'defeated')).toBe(true);
+  await expect(page.locator('.say').first()).toBeVisible();
+  await page.screenshot({ path: `${SHOTS}/pixel-chatter.png` });
 
   // the boss, big and close
   await page.evaluate(`(() => {
@@ -103,8 +126,7 @@ test('a sheet packed from files (such as a PixelLab export) takes the place of t
   expect(a.heroSprite).toBe(true);
   await js(page, 'window.__walk.pause(true)');
   await page.keyboard.down('KeyW');
-  await page.waitForTimeout(700);
-  expect((await art(page)).anim).toBe('walk');
+  await expect.poll(async () => (await art(page)).anim, { timeout: 15_000 }).toBe('walk');
   await page.screenshot({ path: `${SHOTS}/pixel-file-hero.png` });
   await page.keyboard.up('KeyW');
 });

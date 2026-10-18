@@ -19,6 +19,10 @@ export function bakeMonster(t: SlimeTemplate, spec: MonsterSpec, sp = SPRITES): 
     const n = Math.max(2, Math.min(sp.monster.maxFrames, Math.round(c.duration * sp.monster.fps)));
     return [c.name, { frames: n, fps: n / Math.max(0.05, c.duration), loop: true }];
   });
+  // a blink: the standing pose with the eyes shut
+  const idle = t.clips.find((c) => c.name === 'Idle');
+  if (idle) anims.push(['Blink', { frames: 1, fps: 1, loop: false }]);
+  let shut = false;
   // room for the body and a hop above it
   const box = new THREE.Box3().setFromObject(wrap);
   const size = box.getSize(new THREE.Vector3());
@@ -42,11 +46,12 @@ export function bakeMonster(t: SlimeTemplate, spec: MonsterSpec, sp = SPRITES): 
             .setY(0)
             .sub(wrap.getWorldPosition(new THREE.Vector3()).setY(0))
             .normalize();
-          return { at, normal, eye: ['#1a1420', '#1a1420', '#ffffff'], small };
+          return { at, normal, eye: ['#1a1420', '#1a1420', '#ffffff'], small, shut };
         }),
       face: (a) => (wrap.rotation.y = a),
       pose: (anim, i, n) => {
-        const clip = t.clips.find((c) => c.name === anim)!;
+        shut = anim === 'Blink';
+        const clip = shut ? idle! : t.clips.find((c) => c.name === anim)!;
         mixer.stopAllAction();
         mixer.clipAction(clip).reset().play();
         mixer.setTime((i / n) * clip.duration);

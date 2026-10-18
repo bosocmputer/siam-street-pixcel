@@ -1,0 +1,36 @@
+{
+  "about": "How monsters show what they feel. A monster near the player says a short line (the lines are in apps/citywalk/src/th.ts, chatter) now and then, and when something happens to it: chance per event (1 = always, even right after speaking). gap: seconds it stays quiet after a line. idleEvery: seconds between idle remarks [shortest, longest]. hearRange: metres from the player within which monsters talk. showFor: seconds a line stays up. maxBubbles: lines on screen at once. emote: the mark that pops over its head for each event (excl, anger, sweat, swirl, note, zzz). blinkEvery / blinkFor: seconds between blinks and how long the eyes stay shut. squash: how much a sprite squashes and stretches (share of its height): breathe while still, land after a hop, stretch in the air, and how fast it springs back.",
+  "chance": {
+    "idle": 0.6,
+    "notice": 0.9,
+    "attack": 0.35,
+    "hurt": 0.45,
+    "defeated": 1,
+    "respawn": 0.7,
+    "charge": 1,
+    "slam": 1
+  },
+  "gap": 3,
+  "idleEvery": [7, 16],
+  "hearRange": 22,
+  "showFor": 2.6,
+  "maxBubbles": 2,
+  "emote": {
+    "notice": "excl",
+    "attack": "anger",
+    "hurt": "sweat",
+    "defeated": "swirl",
+    "respawn": "note",
+    "charge": "anger",
+    "slam": "anger",
+    "idle": "note"
+  },
+  "blinkEvery": [2, 5],
+  "blinkFor": 0.14,
+  "squash": {
+    "breathe": 0.04,
+    "land": 0.22,
+    "stretch": 0.1,
+    "recover": 9
+  }
+}

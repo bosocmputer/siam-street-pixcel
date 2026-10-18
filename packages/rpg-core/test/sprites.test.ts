@@ -28,6 +28,7 @@ describe('sprite config', () => {
     expect(bad({ hero: { ...hero, proportions: { Head: [2, 2] } } })).toThrow(/x, y, z/);
     expect(bad({ outline: 2 })).toThrow(/0..1/);
     expect(bad({ maxRender: 4 })).toThrow(/maxRender/);
+    expect(bad({ fxPixel: 0 })).toThrow(/fxPixel/);
     expect(bad({ hero: { ...hero, frame: [80] } })).toThrow(/frame/);
     expect(bad({ hero: { ...hero, anchor: [200, 10] } })).toThrow(/inside/);
     expect(bad({ hero: { ...hero, anims: { idle: { frames: 2, fps: 2 } } } })).toThrow(/walk/);

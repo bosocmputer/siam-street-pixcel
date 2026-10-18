@@ -6,6 +6,9 @@ import * as THREE from 'three';
 import {
   APPEARANCE,
   LOOK_PARTS,
+  SPRITES,
+  frameAt,
+  spriteDirection,
   checkName,
   choices,
   defaultLook,
@@ -15,21 +18,14 @@ import {
 } from '@newgame/rpg-core';
 import type { BuiltCharacter } from '../../tools/character/build.js';
 import { buildLook, disposeCharacter } from '../lookModel';
+import type { Baked } from '../sprites/bake';
+import { bakeHero } from '../sprites/heroSprites';
 import { TH } from '../th';
 import { el } from './dom';
+import { pxIcon } from './pixelIcons';
 
-const ICONS: Record<LookPart | 'dice' | 'zoom', string> = {
-  hair: '<path d="M5 15c-1-6 2-11 7-11s8 5 7 11"/><path d="M5 15c2-1 3-4 3-6 2 2 6 3 9 2l2 4"/><path d="M5 15v4M19 15v4"/>',
-  hairColor:
-    '<path d="M12 3c3.5 4.2 6 7.4 6 11a6 6 0 0 1-12 0c0-3.6 2.5-6.8 6-11Z"/><path d="M9.5 15a2.5 2.5 0 0 0 2.5 2.5"/>',
-  face: '<path d="M12 3c4.4 0 7 3.4 7 8 0 5-3.2 10-7 10s-7-5-7-10c0-4.6 2.6-8 7-8Z"/><path d="M9 11.5h.01M15 11.5h.01M10 16c1.2.8 2.8.8 4 0"/>',
-  eye: '<path d="M2.5 12S6 6 12 6s9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.8"/>',
-  skin: '<circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16Z" fill="currentColor" stroke="none"/>',
-  dice: '<rect x="4" y="4" width="16" height="16" rx="4"/><circle cx="9" cy="9" r="1.1" fill="currentColor"/><circle cx="15" cy="15" r="1.1" fill="currentColor"/><circle cx="15" cy="9" r="1.1" fill="currentColor"/><circle cx="9" cy="15" r="1.1" fill="currentColor"/>',
-  zoom: '<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2M11 8.5v5M8.5 11h5"/>',
-};
-const icon = (k: keyof typeof ICONS) =>
-  `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">${ICONS[k]}</svg>`;
+type CreatorIcon = LookPart | 'dice' | 'zoom';
+const icon = (k: CreatorIcon) => pxIcon(k, 'ico');
 
 /** parts drawn as pictures of the character; the rest are colour dots */
 const PICTURED: LookPart[] = ['hair', 'face'];
@@ -82,12 +78,17 @@ export class Creator {
   private lastT = 0;
   private t = 0;
   private resize: ResizeObserver | null = null;
+  /** pixel art: the character as its sprite, drawn on a flat canvas */
+  private sheet: Baked | null = null;
+  private g2: CanvasRenderingContext2D | null = null;
 
   constructor(
     private done: (look: Look) => void,
     start: Look = defaultLook('m'),
     /** a tap on a button (for a click sound) */
     private tap: () => void = () => undefined,
+    /** show the character as a pixel sprite (as in the game) instead of the 3D model */
+    private pixel = false,
   ) {
     this.look = { ...start };
     this.root.hidden = true;
@@ -235,6 +236,8 @@ export class Creator {
     ok.type = 'button';
     ok.addEventListener('click', () => {
       this.tap();
+      // give the keyboard back to walking now (drawing the character may take a moment)
+      ok.blur();
       this.announce.hidden = true;
       this.close();
       this.done({ ...this.look });
@@ -254,7 +257,7 @@ export class Creator {
     this.root.append(stage, this.canvas, top, rail, dock, this.nameSheet, this.announce);
   }
 
-  private iconButton(k: keyof typeof ICONS, label: string, onClick: () => void): HTMLButtonElement {
+  private iconButton(k: CreatorIcon, label: string, onClick: () => void): HTMLButtonElement {
     const b = el('button', 'cr-icon');
     b.type = 'button';
     b.innerHTML = icon(k);
@@ -303,7 +306,11 @@ export class Creator {
 
   open(): void {
     this.root.hidden = false;
-    if (!this.renderer) {
+    if (this.pixel) {
+      this.g2 ??= this.canvas.getContext('2d');
+      this.resize ??= new ResizeObserver(() => this.fit());
+      this.resize.observe(this.canvas);
+    } else if (!this.renderer) {
       this.renderer = new THREE.WebGLRenderer({
         canvas: this.canvas,
         antialias: true,
@@ -356,6 +363,12 @@ export class Creator {
 
   private fit(): void {
     const r = this.canvas.getBoundingClientRect();
+    if (this.pixel) {
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      this.canvas.width = Math.round(r.width * dpr);
+      this.canvas.height = Math.round(r.height * dpr);
+      return;
+    }
     if (!this.renderer || !r.width || !r.height) return;
     this.renderer.setSize(r.width, r.height, false);
     this.cam.aspect = r.width / r.height;
@@ -363,6 +376,7 @@ export class Creator {
   }
 
   private draw(): void {
+    if (this.pixel) return this.drawPixel();
     if (!this.renderer) return;
     if (this.dirty) {
       this.dirty = false;
@@ -401,6 +415,100 @@ export class Creator {
   }
   private camAt = VIEW.full.at.clone();
 
+  /**
+   * The sprite standing on the stage, in whole screen pixels per sprite pixel; dragging turns it
+   * through the directions it is drawn from.
+   */
+  private drawPixel(): void {
+    const g = this.g2;
+    if (!g) return;
+    if (this.dirty) {
+      this.dirty = false;
+      this.sheet = bakeHero(this.look, SPRITES, [['idle', SPRITES.hero.anims.idle!]]);
+      void this.drawThumbs();
+    }
+    const now = performance.now();
+    this.t += Math.min(0.05, (now - this.lastT) / 1000);
+    this.lastT = now;
+    const c = this.canvas;
+    g.clearRect(0, 0, c.width, c.height);
+    const sh = this.sheet;
+    if (!sh) return;
+    g.imageSmoothingEnabled = false;
+    const m = sh.meta;
+    const [fw, fh] = m.frame;
+    // the stage is what the dock at the bottom leaves free
+    const dock = this.root.querySelector('.cr-dock')?.getBoundingClientRect();
+    const box = this.canvas.getBoundingClientRect();
+    const free = dock && box.height ? ((dock.top - box.top) / box.height) * c.height : c.height;
+    const full = Math.max(1, Math.floor(Math.min((free * 0.7) / fh, (c.width * 0.7) / fw)));
+    const k = this.faceView ? full * 2 : full;
+    const fx = Math.round(c.width / 2 / k) * k;
+    // stand on the stage, or with the face in the upper part of it
+    const fy = this.faceView
+      ? Math.round((free * 0.45 + m.anchor[1] * 0.75 * k) / k) * k
+      : Math.round(Math.min(c.height * 0.62, free - 6 * k) / k) * k;
+    // a shadow and a slowly blinking ring on the ground, in sprite pixels
+    const blob = (rx: number, ry: number, colour: string, ring: boolean) => {
+      g.fillStyle = colour;
+      for (let dy = -ry; dy <= ry; dy++) {
+        const w = Math.round(rx * Math.sqrt(1 - (dy / (ry + 0.5)) ** 2));
+        if (ring) {
+          const inner = Math.round((rx - 2) * Math.sqrt(Math.max(0, 1 - (dy / (ry - 0.5)) ** 2)));
+          g.fillRect(fx - w * k, fy + dy * k, (w - inner) * k, k);
+          g.fillRect(fx + inner * k, fy + dy * k, (w - inner) * k, k);
+        } else g.fillRect(fx - w * k, fy + dy * k, 2 * w * k, k);
+      }
+    };
+    blob(Math.round(fw * 0.42), 3, 'rgba(24,20,37,0.45)', false);
+    if (Math.floor(this.t * 1.5) % 2 === 0)
+      blob(Math.round(fw * 0.6), 4, 'rgba(247,118,34,0.6)', true);
+    const idle = m.anims.idle!;
+    const { row, mirror } = spriteDirection(-this.yaw, 0, m.dirs);
+    const col = frameAt(idle, this.t);
+    g.save();
+    g.translate(fx, fy - m.anchor[1] * k);
+    if (mirror) g.scale(-1, 1);
+    g.drawImage(
+      sh.pages[idle.page]!,
+      col * fw,
+      (idle.row + row) * fh,
+      fw,
+      fh,
+      -m.anchor[0] * k,
+      0,
+      fw * k,
+      fh * k,
+    );
+    g.restore();
+  }
+
+  /** A pixel head-and-shoulders picture of a look, for a choice button. */
+  private pixelThumb(look: Look): string {
+    const sh = bakeHero(look, { ...SPRITES, dirs: 1 as 5 }, [
+      ['idle', { frames: 1, fps: 1, loop: true }],
+    ]);
+    const m = sh.meta;
+    const side = Math.min(m.frame[0], Math.round(m.anchor[1] * 0.55));
+    const out = document.createElement('canvas');
+    out.width = out.height = 64;
+    const g = out.getContext('2d')!;
+    g.imageSmoothingEnabled = false;
+    const k = Math.max(1, Math.floor(64 / side));
+    g.drawImage(
+      sh.pages[0]!,
+      Math.round(m.anchor[0] - side / 2),
+      0,
+      side,
+      side,
+      Math.round((64 - side * k) / 2),
+      Math.round((64 - side * k) / 2) + 4,
+      side * k,
+      side * k,
+    );
+    return out.toDataURL('image/png');
+  }
+
   /** Pictures of each choice of the shown part, drawn on the current look, one per frame. */
   private async drawThumbs(): Promise<void> {
     if (!PICTURED.includes(this.part)) return;
@@ -410,6 +518,12 @@ export class Creator {
       const look = { ...this.look, [part]: b.dataset.v, name: '' };
       const key = JSON.stringify(look);
       let url = this.thumbs.get(key);
+      if (!url && this.pixel) {
+        await new Promise((r) => setTimeout(r, 0));
+        if (run !== this.thumbRun) return;
+        url = this.pixelThumb(look);
+        this.thumbs.set(key, url);
+      }
       if (!url) {
         await new Promise((r) => setTimeout(r, 0));
         if (run !== this.thumbRun || !this.thumbR) return;
