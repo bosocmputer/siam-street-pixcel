@@ -16,5 +16,6 @@ export * from './skills';
 export * from './slimeBrain';
 export * from './sounds';
 export * from './spawns';
+export * from './sprites';
 export * from './glb';
 export * from './stats';

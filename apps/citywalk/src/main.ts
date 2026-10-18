@@ -76,6 +76,11 @@ import { PlayerHud } from './ui/playerHud';
 import { makeWalker, type Walker } from './walker';
 import { loadHero, makeHero, type HeroTemplate } from './hero';
 import { buildWorld, gateTowers } from './world';
+import { artMode, breathe } from './sprites/art';
+import { bakeHero } from './sprites/heroSprites';
+import { bakeMonster } from './sprites/monsterSprites';
+import { loadSheet, sheetFromBaked, type SpriteSheet } from './sprites/sheet';
+import { makeSpriteHero } from './sprites/spriteHero';
 import './style.css';
 
 /** screen speed in metres per second, whatever the city scale */
@@ -158,6 +163,32 @@ async function start(): Promise<void> {
   if (slimeTemplate) templates.slime = slimeTemplate;
   if (bossTemplate) templates.tide_regent = bossTemplate;
 
+  // characters and monsters as pixel sprites: sheets listed in assets.json, the rest drawn from
+  // their models here (once, while loading)
+  const art = artMode();
+  const sheets: Record<string, SpriteSheet> = {};
+  if (art === 'pixel') {
+    loading.textContent = TH.drawing;
+    await breathe();
+    for (const [id, url] of Object.entries(assets.manifest.sprites ?? {}))
+      try {
+        sheets[id] = await loadSheet(`./${url}`);
+      } catch (err) {
+        console.error(`sprite sheet ${id} skipped:`, err);
+      }
+    for (const id of new Set((SPAWNS.plaza ?? []).map((sp) => sp.species))) {
+      const spec = monster(id);
+      const t = templates[spec.model];
+      if (sheets[id] || !t) continue;
+      await breathe();
+      try {
+        sheets[id] = sheetFromBaked(bakeMonster(t, spec));
+      } catch (err) {
+        console.error(`${id} could not be drawn as a sprite:`, err);
+      }
+    }
+  }
+
   const thaPhaeGate = world.landmarks.find((m) => m.name === 'ประตูท่าแพ');
   let placed: PlacedModel | null = null;
   const gateAt = thaPhaeGate ? gateFrame(thaPhaeGate, world.forts) : null;
@@ -198,10 +229,16 @@ async function start(): Promise<void> {
       const [x, z] = frameToMap(gateAt, sp.at[0], sp.at[1]);
       return { spec: monster(sp.species), x, z };
     });
-    herd = new SlimeHerd(templates, homes, {
-      move: (x, z, dx, dz, r) => collider.move(x, z, dx, dz, r),
-      allowed: (x, z) => pointInPolygon(x, z, plaza.outline),
-    });
+    herd = new SlimeHerd(
+      templates,
+      homes,
+      {
+        move: (x, z, dx, dz, r) => collider.move(x, z, dx, dz, r),
+        allowed: (x, z) => pointInPolygon(x, z, plaza.outline),
+      },
+      1,
+      sheets,
+    );
     city.add(herd.object);
   }
   // skill effects and shots live in the city too, so they shrink with it
@@ -237,7 +274,14 @@ async function start(): Promise<void> {
   // the character as made on the character screen (an older save without one gets the default)
   let look: Look = saved?.look ?? defaultLook('m');
   const bodyFor = (l: Look): Walker => {
+    if (sheets.hero) return makeSpriteHero(sheets.hero);
     if (heroTemplate) return makeHero(heroTemplate);
+    if (art === 'pixel')
+      try {
+        return makeSpriteHero(sheetFromBaked(bakeHero(l)));
+      } catch (err) {
+        console.error('the character could not be drawn as a sprite:', err);
+      }
     try {
       return makeHero(heroFromLook(l));
     } catch (err) {
@@ -250,7 +294,8 @@ async function start(): Promise<void> {
   /** put on a new look: the body is rebuilt where the old one stood */
   const setLook = (l: Look) => {
     look = l;
-    if (heroTemplate) return;
+    // a body from a file does not change with the look
+    if (heroTemplate || sheets.hero) return;
     const next = bodyFor(l);
     next.body.position.copy(walker.body.position);
     next.body.rotation.copy(walker.body.rotation);
@@ -737,13 +782,16 @@ async function start(): Promise<void> {
       });
       // fall over while down, stand up again after
       const lie = stats.down > 0 ? 1.45 : 0;
-      walker.body.rotation.z += (lie - walker.body.rotation.z) * Math.min(1, dt * 8);
+      if (!walker.fallsItself)
+        walker.body.rotation.z += (lie - walker.body.rotation.z) * Math.min(1, dt * 8);
       place(dt);
       if (shake > 0.002) {
         camera.position.x += (Math.random() - 0.5) * shake;
         camera.position.y += (Math.random() - 0.5) * shake;
         shake *= Math.exp(-dt * 12);
       }
+      walker.draw?.(camera);
+      herd?.draw(camera);
       renderer.render(scene, camera);
       // name tags never cover the panel and buttons at the top or the minimap
       const covered = [
@@ -914,6 +962,27 @@ async function start(): Promise<void> {
       walkerOnScreen: () => screenOf([state.x, 1.2, state.z]),
       stats: () => ({ ...stats }),
       look: () => ({ ...look }),
+      /** how characters are drawn, and whether the player is a sprite now */
+      art: () => ({
+        mode: art,
+        heroSprite: !!walker.draw,
+        anim: walker.showing?.() ?? null,
+        sheets: Object.keys(sheets),
+      }),
+      /** pixel sheets drawn from the models, as pictures (to look at while tuning them) */
+      bakePreview: async () => {
+        const { bakeHero } = await import('./sprites/heroSprites');
+        const { bakeMonster } = await import('./sprites/monsterSprites');
+        const out: Record<string, { pages: string[]; meta: unknown }> = {};
+        const keep = (b: { pages: HTMLCanvasElement[]; meta: unknown }) => ({
+          pages: b.pages.map((c) => c.toDataURL()),
+          meta: b.meta,
+        });
+        out.hero = keep(bakeHero(look));
+        if (slimeTemplate) out.slime = keep(bakeMonster(slimeTemplate, monster('slime_fire')));
+        if (bossTemplate) out.boss = keep(bakeMonster(bossTemplate, monster('boss_tide_regent')));
+        return out;
+      },
       creatorChoice: () => creator.choice,
       status: () => ({ open: status.isOpen, pending: status.pending }),
       /** where a joint of the player's body is, world metres (null for the stand-in) */

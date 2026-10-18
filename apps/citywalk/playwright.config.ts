@@ -24,6 +24,17 @@ export default defineConfig({
   },
   use: {
     baseURL: 'http://localhost:4174',
+    // the 3D bodies by default (drawing pixel sprites in software WebGL takes long); the sprite
+    // tests ask for pixel art themselves
+    storageState: {
+      cookies: [],
+      origins: [
+        {
+          origin: 'http://localhost:4174',
+          localStorage: [{ name: 'citywalk.art', value: '3d' }],
+        },
+      ],
+    },
     launchOptions: {
       executablePath: sandboxChromium(),
       // WebGL in headless Chromium needs the software renderer

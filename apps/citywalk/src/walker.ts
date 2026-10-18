@@ -18,6 +18,29 @@ export interface Walker {
   hurt?(): void;
   /** where a rig joint is in world space (for tests); null if the model has no such joint */
   joint?(name: string, out: THREE.Vector3): THREE.Vector3 | null;
+  /** a flat picture turns to the camera and picks its frame here, just before drawing */
+  draw?(camera: THREE.Camera): void;
+  /** it shows falling down itself, so the game does not tip the body over */
+  fallsItself?: boolean;
+  /** the animation a sprite is showing (for tests) */
+  showing?(): string;
+}
+
+/** A soft round shadow under someone, `radius` metres. */
+export function makeShadow(radius: number): THREE.Mesh {
+  const shadow = new THREE.Mesh(
+    new THREE.CircleGeometry(radius, 20),
+    new THREE.MeshBasicMaterial({
+      color: 0x000000,
+      transparent: true,
+      opacity: 0.22,
+      depthWrite: false,
+    }),
+  );
+  shadow.rotation.x = -Math.PI / 2;
+  shadow.position.y = 0.02;
+  shadow.name = 'Shadow';
+  return shadow;
 }
 
 /** The stand-in motorbike: a frame and two wheels, shown while riding. */

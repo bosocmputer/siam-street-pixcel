@@ -14,6 +14,7 @@ SLIME HOOD (`apps/web`, `packages/game-core`) หยุดไว้แล้ว 
 กติกาเพิ่มสำหรับเกมนี้:
 
 - model 3D ส่งมาเป็น .glb อย่างเดียว (ผู้สร้างปั้นด้วย Gemini/โปรแกรมปั้นโมเดล หรือผู้พัฒนาสร้างด้วยโค้ดใน `apps/citywalk/tools/character/`) ท่าทางตัวละครเขียนในโค้ด (`src/hero.ts`) model มีแค่ข้อต่อ จุดเสียบ และชิ้นส่วน ชุดแต่ละชิ้นแยกไฟล์ โมเดลที่ชื่อกระดูกไม่ตรง rig ใช้ได้ผ่าน `joints`/`restFix` ใน assets.json (ดู `newgame/prompts/character_import.md`)
+- คนและมอนแสดงเป็นภาพ pixel ในเมือง 3D (`src/sprites/`): เกมวาดจากโมเดลตอนโหลด (ค่าใน `config/sprites.json`) หรือใช้ไฟล์ที่รวมด้วย `tools/sprites/pack.py` ตามช่อง `sprites` ใน assets.json (ดู `newgame/prompts/sprite_import.md`) · `?art=3d` กลับไปใช้โมเดล 3D · เทสต์ e2e เดิมใช้ 3D (ตั้งใน `playwright.config.ts`) เทสต์ภาพ pixel อยู่ใน `e2e/sprites.spec.ts`
 - ตัวละครต้องตรง `config/rig.json` ตรวจด้วย `pnpm --filter @newgame/rpg-core check-model <file.glb>` ถ้าแก้ rig ให้สร้างภาพสเปกใหม่ด้วย `python3 newgame/tools/character_spec.py`
 - เอกสารหลักของเกมนี้: `newgame/gdd.md` (Chiang Mai Awakening / ตื่นเชียงใหม่ GDD v2.2)
 - ออกแบบละเอียด: `newgame/asset_list.md` (โมเดล ของ ภาพ) · `newgame/vfx_sound.md` (เอฟเฟกต์ เสียง สีที่มีความหมาย) · `newgame/systems_design.md` (ทุกระบบ ตัวเลขเริ่มต้น ลำดับทำ) ทำงานใหม่ให้ตรงเอกสารเหล่านี้ และอัปเดตสถานะในเอกสารเมื่อทำเสร็จ

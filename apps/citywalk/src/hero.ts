@@ -143,8 +143,18 @@ function addOutline(root: THREE.Object3D, width: number, color: number): void {
   }
 }
 
+/** Options for drawing the body as pixel sprites (see sprites/heroSprites.ts). */
+export interface HeroOptions {
+  /** draw the dark edges (default: as the model entry says) */
+  outline?: boolean;
+  /** scale joints [x, y, z] for other proportions (a name without _L/_R means both sides) */
+  proportions?: Record<string, [number, number, number]>;
+  /** the round shadow under the feet (default on) */
+  shadow?: boolean;
+}
+
 /** The player's body: the model, posed in code, plus the motorbike shown when riding. */
-export function makeHero(t: HeroTemplate): Walker {
+export function makeHero(t: HeroTemplate, opts: HeroOptions = {}): Walker {
   const e = t.entry;
   const body = new THREE.Group();
   const holder = new THREE.Group();
@@ -162,7 +172,7 @@ export function makeHero(t: HeroTemplate): Walker {
   model.scale.multiplyScalar(k);
   model.position.y = -box.min.y * k;
   holder.updateMatrixWorld(true);
-  if (e.outline !== false) addOutline(model, e.outlineWidth ?? 0.006, 0x15131c);
+  if ((opts.outline ?? e.outline) !== false) addOutline(model, e.outlineWidth ?? 0.006, 0x15131c);
 
   // find each joint and remember how it sits at rest in the character's frame
   const names = (typeof e.joints === 'string' ? JOINT_PRESETS[e.joints] : e.joints) ?? {};
@@ -197,6 +207,14 @@ export function makeHero(t: HeroTemplate): Walker {
     });
   }
   const hand = nodeOf('Socket_Hand_R') ?? joints.get('Hand_R')?.node ?? model;
+  if (opts.proportions) {
+    for (const [name, [x, y, z]] of Object.entries(opts.proportions))
+      for (const j of [name, `${name}_L`, `${name}_R`])
+        joints.get(j as JointName)?.node.scale.set(x, y, z);
+    // stand on the ground again with the new leg length
+    holder.updateMatrixWorld(true);
+    model.position.y -= new THREE.Box3().setFromObject(model).min.y - holder.position.y;
+  }
 
   /** Turn a joint by (x, y, z) radians in the character's frame, from its rest pose. */
   const pose = (name: JointName, x = 0, y = 0, z = 0) => {
@@ -215,7 +233,7 @@ export function makeHero(t: HeroTemplate): Walker {
   );
   shadow.rotation.x = -Math.PI / 2;
   shadow.position.y = 0.02;
-  body.add(shadow);
+  if (opts.shadow !== false) body.add(shadow);
 
   let time = 0,
     cast = 0,

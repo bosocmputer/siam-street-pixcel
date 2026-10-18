@@ -1,0 +1,30 @@
+{
+  "frame": [32, 40],
+  "anchor": [16, 39],
+  "ppm": 20.59,
+  "dirs": 5,
+  "anims": {
+    "cast": {
+      "page": 0,
+      "row": 0,
+      "frames": 2,
+      "fps": 8,
+      "loop": false
+    },
+    "walk": {
+      "page": 1,
+      "row": 0,
+      "frames": 4,
+      "fps": 8.0,
+      "loop": true
+    },
+    "idle": {
+      "page": 2,
+      "row": 0,
+      "frames": 1,
+      "fps": 8,
+      "loop": true
+    }
+  },
+  "pages": ["cast.png", "walk.png", "idle.png"]
+}

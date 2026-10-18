@@ -19,6 +19,9 @@ import {
   type SlimeMode,
   type Vitals,
 } from '@newgame/rpg-core';
+import { SpriteActor } from './sprites/actor';
+import type { SpriteSheet } from './sprites/sheet';
+import { makeShadow } from './walker';
 
 // The creator's slime (public/models/slime_aquanaut.glb) and boss (slime_tide_regent.glb), which
 // is built the same way. Their own clips are used as they are: Idle, Jumping (hops in place),
@@ -124,6 +127,8 @@ interface Slime {
   template: SlimeTemplate;
   brain: SlimeBrain;
   root: THREE.Object3D;
+  /** drawn as a pixel sprite instead of the model, when the species has a sheet */
+  actor: SpriteActor | null;
   mixer: THREE.AnimationMixer;
   actions: Map<string, THREE.AnimationAction>;
   playing: SlimeMode | null;
@@ -147,7 +152,7 @@ const FLASH = 0.14;
  * Give a cloned slime its own copies of the materials, and recolour its body with `tint` (the
  * body is the see-through material; the eyes, mouth and sparkles keep their colours).
  */
-function ownSkins(root: THREE.Object3D, tint: number | null): THREE.MeshStandardMaterial[] {
+export function ownSkins(root: THREE.Object3D, tint: number | null): THREE.MeshStandardMaterial[] {
   const copies = new Map<THREE.Material, THREE.MeshStandardMaterial>();
   root.traverse((o) => {
     if (!(o instanceof THREE.Mesh) || !(o.material instanceof THREE.MeshStandardMaterial)) return;
@@ -199,12 +204,16 @@ export class SlimeHerd {
   private noises: SlimeSound[] = [];
   private shocks: Shock[] = [];
 
-  /** `templates` are the loaded models by id; a monster whose model did not load is left out. */
+  /**
+   * `templates` are the loaded models by id; a monster whose model did not load is left out.
+   * A species with a sprite sheet in `sheets` (by species id) is drawn as a pixel sprite.
+   */
   constructor(
     templates: Record<string, SlimeTemplate>,
     homes: SlimeHome[],
     world: Omit<BrainWorld, 'rng'>,
     seed = 1,
+    sheets: Record<string, SpriteSheet> = {},
   ) {
     this.object.name = 'Slimes';
     const rng = seeded(seed);
@@ -212,9 +221,13 @@ export class SlimeHerd {
     homes.forEach(({ spec, x, z }, i) => {
       const template = templates[spec.model];
       if (!template) return;
-      const root = template.scene.clone(true);
+      const sheet = sheets[spec.id];
+      const actor = sheet ? new SpriteActor(sheet) : null;
+      // a sprite is drawn at its size already; a model is scaled to it
+      const root = actor ? new THREE.Group() : template.scene.clone(true);
+      if (actor) root.add(actor.object, makeShadow(spec.radius * 0.9));
       root.name = `Slime_${i + 1}`;
-      root.scale.setScalar(spec.scale);
+      if (!actor) root.scale.setScalar(spec.scale);
       const mixer = new THREE.AnimationMixer(root);
       const actions = new Map<string, THREE.AnimationAction>();
       for (const clip of template.clips) actions.set(clip.name, mixer.clipAction(clip));
@@ -228,12 +241,13 @@ export class SlimeHerd {
         template,
         brain,
         root,
+        actor,
         mixer,
         actions,
         playing: null,
         current: null,
         vitals: newVitals(spec),
-        skins: ownSkins(root, spec.tint),
+        skins: actor ? [] : ownSkins(root, spec.tint),
         flash: 0,
         flashColor: new THREE.Color(),
         air: false,
@@ -247,12 +261,18 @@ export class SlimeHerd {
 
   private play(s: Slime, mode: SlimeMode): void {
     if (s.playing === mode) return;
+    const special = mode === 'charge' || mode === 'slam';
+    if (s.actor) {
+      s.playing = mode;
+      // noticing is one squish; a special move stops on its last frame
+      s.actor.play(clipFor(s.spec, mode), special ? 1 : s.spec.pace, mode === 'watch' || special);
+      return;
+    }
     const next = s.actions.get(clipFor(s.spec, mode));
     const prev = s.current;
     s.playing = mode;
     if (!next) return;
     next.reset();
-    const special = mode === 'charge' || mode === 'slam';
     // a quick species moves quicker, a heavy one slower; a special move keeps its own timing,
     // which the brain counts in clip time
     next.timeScale = special ? 1 : s.spec.pace;
@@ -320,7 +340,11 @@ export class SlimeHerd {
         s.flash = Math.max(0, s.flash - dt);
         this.glow(s, s.flash / FLASH);
       }
-      s.mixer.update(dt);
+      if (s.actor) {
+        s.actor.update(dt);
+        // after the squish of noticing, it breathes while it keeps watching
+        if (s.playing === 'watch' && s.actor.done) s.actor.play(CLIP.idle, s.spec.pace);
+      } else s.mixer.update(dt);
     }
     return blows;
   }
@@ -395,17 +419,27 @@ export class SlimeHerd {
       const b = 1 + 2.7 * Math.pow(t - 1, 3) + 1.7 * Math.pow(t - 1, 2);
       y = xz = Math.max(0.01, b);
     }
-    const k = s.spec.scale;
-    s.root.scale.set(xz * k, y * k, xz * k);
+    if (s.actor) s.actor.object.scale.set(xz, y, 1);
+    else {
+      const k = s.spec.scale;
+      s.root.scale.set(xz * k, y * k, xz * k);
+    }
   }
 
   private glow(s: Slime, k: number): void {
+    s.actor?.flash(s.flashColor, k * 0.8);
     for (const m of s.skins) {
       m.emissive.copy(m.userData.emissive as THREE.Color).lerp(s.flashColor, k);
       m.emissiveIntensity =
         (m.userData.emissiveIntensity as number) +
         (2.5 - (m.userData.emissiveIntensity as number)) * k;
     }
+  }
+
+  /** Turn the sprites to the camera, each showing the side that faces it. Call before drawing. */
+  draw(camera: THREE.Camera): void {
+    for (const s of this.slimes)
+      if (s.actor && s.root.visible) s.actor.draw(camera, s.root.rotation.y);
   }
 
   /** The point a shot should aim at, or null if the slime cannot be hit right now. */

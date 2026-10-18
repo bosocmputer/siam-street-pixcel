@@ -24,6 +24,12 @@ export interface ModelEntry {
 export interface Manifest {
   world: string;
   models: ModelEntry[];
+  /**
+   * pixel sprite sheets made outside the game (for example in PixelLab, packed with
+   * tools/sprites/pack.py), by "hero" or a monster species id → the sheet's .json; anything not
+   * listed is drawn from its model
+   */
+  sprites?: Record<string, string>;
 }
 
 export interface Loaded {

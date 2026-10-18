@@ -12,6 +12,7 @@ export const TH = {
   stickHint: 'ลากเพื่อเดิน',
   loading: 'กำลังโหลดแผนที่…',
   loadingStep: (done: number, total: number) => `กำลังโหลดแผนที่… ${done}/${total}`,
+  drawing: 'กำลังวาดตัวละคร…',
   loadFailed: 'โหลดแผนที่ไม่สำเร็จ ลองรีเฟรชหน้านี้',
   modes: { walk: 'เดิน', run: 'วิ่ง', bike: 'มอไซค์' },
   scale: 'ขนาด',
