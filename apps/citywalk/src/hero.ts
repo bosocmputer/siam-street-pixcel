@@ -88,10 +88,9 @@ const tmpE = new THREE.Euler();
 
 /** What the character is doing this frame. */
 export interface Motion {
-  moving: boolean;
   mode: 'walk' | 'run' | 'bike';
-  /** steps so far, in radians (a full stride every 2π) */
-  phase: number;
+  /** how fast the body is going over the ground, metres a second on screen */
+  speed: number;
   /** a ball is being gathered in the right hand */
   casting: boolean;
   down: boolean;
@@ -222,8 +221,14 @@ export function makeHero(t: HeroTemplate): Walker {
     cast = 0,
     ride = 0,
     flinch = 0,
-    stride = 0;
+    stride = 0,
+    running = 0,
+    phase = 0;
   const baseY = model.position.y;
+  // leg lengths from the rig, to keep the standing foot on the ground
+  const at = Object.fromEntries(RIG.joints.map((j) => [j.name, j.at]));
+  const thigh = at.UpperLeg_L![1] - at.LowerLeg_L![1];
+  const shin = at.LowerLeg_L![1] - at.Foot_L![1];
 
   return {
     body,
@@ -241,45 +246,84 @@ export function makeHero(t: HeroTemplate): Walker {
     animate: (dt, m) => {
       time += dt;
       const ease = (v: number, to: number, rate: number) => v + (to - v) * Math.min(1, dt * rate);
+      const onFoot = m.mode !== 'bike' && !m.down;
       cast = ease(cast, m.casting && !m.down ? 1 : 0, 12);
       ride = ease(ride, m.mode === 'bike' ? 1 : 0, 10);
-      stride = ease(stride, m.moving && m.mode !== 'bike' ? (m.mode === 'run' ? 1 : 0.6) : 0, 8);
+      // how much of a stride to take follows the real speed, so a stop eases out and a start
+      // eases in; running blends in above walking pace
+      const speed = onFoot ? m.speed : 0;
+      stride = ease(stride, Math.min(1, speed / 3.5), 10);
+      running = ease(running, Math.min(1, Math.max(0, (speed - 4.5) / 3)), 6);
       flinch = Math.max(0, flinch - dt * 4);
-      const p = m.phase;
-      const sw = Math.sin(p) * stride; // + : left leg forward
-      const run = m.mode === 'run' ? 1 : 0;
-      const breathe = Math.sin(time * 2.2) * 0.02 * (1 - stride);
-      // legs: swing from the hip, the knee bends as the leg comes through
-      const legA = 0.55 + run * 0.25,
-        kneeA = 0.55 + run * 0.5;
-      const knee = (s: number) =>
-        kneeA * stride * Math.max(0, Math.sin(p * s + 1.9)) + 0.05 * stride;
-      const legsWalk = (side: 1 | -1) => [-sw * legA * side, knee(side)];
-      const [ulL, llL] = legsWalk(1);
-      const [ulR, llR] = legsWalk(-1);
-      // on the bike: thighs forward, shins down, leaning onto the handlebars
+      // the stride clock runs on distance, so each step covers the ground the body moved over:
+      // the feet never slide
+      const stepLen = 1.25 + 0.85 * running;
+      phase += ((speed * dt) / stepLen) * Math.PI;
+      const p = phase;
+      const r = running;
       const mix = (a: number, b: number) => a + (b - a) * ride;
-      pose('UpperLeg_L', mix(ulL!, -1.4), 0, mix(0, 0.12));
-      pose('UpperLeg_R', mix(ulR!, -1.4), 0, mix(0, -0.12));
-      pose('LowerLeg_L', mix(llL!, 1.45));
-      pose('LowerLeg_R', mix(llR!, 1.45));
-      // arms swing against the legs; the right one comes up to gather a ball
-      const armA = 0.45 + run * 0.35;
-      const elbow = 0.25 + run * 0.6;
+
+      // legs: the thigh swings from the hip; the knee folds as the leg comes through, more when
+      // running; the foot stays level with the ground
+      const swingA = (0.5 + 0.28 * r) * stride;
+      const kneeA = (0.85 + 1.0 * r) * stride;
+      const leg = (side: 1 | -1) => {
+        const f = p + (side > 0 ? 0 : Math.PI);
+        // a runner lifts the knee high as the leg comes forward
+        const thighX = -swingA * Math.sin(f) - 0.4 * r * stride * Math.max(0, Math.sin(f + 0.9));
+        // the knee folds through the whole swing, most as the leg passes under the body
+        const kneeX = kneeA * ((1 + Math.cos(f - 0.25)) / 2) ** 2 + 0.08 * stride;
+        return { thighX, kneeX, footX: -(thighX + kneeX) * 0.8 };
+      };
+      const L = leg(1),
+        R = leg(-1);
+      pose('UpperLeg_L', mix(L.thighX, -1.4), 0, mix(0, 0.12));
+      pose('UpperLeg_R', mix(R.thighX, -1.4), 0, mix(0, -0.12));
+      pose('LowerLeg_L', mix(L.kneeX, 1.45));
+      pose('LowerLeg_R', mix(R.kneeX, 1.45));
+      pose('Foot_L', mix(L.footX, 0.1));
+      pose('Foot_R', mix(R.footX, 0.1));
+
+      // arms swing against the legs, elbows bent more when running; the right one comes up to
+      // gather a ball
+      const sw = Math.sin(p) * stride; // + : left leg forward, left arm back
+      const armA = 0.42 + 0.45 * r;
+      // a runner's elbows stay bent near a right angle, a walker's swing almost straight
+      const elbow = (s: number) => 0.18 + 0.2 * stride + 1.25 * r * stride + 0.2 * Math.max(0, -s);
+      const breathe = Math.sin(time * 2.2) * 0.02 * (1 - stride);
       const upL = mix(sw * armA, -0.95);
       const upR = mix(-sw * armA, -0.95);
-      pose('UpperArm_L', upL, 0, mix(0.06 + breathe, 0.15));
-      pose('UpperArm_R', upR + (-1.35 - upR) * cast, 0, mix(-0.06 - breathe, -0.15) - 0.2 * cast);
-      pose('LowerArm_L', -mix(elbow * stride + 0.06, 0.35));
-      pose('LowerArm_R', -mix(elbow * stride + 0.06, 0.35) - 0.25 * cast);
-      // body: lean into a run or onto the bike, twist with the stride, flinch when hit
-      pose('Spine', mix(-0.06 * run * stride, -0.25) + 0.25 * flinch, sw * 0.12 - 0.25 * cast);
-      pose('Chest', breathe + 0.15 * flinch, sw * 0.08);
-      pose('Neck', 0, -sw * 0.1 + 0.15 * cast);
+      pose('UpperArm_L', upL, 0, mix(0.07 + breathe + 0.05 * r, 0.15));
+      pose(
+        'UpperArm_R',
+        upR + (-1.35 - upR) * cast,
+        0,
+        mix(-0.07 - breathe - 0.05 * r, -0.15) - 0.2 * cast,
+      );
+      pose('LowerArm_L', -mix(elbow(sw), 0.35));
+      pose('LowerArm_R', -mix(elbow(-sw), 0.35) - 0.25 * cast);
+
+      // the body: hips turn with the stepping leg and dip towards it, the shoulders turn against
+      // them, the head keeps looking ahead; lean into a run or onto the bike; flinch when hit
+      const hipTurn = Math.sin(p) * stride * (0.14 + 0.06 * r);
+      pose('Hips', 0, mix(hipTurn, 0), mix(Math.cos(p) * 0.045 * stride, 0));
+      pose(
+        'Spine',
+        mix(-0.05 * stride - 0.32 * r * stride, -0.25) + 0.25 * flinch,
+        mix(-hipTurn * 1.6, 0) - 0.25 * cast,
+      );
+      pose('Chest', breathe + 0.15 * flinch + 0.03 * Math.sin(2 * p) * stride, 0);
+      // the head comes back up so a leaning runner still looks ahead
+      pose('Neck', mix(0.2 * r * stride, 0.1), hipTurn * 0.5 + 0.15 * cast);
       pose('Head', -0.1 * flinch);
-      // a light bounce on each step, and sit lower on the bike
-      model.position.y =
-        baseY + Math.abs(Math.sin(p)) * stride * (0.025 + 0.03 * run) - 0.13 * ride;
+
+      // drop the body so the lower foot stands on the ground (a swinging leg otherwise lifts
+      // both feet and the body floats); a runner leaves the ground briefly between steps
+      const height = (l: { thighX: number; kneeX: number }) =>
+        thigh * Math.cos(l.thighX) + shin * Math.cos(l.thighX + l.kneeX);
+      const drop = thigh + shin - Math.max(height(L), height(R));
+      const flight = 0.035 * r * stride * Math.max(0, Math.cos(2 * p));
+      model.position.y = baseY + (1 - ride) * (flight - drop) - 0.13 * ride;
     },
   };
 }

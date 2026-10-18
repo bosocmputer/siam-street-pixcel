@@ -606,12 +606,10 @@ async function start(): Promise<void> {
   const combo = newCombo();
   const stepClock = newStepClock();
   /** one fixed step of the game: walking, then the world */
-  let walked = 0;
   const simStep = (dt: number): number => {
     // lying down after running out of health: no walking until back up
     const { forward, right } = stats.down > 0 ? { forward: 0, right: 0 } : input.read();
     step(dt, forward, right);
-    if (forward !== 0 || right !== 0) walked += dt;
     // footsteps keep the beat of walking, running or riding
     for (let n = advanceSteps(stepClock, dt, forward !== 0 || right !== 0, state.mode); n > 0; n--)
       sound.play(`step.${state.mode}`);
@@ -629,6 +627,9 @@ async function start(): Promise<void> {
   // the game moves in fixed 1/60 s steps; drawing happens once per frame
   const clock = newClock();
   let phase = 0;
+  let speed = 0,
+    lastX = state.x * state.scale,
+    lastZ = state.z * state.scale;
   let sinceSave = 0;
   let last = performance.now();
   let lastTick = last;
@@ -641,7 +642,6 @@ async function start(): Promise<void> {
     try {
       commands(dt);
       let worldTime = 0;
-      walked = 0;
       if (worldRuns(screen)) {
         const steps = advance(clock, dt);
         for (let i = 0; i < steps; i++) worldTime += simStep(clock.step);
@@ -652,13 +652,21 @@ async function start(): Promise<void> {
         }
       } else clock.carry = 0;
       effects(worldTime);
-      const moving = walked > 0;
+      // how fast the body really moved over the ground this frame, smoothed: a phone can draw
+      // more frames than the game takes steps, so some frames move nothing at all
+      const sx = state.x * state.scale,
+        sz = state.z * state.scale;
+      const raw = dt > 0 ? Math.hypot(sx - lastX, sz - lastZ) / dt : 0;
+      lastX = sx;
+      lastZ = sz;
+      // a jump (a teleport, getting up at the rest point) is not a step
+      speed += ((raw > 40 ? 0 : raw) - speed) * Math.min(1, dt * 12);
+      const moving = speed > 0.3;
       phase = moving ? phase + dt * (state.mode === 'walk' ? 9 : 14) : 0;
       walker.bob(phase, moving, state.mode === 'bike');
       walker.animate?.(dt, {
-        moving,
         mode: state.mode,
-        phase,
+        speed,
         casting: combat?.gathering ?? false,
         down: stats.down > 0,
       });
