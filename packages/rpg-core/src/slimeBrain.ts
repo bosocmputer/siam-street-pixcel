@@ -3,7 +3,18 @@
 
 import { DEFAULT_SPECIES, HOP, monster, type MonsterSpec, type VitalTimes } from './monsters';
 
-export type SlimeMode = 'idle' | 'hop' | 'watch' | 'lunge' | 'chase';
+export type SlimeMode = 'idle' | 'hop' | 'watch' | 'lunge' | 'chase' | 'charge' | 'slam';
+
+/** a boss's special move under way */
+export interface Special {
+  kind: 'charge' | 'slam';
+  /** seconds into the move, in clip time */
+  t: number;
+  /** it has already struck (a move hurts at most once) */
+  done: boolean;
+  /** the way a charge goes, fixed when the dash starts */
+  heading: number;
+}
 
 export interface SlimeBrain {
   spec: MonsterSpec;
@@ -24,6 +35,14 @@ export interface SlimeBrain {
   attackT: number;
   /** set on the step an angry slime's blow lands on the player */
   struck: boolean;
+  /** how much that blow hurts (its attack, or a special move's own damage) */
+  blow: number;
+  /** a special move being done, or null */
+  special: Special | null;
+  /** seconds until each special move may be used again */
+  cool: { charge: number; slam: number };
+  /** set on the step a ground slam lands, whether or not it hit the player */
+  shock: boolean;
 }
 
 export interface BrainWorld {
@@ -60,6 +79,11 @@ export function newBrain(
     anger: 0,
     attackT: 0,
     struck: false,
+    blow: spec.attack.damage,
+    special: null,
+    // a boss does not start a special move the moment it is angry
+    cool: { charge: 1.5, slam: 3 },
+    shock: false,
   };
 }
 
@@ -105,16 +129,93 @@ function attack(b: SlimeBrain, dt: number, dPlayer: number, hurts: boolean): voi
     before < a.strikeAt
       ? b.attackT >= a.strikeAt || b.attackT < before
       : b.attackT < before && b.attackT >= a.strikeAt;
-  if (hurts && crossed && dPlayer <= a.reach) b.struck = true;
+  if (hurts && crossed && dPlayer <= a.reach) {
+    b.struck = true;
+    b.blow = a.damage;
+  }
+}
+
+/**
+ * Pick a special move for an angry boss that is on the ground, or null. A ground slam when the
+ * player is close; a charge when they are a little way off.
+ */
+function pickSpecial(b: SlimeBrain, dPlayer: number): Special | null {
+  const { charge, slam } = b.spec.specials;
+  if (slam && b.cool.slam <= 0 && dPlayer <= slam.radius * 0.85)
+    return { kind: 'slam', t: 0, done: false, heading: b.heading };
+  if (charge && b.cool.charge <= 0 && dPlayer >= charge.min && dPlayer <= charge.max)
+    return { kind: 'charge', t: 0, done: false, heading: b.heading };
+  return null;
+}
+
+/** One step of a special move: aim, then strike. Ends itself when its clip is over. */
+function stepSpecial(b: SlimeBrain, dt: number, player: Prey, w: BrainWorld): void {
+  const s = b.special!;
+  const px = player.x - b.x,
+    pz = player.z - b.z;
+  const dPlayer = player.down ? Infinity : Math.hypot(px, pz);
+  s.t += dt;
+  if (s.kind === 'slam') {
+    const m = b.spec.specials.slam!;
+    b.mode = 'slam';
+    // it keeps facing the player while it rears up
+    if (s.t < m.strikeAt * 0.7) b.heading = Math.atan2(px, pz);
+    if (!s.done && s.t >= m.strikeAt) {
+      s.done = true;
+      b.shock = true;
+      if (dPlayer <= m.radius) {
+        b.struck = true;
+        b.blow = m.damage;
+      }
+    }
+    if (s.t >= m.length) endSpecial(b, m.cooldown, px, pz);
+    return;
+  }
+  const m = b.spec.specials.charge!;
+  b.mode = 'charge';
+  if (s.t < m.dashStart) {
+    // crouching: it turns to follow the player, and the way it will go is fixed at the last moment
+    b.heading = s.heading = Math.atan2(px, pz);
+  } else if (s.t < m.dashEnd) {
+    b.heading = s.heading;
+    const step = m.speed * dt;
+    const dx = Math.sin(s.heading) * step,
+      dz = Math.cos(s.heading) * step;
+    const [nx, nz] = w.move(b.x, b.z, dx, dz, b.spec.radius);
+    const stopped = Math.hypot(nx - b.x, nz - b.z) < step * 0.3 || !w.allowed(nx, nz);
+    if (!stopped) {
+      b.x = nx;
+      b.z = nz;
+    } else s.t = Math.max(s.t, m.dashEnd); // ran into something: the dash is over
+    if (!s.done && dPlayer <= m.reach) {
+      s.done = true;
+      b.struck = true;
+      b.blow = m.damage;
+    }
+  }
+  if (s.t >= m.length) endSpecial(b, m.cooldown, px, pz);
+}
+
+function endSpecial(b: SlimeBrain, cooldown: number, px: number, pz: number): void {
+  b.cool[b.special!.kind] = cooldown;
+  b.special = null;
+  b.mode = 'watch';
+  b.heading = Math.atan2(px, pz);
 }
 
 export function stepBrain(b: SlimeBrain, dt: number, player: Prey, w: BrainWorld): void {
   const { near, anger } = b.spec;
   b.struck = false;
+  b.shock = false;
+  b.cool.charge = Math.max(0, b.cool.charge - dt);
+  b.cool.slam = Math.max(0, b.cool.slam - dt);
   const px = player.x - b.x,
     pz = player.z - b.z;
   const dPlayer = player.down ? Infinity : Math.hypot(px, pz);
-  if (player.down) b.anger = 0;
+  if (player.down) {
+    b.anger = 0;
+    b.special = null;
+  }
   b.anger = Math.max(0, b.anger - dt);
   // an angry slime that strays too far from home calms down and goes back
   if (b.anger > 0 && Math.hypot(b.x - b.home[0], b.z - b.home[1]) > anger.leash) {
@@ -122,7 +223,21 @@ export function stepBrain(b: SlimeBrain, dt: number, player: Prey, w: BrainWorld
     b.target = [...b.home];
     b.mode = 'hop';
   }
+  // a special move in progress carries on until its clip is over
+  if (b.special) {
+    stepSpecial(b, dt, player, w);
+    return;
+  }
   const flying = (b.mode === 'hop' || b.mode === 'chase') && airborne(b.phase);
+  if (b.anger > 0 && !flying) {
+    const next = pickSpecial(b, dPlayer);
+    if (next) {
+      b.special = next;
+      b.target = null;
+      stepSpecial(b, dt, player, w);
+      return;
+    }
+  }
 
   // close enough to the player: attack (or, if not angry, only threaten); finish a hop first
   if (dPlayer < near.lunge && !flying) {

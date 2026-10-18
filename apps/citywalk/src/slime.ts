@@ -20,16 +20,25 @@ import {
   type Vitals,
 } from '@newgame/rpg-core';
 
-// The creator's slime (public/models/slime_aquanaut.glb). Its own clips are used as they are:
-// Idle, Jumping (hops in place), Squishing and Attacking. The game moves the whole slime around.
+// The creator's slime (public/models/slime_aquanaut.glb) and boss (slime_tide_regent.glb), which
+// is built the same way. Their own clips are used as they are: Idle, Jumping (hops in place),
+// Squishing and Attacking, and the boss's two special moves, named in config/monsters.json.
+// The game moves the whole slime around.
 
-const CLIP: Record<SlimeMode, string> = {
+const CLIP: Record<Exclude<SlimeMode, 'charge' | 'slam'>, string> = {
   idle: 'Idle',
   hop: 'Jumping',
   watch: 'Squishing',
   lunge: 'Attacking',
   chase: 'Jumping',
 };
+
+/** The animation a slime plays for what its brain is doing. */
+function clipFor(spec: MonsterSpec, mode: SlimeMode): string {
+  if (mode === 'charge') return spec.specials.charge?.clip ?? CLIP.watch;
+  if (mode === 'slam') return spec.specials.slam?.clip ?? CLIP.watch;
+  return CLIP[mode];
+}
 /** spheres smaller than this (radius, metres) are face details drawn with fewer triangles */
 const SMALL = 0.02;
 
@@ -39,6 +48,8 @@ export interface SlimeTemplate {
   triangles: number;
   /** metres from the ground to the top of the body */
   height: number;
+  /** how big it is next to the plain slime (1 = the same); a boss model is drawn large */
+  size: number;
 }
 
 function triangles(root: THREE.Object3D): number {
@@ -105,11 +116,12 @@ export async function loadSlime(bytes: ArrayBuffer): Promise<SlimeTemplate> {
     mergeInto(eye, sparkles, `Eye_${side}_Hi`);
   }
   const box = new THREE.Box3().setFromObject(scene);
-  return { scene, clips: gltf.animations, triangles: triangles(scene), height: box.max.y };
+  return { scene, clips: gltf.animations, triangles: triangles(scene), height: box.max.y, size: 1 };
 }
 
 interface Slime {
   spec: MonsterSpec;
+  template: SlimeTemplate;
   brain: SlimeBrain;
   root: THREE.Object3D;
   mixer: THREE.AnimationMixer;
@@ -165,6 +177,13 @@ export interface SlimeSound {
   pitch: number;
 }
 
+/** A blow to the ground: where it landed and how far it reaches, in map metres. */
+export interface Shock {
+  x: number;
+  z: number;
+  radius: number;
+}
+
 /** Where one slime lives and what kind it is. */
 export interface SlimeHome {
   spec: MonsterSpec;
@@ -178,19 +197,21 @@ export class SlimeHerd {
   private slimes: Slime[] = [];
   private world: BrainWorld;
   private noises: SlimeSound[] = [];
-  readonly height: number;
+  private shocks: Shock[] = [];
 
+  /** `templates` are the loaded models by id; a monster whose model did not load is left out. */
   constructor(
-    template: SlimeTemplate,
+    templates: Record<string, SlimeTemplate>,
     homes: SlimeHome[],
     world: Omit<BrainWorld, 'rng'>,
     seed = 1,
   ) {
     this.object.name = 'Slimes';
-    this.height = template.height;
     const rng = seeded(seed);
     this.world = { ...world, rng };
     homes.forEach(({ spec, x, z }, i) => {
+      const template = templates[spec.model];
+      if (!template) return;
       const root = template.scene.clone(true);
       root.name = `Slime_${i + 1}`;
       root.scale.setScalar(spec.scale);
@@ -204,6 +225,7 @@ export class SlimeHerd {
       this.object.add(root);
       const slime: Slime = {
         spec,
+        template,
         brain,
         root,
         mixer,
@@ -225,14 +247,18 @@ export class SlimeHerd {
 
   private play(s: Slime, mode: SlimeMode): void {
     if (s.playing === mode) return;
-    const next = s.actions.get(CLIP[mode]);
+    const next = s.actions.get(clipFor(s.spec, mode));
     const prev = s.current;
     s.playing = mode;
     if (!next) return;
     next.reset();
-    next.timeScale = s.spec.pace; // a quick species moves quicker, a heavy one slower
+    const special = mode === 'charge' || mode === 'slam';
+    // a quick species moves quicker, a heavy one slower; a special move keeps its own timing,
+    // which the brain counts in clip time
+    next.timeScale = special ? 1 : s.spec.pace;
     // noticing the walker is a single squish; after it the slime breathes while it keeps watching
-    next.setLoop(mode === 'watch' ? THREE.LoopOnce : THREE.LoopRepeat, Infinity);
+    next.setLoop(mode === 'watch' || special ? THREE.LoopOnce : THREE.LoopRepeat, Infinity);
+    next.clampWhenFinished = special;
     next.play();
     if (prev && prev !== next) prev.crossFadeTo(next, 0.25, false);
     s.current = next;
@@ -269,8 +295,7 @@ export class SlimeHerd {
       if (changed === 'gone') s.root.visible = false;
       if (v.life === 'alive') {
         stepBrain(s.brain, dt, player, this.world);
-        if (s.brain.struck)
-          blows.push({ damage: s.spec.attack.damage, from: [s.brain.x, s.brain.z] });
+        if (s.brain.struck) blows.push({ damage: s.brain.blow, from: [s.brain.x, s.brain.z] });
       } else if (v.life === 'hurt' && (s.knock[0] || s.knock[1])) {
         const [nx, nz] = this.world.move(
           s.brain.x,
@@ -306,7 +331,7 @@ export class SlimeHerd {
       id,
       x: s.brain.x,
       z: s.brain.z,
-      pitch: pitch * Math.pow(s.spec.scale, -0.6),
+      pitch: pitch * s.spec.pitch * Math.pow(s.spec.scale * s.template.size, -0.6),
     });
   }
 
@@ -324,9 +349,23 @@ export class SlimeHerd {
       // noticing the walker, and a lower, threatening one when it squares up to attack
       if (b.mode === 'watch' && s.lastMode !== 'lunge') this.noise(s, 'slime.watch');
       if (b.mode === 'lunge') this.noise(s, 'slime.watch', 0.8);
+      // a boss roars as it starts a special move
+      if (b.mode === 'charge' || b.mode === 'slam') this.noise(s, 'boss.roar');
       s.lastMode = b.mode;
     }
-    if (b.struck) this.noise(s, 'slime.attack');
+    if (b.shock) {
+      this.noise(s, 'boss.slam');
+      this.shocks.push({ x: b.x, z: b.z, radius: s.spec.specials.slam?.radius ?? 0 });
+    }
+    if (b.struck)
+      this.noise(s, b.mode === 'slam' || b.mode === 'charge' ? 'boss.slam' : 'slime.attack');
+  }
+
+  /** The ground slams that landed since the last call (for shaking the screen and a ring). */
+  takeShocks(): Shock[] {
+    const out = this.shocks;
+    this.shocks = [];
+    return out;
   }
 
   /** The noises made since the last call, to hand to the sound system. */
@@ -376,9 +415,16 @@ export class SlimeHerd {
     return [s.brain.x, this.heightOf(i) * 0.45, s.brain.z];
   }
 
-  /** How tall slime i is, metres (a giant is taller, a mini shorter). */
+  /** How tall slime i is, metres (a giant is taller, a mini shorter, a boss much taller). */
   heightOf(i: number): number {
-    return this.height * (this.slimes[i]?.spec.scale ?? 1);
+    const s = this.slimes[i];
+    return s ? s.template.height * s.spec.scale : 0;
+  }
+
+  /** How big slime i is next to the plain slime: its own scale times how large its model is. */
+  sizeOf(i: number): number {
+    const s = this.slimes[i];
+    return s ? s.spec.scale * s.template.size : 1;
   }
 
   /** Which kind slime i is. */
@@ -395,7 +441,7 @@ export class SlimeHerd {
 
   /** How close a shot must come to slime i to hit it, metres. */
   hitRadius(i: number, base: number): number {
-    return base * Math.max(0.6, this.slimes[i]?.spec.scale ?? 1);
+    return base * Math.max(0.6, this.sizeOf(i));
   }
 
   /**
@@ -418,13 +464,17 @@ export class SlimeHerd {
       dz = s.brain.z - fromZ;
     const d = Math.hypot(dx, dz) || 1;
     // travel `knock` metres while slowing down at rate 8: speed = distance * 8
-    s.knock = [(dx / d) * knock * 8, (dz / d) * knock * 8];
-    s.brain.heading = Math.atan2(-dx, -dz);
-    s.brain.mode = 'watch';
-    s.brain.target = null;
+    const push = knock * s.spec.knock * 8;
+    s.knock = [(dx / d) * push, (dz / d) * push];
     provoke(s.brain); // it fights back now
-    s.playing = null; // replay the squish
-    s.lastMode = 'watch'; // already looking at them: not a new "noticed" sound
+    if (!s.brain.special) {
+      // a move already under way is not interrupted; otherwise it turns to face whoever hit it
+      s.brain.heading = Math.atan2(-dx, -dz);
+      s.brain.mode = 'watch';
+      s.brain.target = null;
+      s.playing = null; // replay the squish
+      s.lastMode = 'watch'; // already looking at them: not a new "noticed" sound
+    }
     this.noise(s, result === 'defeated' ? 'slime.melt' : 'slime.hurt');
     s.flash = FLASH;
     s.flashColor.setHex(color);

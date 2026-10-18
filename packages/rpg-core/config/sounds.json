@@ -654,6 +654,79 @@
         }
       ]
     },
+    "boss.roar": {
+      "volume": 0.6,
+      "priority": 3,
+      "cooldown": 0.5,
+      "spatial": true,
+      "reach": 20,
+      "space": 0.3,
+      "layers": [
+        {
+          "kind": "noise",
+          "color": "brown",
+          "filter": { "type": "lowpass", "from": 700, "to": 160, "q": 0.8 },
+          "wobble": { "from": 6, "to": 15, "depth": 0.6 },
+          "drive": 0.5,
+          "env": { "attack": 0.08, "hold": 0.2, "release": 0.5, "peak": 1 }
+        },
+        {
+          "kind": "osc",
+          "wave": "sawtooth",
+          "freq": { "from": 95, "to": 48 },
+          "filter": { "type": "lowpass", "from": 600, "to": 200, "q": 0.7 },
+          "wobble": { "from": 8, "to": 16, "depth": 0.5 },
+          "env": { "attack": 0.06, "hold": 0.25, "release": 0.45, "peak": 0.45 }
+        },
+        {
+          "kind": "noise",
+          "color": "white",
+          "filter": { "type": "bandpass", "from": 500, "to": 1400, "q": 8 },
+          "env": { "attack": 0.003, "release": 0.05, "peak": 0.5 },
+          "repeat": { "count": 8, "spread": 0.7 },
+          "jitter": 0.5
+        }
+      ]
+    },
+    "boss.slam": {
+      "volume": 0.5,
+      "priority": 3,
+      "cooldown": 0.3,
+      "spatial": true,
+      "reach": 28,
+      "space": 0.45,
+      "layers": [
+        {
+          "kind": "osc",
+          "wave": "sine",
+          "freq": { "from": 95, "to": 28 },
+          "env": { "attack": 0.003, "hold": 0.1, "release": 1, "peak": 1 }
+        },
+        {
+          "kind": "noise",
+          "color": "brown",
+          "filter": { "type": "lowpass", "from": 1600, "to": 100, "q": 0.7 },
+          "drive": 0.7,
+          "env": { "attack": 0.003, "release": 0.8, "peak": 1 }
+        },
+        {
+          "kind": "noise",
+          "color": "white",
+          "filter": { "type": "bandpass", "from": 3600, "to": 700, "q": 0.7 },
+          "at": 0.02,
+          "env": { "attack": 0.015, "hold": 0.08, "release": 0.55, "peak": 0.8 }
+        },
+        {
+          "kind": "noise",
+          "color": "white",
+          "filter": { "type": "bandpass", "from": 3200, "to": 3200, "q": 3 },
+          "at": 0.3,
+          "env": { "attack": 0.001, "release": 0.02, "peak": 0.5 },
+          "repeat": { "count": 22, "spread": 0.7 },
+          "jitter": 0.5
+        }
+      ]
+    },
     "item.drop": {
       "volume": 0.75,
       "priority": 1,

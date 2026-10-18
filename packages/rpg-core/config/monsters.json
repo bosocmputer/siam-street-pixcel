@@ -1,7 +1,11 @@
 {
-  "about": "Monster numbers. Every species starts from base and lists only what is different. hp in hit points, times in seconds, distances in metres. body.hop follows the model's Jumping clip: it leaves the ground at liftOff and lands at land (seconds of clip time). scale sizes the whole slime; tint recolours its body (null keeps the model's own blue); pace plays its clips faster (above 1) or slower; stride is how far each hop goes compared with the normal one; radius is how much room it takes. takes: how much of each element's damage it takes (1 = normal, above 1 = weak to it). A slime that is hit gets angry for anger.time seconds: it chases the player (never further than anger.leash from home) and attacks; the blow lands at attack.strikeAt of attack.cycle if the player is within attack.reach. Slimes that are not angry only threaten and never hurt. exp: what beating one gives. drops: what it may leave behind: item id, chance 0..1, and how many (min..max).",
+  "about": "Monster numbers. Every species starts from base and lists only what is different. hp in hit points, times in seconds, distances in metres. body.hop follows the model's Jumping clip: it leaves the ground at liftOff and lands at land (seconds of clip time). scale sizes the whole slime; tint recolours its body (null keeps the model's own blue); pace plays its clips faster (above 1) or slower; stride is how far each hop goes compared with the normal one; radius is how much room it takes. takes: how much of each element's damage it takes (1 = normal, above 1 = weak to it). A slime that is hit gets angry for anger.time seconds: it chases the player (never further than anger.leash from home) and attacks; the blow lands at attack.strikeAt of attack.cycle if the player is within attack.reach. Slimes that are not angry only threaten and never hurt. model: which model it is drawn with (an id in apps/citywalk/public/assets.json). pitch: voice pitch (1 = by its size, below 1 is deeper). knock: how much a skill's push-back moves it (a heavy boss barely moves). specials: moves only some monsters have, each with the name of its animation (null = it does not have that move). charge: crouch and aim, then dash in a straight line (from dashStart to dashEnd seconds of clip time, speed in metres per second) and hit whoever it runs into (reach); used when the player is min to max metres away. slam: rear up and bring its arms down at strikeAt, hurting everyone within radius metres. cooldown is the seconds before a move may be used again. A monster uses its specials only while it is angry. exp: what beating one gives. drops: what it may leave behind: item id, chance 0..1, and how many (min..max).",
   "body": { "hop": { "cycle": 1.6, "liftOff": 0.3, "land": 1.12, "distance": 1.2 } },
   "base": {
+    "model": "slime",
+    "pitch": 1,
+    "knock": 1,
+    "specials": { "charge": null, "slam": null },
     "hp": 100,
     "hurt": 0.35,
     "melt": 0.9,
@@ -63,6 +67,50 @@
       "near": { "watch": 5, "lunge": 1.6, "forget": 6.5 },
       "attack": { "damage": 4, "reach": 1.2 },
       "drops": [{ "item": "gel_lime", "chance": 0.5, "min": 1, "max": 1 }]
+    },
+    "boss_tide_regent": {
+      "model": "tide_regent",
+      "hp": 500,
+      "hurt": 0.2,
+      "melt": 1.6,
+      "respawn": 120,
+      "grow": 1.5,
+      "wander": 6,
+      "exp": 200,
+      "pitch": 0.55,
+      "knock": 0.2,
+      "stride": 1.3,
+      "radius": 1.6,
+      "takes": { "fire": 1.5, "water": 0.5 },
+      "near": { "watch": 14, "lunge": 5, "forget": 16 },
+      "attack": { "damage": 14, "reach": 4.6 },
+      "anger": { "time": 25, "leash": 28 },
+      "specials": {
+        "charge": {
+          "clip": "Boss_Tidal_Charge",
+          "min": 4,
+          "max": 10,
+          "dashStart": 1.05,
+          "dashEnd": 1.5,
+          "length": 1.7,
+          "speed": 14,
+          "damage": 22,
+          "reach": 3.4,
+          "cooldown": 8
+        },
+        "slam": {
+          "clip": "Boss_Ground_Slam",
+          "strikeAt": 0.96,
+          "length": 2,
+          "radius": 6.5,
+          "damage": 28,
+          "cooldown": 11
+        }
+      },
+      "drops": [
+        { "item": "gel_water", "chance": 1, "min": 4, "max": 6 },
+        { "item": "gel_core", "chance": 1, "min": 2, "max": 3 }
+      ]
     }
   }
 }

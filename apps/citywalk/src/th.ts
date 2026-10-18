@@ -37,6 +37,7 @@ export const TH = {
     slime_fire: 'สไลม์ไฟ',
     slime_giant: 'สไลม์ยักษ์',
     slime_mini: 'สไลม์จิ๋ว',
+    boss_tide_regent: 'ราชาสไลม์กระแสน้ำ',
   } as Record<string, string>,
   items: {
     gel_water: 'เจลสไลม์น้ำ',
@@ -73,6 +74,8 @@ export const TH = {
     'step.walk': 'ก้าวเดิน',
     'step.run': 'ก้าววิ่ง',
     'step.bike': 'เสียงมอไซค์',
+    'boss.roar': 'บอส: คำราม (ก่อนใช้ท่าพิเศษ)',
+    'boss.slam': 'บอส: กระแทกพื้น (ตูม! ซ่า)',
     'item.drop': 'ของเด้งออกมา',
     'item.pickup': 'เก็บของ',
   } as Record<string, string>,
@@ -83,6 +86,7 @@ export const TH = {
     hit: 'การโดนตี',
     slime: 'สไลม์',
     player: 'ตัวเรา',
+    boss: 'บอส',
     item: 'ของ',
   } as Record<string, string>,
   lab: {

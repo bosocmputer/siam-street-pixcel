@@ -17,12 +17,13 @@ const copy = (): Cfg => structuredClone(monstersJson) as unknown as Cfg;
 const ITEM_IDS = Object.keys(itemsJson.items);
 
 describe('monsters', () => {
-  it('has four kinds of slime, each different from the plain one', () => {
+  it('has four kinds of slime and a boss, each different from the plain one', () => {
     expect(Object.keys(MONSTERS)).toEqual([
       'slime_water',
       'slime_fire',
       'slime_giant',
       'slime_mini',
+      'boss_tide_regent',
     ]);
     const plain = monster('slime_water');
     expect(plain.scale).toBe(1);
@@ -34,6 +35,25 @@ describe('monsters', () => {
     expect(monster('slime_mini').pace).toBeGreaterThan(1);
     expect(typeof monster('slime_fire').tint).toBe('number');
     expect(HOP.land).toBeGreaterThan(HOP.liftOff);
+  });
+
+  it('the boss has its own model and two special moves; the others have none', () => {
+    const boss = monster('boss_tide_regent');
+    expect(boss.model).toBe('tide_regent');
+    expect(boss.hp).toBeGreaterThan(monster('slime_giant').hp);
+    expect(boss.takes.fire).toBeGreaterThan(1);
+    expect(boss.takes.water).toBeLessThan(1);
+    expect(boss.knock).toBeLessThan(1);
+    expect(boss.pitch).toBeLessThan(1);
+    expect(boss.specials.charge!.clip).toBe('Boss_Tidal_Charge');
+    expect(boss.specials.slam!.clip).toBe('Boss_Ground_Slam');
+    for (const [id, m] of Object.entries(MONSTERS)) {
+      if (id === 'boss_tide_regent') continue;
+      expect(m.model).toBe('slime');
+      expect(m.specials).toEqual({ charge: null, slam: null });
+      expect(m.pitch).toBe(1);
+      expect(m.knock).toBe(1);
+    }
   });
 
   it('a species keeps what it does not change from the base, and merges groups one level down', () => {
@@ -96,6 +116,15 @@ describe('monsters', () => {
     expect(bad((c) => (c.body.hop.land = 0.1))).toThrow(/liftOff < land/);
     expect(bad((c) => (c.species.slime_mini!.drops = 'lots'))).toThrow(/drops: expected a list/);
     expect(bad((c) => (c.species = {}))).toThrow(/no species/);
+    const boss = (c: Cfg) =>
+      c.species.boss_tide_regent!.specials as Record<string, Record<string, unknown> | null>;
+    expect(bad((c) => (c.species.slime_mini!.model = ''))).toThrow(/mini.model/);
+    expect(bad((c) => (boss(c).charge!.clip = ''))).toThrow(/charge.clip/);
+    expect(bad((c) => (boss(c).charge!.max = 1))).toThrow(/max to be more than min/);
+    expect(bad((c) => (boss(c).charge!.dashEnd = 5))).toThrow(/dashStart < dashEnd ≤ length/);
+    expect(bad((c) => (boss(c).slam!.clip = 7))).toThrow(/slam.clip/);
+    expect(bad((c) => (boss(c).slam!.strikeAt = 9))).toThrow(/strikeAt < length/);
+    expect(bad((c) => (boss(c).slam = null))).not.toThrow();
     expect(() => readMonsters(null)).toThrow(ConfigError);
     expect(() => monster('dragon')).toThrow(/unknown monster/);
   });
@@ -108,8 +137,9 @@ function plainAttack() {
 describe('spawns', () => {
   it('puts a mix of kinds on the plaza, all known', () => {
     const plaza = SPAWNS.plaza!;
-    expect(plaza).toHaveLength(6);
-    expect(new Set(plaza.map((s) => s.species)).size).toBe(4);
+    expect(plaza).toHaveLength(7);
+    expect(new Set(plaza.map((s) => s.species)).size).toBe(5);
+    expect(plaza.filter((s) => s.species === 'boss_tide_regent')).toHaveLength(1);
     for (const s of plaza) expect(MONSTERS[s.species]).toBeDefined();
     // the first two are the plain slimes near the start
     expect(plaza[0]!.species).toBe('slime_water');
@@ -125,6 +155,6 @@ describe('spawns', () => {
     );
     expect(() => readSpawns({ plaza: [] }, ids)).toThrow(/expected a list/);
     expect(() => readSpawns({ about: 'x' }, ids)).toThrow(/no zones/);
-    expect(readSpawns(spawnsJson, ids).plaza).toHaveLength(6);
+    expect(readSpawns(spawnsJson, ids).plaza).toHaveLength(7);
   });
 });

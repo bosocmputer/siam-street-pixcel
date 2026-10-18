@@ -1161,6 +1161,36 @@ export class Fx {
     this.stain(at(0.055), 2.4, 0x1e4f73, 0.42, 2.8);
   }
 
+  /**
+   * A boss slams the ground: a ring of water runs out to `radius` metres, spray flies up all
+   * round it and a damp mark is left on the paving.
+   */
+  slam(p: Vec3, ground: number, radius: number): void {
+    const at = (h: number): Vec3 => [p[0], ground + h, p[2]];
+    this.ring(at(0.09), 0x3fc2d8, 0.4, radius, 0.55, 0, 0.85, THREE.NormalBlending);
+    this.ring(at(0.1), 0xeaf9ff, 0.3, radius * 0.75, 0.45, 0.05, 0.8, THREE.NormalBlending);
+    for (let i = 0; i < 70; i++) {
+      const a = rand(0, Math.PI * 2),
+        out = rand(radius * 0.8, radius * 1.6);
+      this.solid.emit({
+        pos: [
+          p[0] + Math.cos(a) * rand(0.5, 1.5),
+          ground + 0.15,
+          p[2] + Math.sin(a) * rand(0.5, 1.5),
+        ],
+        vel: [Math.cos(a) * out, rand(3, 7), Math.sin(a) * out],
+        life: rand(0.55, 0.9),
+        size: [rand(0.1, 0.18), 0.05],
+        color: [WATER.white, WATER.blue],
+        alpha: [0.95, 0.6],
+        gravity: -14,
+        drag: 1,
+        shape: 1,
+      });
+    }
+    this.stain(at(0.055), radius * 0.9, 0x1e4f73, 0.4, 3);
+  }
+
   /** A new level: golden rings rise around the player and sparks fly up. */
   levelUp(p: Vec3, ground: number): void {
     for (let i = 0; i < 3; i++)

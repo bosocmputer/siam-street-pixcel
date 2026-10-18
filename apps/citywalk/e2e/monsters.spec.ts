@@ -61,13 +61,15 @@ async function beat(page: Page, i: number) {
   expect((await slimes(page))[i]!.alive).toBe(false);
 }
 
-test('the plaza has four kinds of slime, different in size and colour', async ({ page }) => {
+test('the plaza has four kinds of slime and a boss, different in size and colour', async ({
+  page,
+}) => {
   await open(page);
   const list = await slimes(page);
-  expect(list).toHaveLength(6);
+  expect(list).toHaveLength(7);
   expect(list[0]!.species).toBe('slime_water');
-  expect(new Set(list.map((s) => s.species)).size).toBe(4);
-  expect(list.map((s) => s.hp)).toEqual([100, 100, 80, 300, 40, 80]);
+  expect(new Set(list.map((s) => s.species)).size).toBe(5);
+  expect(list.map((s) => s.hp)).toEqual([100, 100, 80, 300, 40, 80, 500]);
 
   // a picture of the fire slime and the giant, to see the colours and sizes
   await standNear(page, 3, 9);

@@ -5,6 +5,7 @@ export const SOUND_GROUPS: { key: string; ids: string[] }[] = [
   { key: 'fire', ids: ['fire.gather', 'fire.release', 'fire.flight', 'fire.impact'] },
   { key: 'water', ids: ['water.gather', 'water.release', 'water.impact'] },
   { key: 'hit', ids: ['hit.weak', 'hit.resist'] },
+  { key: 'boss', ids: ['boss.roar', 'boss.slam'] },
   {
     key: 'slime',
     ids: ['slime.hop', 'slime.watch', 'slime.attack', 'slime.hurt', 'slime.melt', 'slime.respawn'],

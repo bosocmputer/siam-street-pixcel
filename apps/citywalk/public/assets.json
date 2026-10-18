@@ -2,11 +2,26 @@
   "about": "Every file the game loads at start. A model that fails to load is skipped and the game uses its stand-in. clips: animation names the game needs from that file.",
   "world": "world.json",
   "models": [
-    { "id": "gate", "file": "models/thaphae_gate.glb" },
+    {
+      "id": "gate",
+      "file": "models/thaphae_gate.glb"
+    },
     {
       "id": "slime",
       "file": "models/slime_aquanaut.glb",
       "clips": ["Idle", "Jumping", "Squishing", "Attacking"]
+    },
+    {
+      "id": "tide_regent",
+      "file": "models/slime_tide_regent.glb",
+      "clips": [
+        "Idle",
+        "Jumping",
+        "Squishing",
+        "Attacking",
+        "Boss_Tidal_Charge",
+        "Boss_Ground_Slam"
+      ]
     }
   ]
 }

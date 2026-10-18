@@ -14,8 +14,49 @@ export interface VitalTimes {
   grow: number;
 }
 
+/** A boss's rush: it crouches, springs at the player in a straight line and slams into them. */
+export interface ChargeSpec {
+  /** name of the animation in the model */
+  clip: string;
+  /** only used when the player is between min and max metres away */
+  min: number;
+  max: number;
+  /** seconds of clip time when the dash starts and ends; before that it crouches and aims */
+  dashStart: number;
+  dashEnd: number;
+  /** seconds the whole move lasts (the clip's length) */
+  length: number;
+  /** metres per second while dashing */
+  speed: number;
+  damage: number;
+  /** a player this close to it while dashing is hit (once) */
+  reach: number;
+  /** seconds before it may be used again */
+  cooldown: number;
+}
+
+/** A boss's ground slam: it rears up and brings its arms down, hurting everything round it. */
+export interface SlamSpec {
+  clip: string;
+  /** seconds of clip time when the blow lands */
+  strikeAt: number;
+  length: number;
+  /** a player within this many metres when it lands is hit */
+  radius: number;
+  damage: number;
+  cooldown: number;
+}
+
 export interface MonsterSpec {
   id: string;
+  /** which model it is drawn with (an id in public/assets.json) */
+  model: string;
+  /** voice pitch, 1 = by its size; below 1 is deeper */
+  pitch: number;
+  /** how much a skill's push-back moves it (1 = normal, a heavy boss barely moves) */
+  knock: number;
+  /** moves only some monsters have; null = it does not have that one */
+  specials: { charge: ChargeSpec | null; slam: SlamSpec | null };
   hp: number;
   vitals: VitalTimes;
   wander: number;
@@ -44,6 +85,46 @@ function merge(base: Obj, over: Obj): Obj {
   return out;
 }
 
+function readCharge(raw: unknown, w: string): ChargeSpec | null {
+  if (raw === null) return null;
+  const c = obj(raw, w);
+  if (typeof c.clip !== 'string' || c.clip === '')
+    throw new ConfigError(`${w}.clip: expected the name of an animation`);
+  const spec: ChargeSpec = {
+    clip: c.clip,
+    min: num(c, 'min', w),
+    max: num(c, 'max', w),
+    dashStart: num(c, 'dashStart', w),
+    dashEnd: num(c, 'dashEnd', w),
+    length: num(c, 'length', w, 0.1),
+    speed: num(c, 'speed', w),
+    damage: num(c, 'damage', w),
+    reach: num(c, 'reach', w),
+    cooldown: num(c, 'cooldown', w),
+  };
+  if (spec.max <= spec.min) throw new ConfigError(`${w}: expected max to be more than min`);
+  if (!(spec.dashStart < spec.dashEnd && spec.dashEnd <= spec.length))
+    throw new ConfigError(`${w}: expected dashStart < dashEnd ≤ length`);
+  return spec;
+}
+
+function readSlam(raw: unknown, w: string): SlamSpec | null {
+  if (raw === null) return null;
+  const c = obj(raw, w);
+  if (typeof c.clip !== 'string' || c.clip === '')
+    throw new ConfigError(`${w}.clip: expected the name of an animation`);
+  const spec: SlamSpec = {
+    clip: c.clip,
+    strikeAt: num(c, 'strikeAt', w),
+    length: num(c, 'length', w, 0.1),
+    radius: num(c, 'radius', w, 0.1),
+    damage: num(c, 'damage', w),
+    cooldown: num(c, 'cooldown', w),
+  };
+  if (spec.strikeAt >= spec.length) throw new ConfigError(`${w}: expected strikeAt < length`);
+  return spec;
+}
+
 function resolve(id: string, o: Obj, itemIds: readonly string[]): MonsterSpec {
   const w = `monsters.${id}`;
   const part = (key: string) => obj(o[key], `${w}.${key}`);
@@ -65,8 +146,18 @@ function resolve(id: string, o: Obj, itemIds: readonly string[]): MonsterSpec {
       throw new ConfigError(`${dw}: min and max must be whole numbers with max at least min`);
     return { item: d.item, chance, min, max };
   });
+  const specials = part('specials');
+  if (typeof o.model !== 'string' || o.model === '')
+    throw new ConfigError(`${w}.model: expected the id of a model`);
   const spec: MonsterSpec = {
     id,
+    model: o.model,
+    pitch: num(o, 'pitch', w, 0.1),
+    knock: num(o, 'knock', w),
+    specials: {
+      charge: readCharge(specials.charge, `${w}.specials.charge`),
+      slam: readSlam(specials.slam, `${w}.specials.slam`),
+    },
     hp: num(o, 'hp', w, 1),
     vitals: {
       hurt: num(o, 'hurt', w),

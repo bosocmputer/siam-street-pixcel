@@ -289,7 +289,7 @@ export class Combat {
     const where = this.herd.state()[slime];
     const at: Vec3 = where ? [where.x, pos[1], where.z] : [...pos];
     if (defeated) {
-      this.fx.melt(at, GROUND, this.herd.species(slime).scale);
+      this.fx.melt(at, GROUND, this.herd.sizeOf(slime));
       if (this.target === slime) this.target = null;
     }
     return {
@@ -331,7 +331,7 @@ export class Combat {
     if (!a) return;
     this.marker.position.set(a[0], 0, a[2]);
     this.ring.position.y = 0.07;
-    const size = this.herd.species(this.target!).scale;
+    const size = this.herd.sizeOf(this.target!);
     this.ring.scale.setScalar((1.5 + Math.sin(this.time * 5) * 0.06) * Math.max(0.8, size));
     this.ring.rotation.y = this.time * 1.2;
     this.arrow.position.y =

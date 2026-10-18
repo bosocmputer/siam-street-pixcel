@@ -23,6 +23,8 @@ describe('sound recipes', () => {
       'fire.gather',
       'fire.release',
       'fire.flight',
+      'boss.roar',
+      'boss.slam',
       'fire.impact',
       'water.gather',
       'water.release',

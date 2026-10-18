@@ -6,6 +6,7 @@
     { "species": "slime_fire", "at": [-30, 24] },
     { "species": "slime_giant", "at": [-60, 16] },
     { "species": "slime_mini", "at": [30, 15] },
-    { "species": "slime_fire", "at": [55, 10] }
+    { "species": "slime_fire", "at": [55, 10] },
+    { "species": "boss_tide_regent", "at": [-15, 34] }
   ]
 }

@@ -127,12 +127,23 @@ async function start(): Promise<void> {
     }
   };
   // the gate model is optional: without it the gate keeps its simple stand-in towers
-  const [gateModel, slimeTemplate] = await Promise.all([
+  const [gateModel, slimeTemplate, bossTemplate] = await Promise.all([
     parse('gate', loadModel),
     parse<SlimeTemplate>('slime', loadSlime),
+    parse<SlimeTemplate>('tide_regent', loadSlime),
   ]);
-  const lacking = missingClips(entry('slime'), slimeTemplate?.clips ?? []);
-  if (slimeTemplate && lacking.length) console.warn('slime model lacks clips:', lacking);
+  for (const [id, t] of [
+    ['slime', slimeTemplate],
+    ['tide_regent', bossTemplate],
+  ] as const) {
+    const lacking = missingClips(entry(id), t?.clips ?? []);
+    if (t && lacking.length) console.warn(`${id} model lacks clips:`, lacking);
+  }
+  // the boss model is drawn large; its size next to the plain slime sets its hit box and voice
+  if (slimeTemplate && bossTemplate) bossTemplate.size = bossTemplate.height / slimeTemplate.height;
+  const templates: Record<string, SlimeTemplate> = {};
+  if (slimeTemplate) templates.slime = slimeTemplate;
+  if (bossTemplate) templates.tide_regent = bossTemplate;
 
   const thaPhaeGate = world.landmarks.find((m) => m.name === 'ประตูท่าแพ');
   let placed: PlacedModel | null = null;
@@ -174,7 +185,7 @@ async function start(): Promise<void> {
       const [x, z] = frameToMap(gateAt, sp.at[0], sp.at[1]);
       return { spec: monster(sp.species), x, z };
     });
-    herd = new SlimeHerd(slimeTemplate, homes, {
+    herd = new SlimeHerd(templates, homes, {
       move: (x, z, dx, dz, r) => collider.move(x, z, dx, dz, r),
       allowed: (x, z) => pointInPolygon(x, z, plaza.outline),
     });
@@ -544,6 +555,15 @@ async function start(): Promise<void> {
     // what the slimes did this step (landed, noticed us, struck, got hurt, melted, grew back)
     for (const e of herd?.takeSounds() ?? [])
       sound.play(e.id, { at: { x: e.x, z: e.z }, pitch: e.pitch });
+    // a boss's ground slam: a ring runs out over the ground and the whole screen shakes
+    for (const k of herd?.takeShocks() ?? []) {
+      fx.slam([k.x, 0, k.z], GROUND, k.radius);
+      shake = Math.max(
+        shake,
+        Math.max(0.12, 0.5 - 0.03 * Math.hypot(k.x - state.x, k.z - state.z)),
+      );
+      freeze = Math.max(freeze, 0.06);
+    }
   };
   const effects = (dt: number) => fx.update(dt, camera, canvas.height, state.scale);
 
@@ -797,6 +817,12 @@ async function start(): Promise<void> {
       save: () => save(),
       slimeTriangles: slimeTemplate?.triangles ?? 0,
       plaza: plaza ? { area: Math.round(plaza.area), span: plaza.span } : null,
+      /** is this spot (in the gate's frame: x along the wall, z out onto the square) on the paved square? */
+      onPlaza: (fx: number, fz: number) => {
+        if (!plaza || !gateAt) return false;
+        const [x, z] = frameToMap(gateAt, fx, fz);
+        return pointInPolygon(x, z, plaza.outline);
+      },
       landmarks: world.landmarks,
     };
   }
