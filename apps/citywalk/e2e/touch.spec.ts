@@ -3,7 +3,7 @@ import { newGame } from './start';
 
 test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
 // software WebGL is slow when several test files run at once
-test.describe.configure({ timeout: 60_000 });
+test.describe.configure({ timeout: 120_000 });
 
 test('dragging a finger on the left side walks', async ({ page }) => {
   await page.goto('./?debug=1');
