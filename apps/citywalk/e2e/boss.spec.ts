@@ -134,8 +134,9 @@ test('beating the boss gives a lot of experience and its drops, and it grows bac
   await open(page);
   const i = await bossIndex(page);
   await standAt(page, 12);
-  // nine fireballs at 60 each; keep the energy up so the fight is about the boss, not the gauge
-  for (let n = 0; n < 9; n++) {
+  // fireballs at 60 each (nine are enough if all land; the boss moves, so one may miss) until it
+  // falls; keep the energy up so the fight is about the boss, not the gauge
+  for (let n = 0; n < 12 && (await slimes(page))[i]!.hp > 0; n++) {
     await js(page, 'window.__walk.setStats({ energy: 100, hp: 100, safe: 0 })');
     await js(page, 'window.__walk.setTarget(' + i + "); window.__walk.cast('fireball')");
     await page.evaluate(

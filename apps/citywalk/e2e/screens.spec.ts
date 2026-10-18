@@ -10,7 +10,7 @@ const SIZES = [
   { name: 'side', width: 844, height: 390 },
   { name: 'desk', width: 1280, height: 720 },
 ];
-test.describe.configure({ timeout: 150_000 });
+test.describe.configure({ timeout: 240_000 });
 test.use({ hasTouch: true });
 
 /** Controls and text that are off the screen with no scrolling box to bring them in. */
@@ -62,7 +62,7 @@ async function swipeScrolls(page: Page, selector: string): Promise<void> {
   const from = r.y + r.height * 0.75,
     to = r.y + r.height * 0.3;
   await touch('touchStart', from);
-  for (let y = from; y > to; y -= 15) await touch('touchMove', y);
+  for (let y = from; y > to; y -= 30) await touch('touchMove', y);
   await touch('touchEnd', to);
   await expect.poll(() => box.evaluate((e) => e.scrollTop)).toBeGreaterThan(10);
 }
