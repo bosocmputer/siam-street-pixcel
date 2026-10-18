@@ -1,0 +1,113 @@
+// The player character (concept v0.3): a glossy, rounded "toy anime" look that sits with the
+// creator's slimes, about six heads tall. One man and one woman in the starting clothes; hair,
+// colours and clothes become choices later. Torso rows are [height, width, depth, forward offset,
+// chest bulge] in metres.
+
+const male = {
+  neck: 0.046,
+  arm: [0.058, 0.05, 0.04],
+  leg: [0.096, 0.071, 0.05],
+  hand: 1.2,
+  foot: 1.12,
+  torso: [
+    [0.8, 0.16, 0.13, 0, 0],
+    [0.86, 0.3, 0.2, 0, 0],
+    [0.93, 0.32, 0.205, 0, 0],
+    [1.0, 0.3, 0.195, 0.004, 0],
+    [1.07, 0.285, 0.185, 0.006, 0],
+    [1.15, 0.3, 0.195, 0.008, 0],
+    [1.24, 0.34, 0.205, 0.01, 0.008],
+    [1.31, 0.36, 0.215, 0.008, 0.01],
+    [1.36, 0.385, 0.205, 0.002, 0.004],
+    [1.395, 0.35, 0.185, -0.004, 0],
+    [1.42, 0.25, 0.155, -0.008, 0],
+    [1.44, 0.15, 0.115, -0.01, 0],
+  ],
+};
+
+const female = {
+  neck: 0.04,
+  arm: [0.05, 0.043, 0.034],
+  leg: [0.099, 0.069, 0.047],
+  hand: 1.1,
+  foot: 1.04,
+  torso: [
+    [0.8, 0.17, 0.13, 0, 0],
+    [0.86, 0.32, 0.2, 0, 0],
+    [0.93, 0.345, 0.21, -0.004, 0],
+    [1.0, 0.31, 0.19, 0, 0],
+    [1.07, 0.255, 0.17, 0.004, 0],
+    [1.14, 0.265, 0.175, 0.006, 0],
+    [1.21, 0.295, 0.18, 0.008, 0.014],
+    [1.27, 0.315, 0.19, 0.008, 0.032],
+    [1.33, 0.32, 0.19, 0.004, 0.018],
+    [1.37, 0.345, 0.175, -0.002, 0],
+    [1.4, 0.31, 0.155, -0.006, 0],
+    [1.425, 0.21, 0.13, -0.008, 0],
+    [1.44, 0.13, 0.095, -0.01, 0],
+  ],
+};
+
+// the starting clothes: a dark fitted tee with an amber edge, joggers, chunky white sneakers
+const starter = {
+  top: '#262a35',
+  bottom: '#30364a',
+  trim: '#ffb547',
+  shoes: '#eeeae2',
+  sole: '#2a2d36',
+  accent: '#ffb547',
+};
+
+export const DESIGNS = {
+  m: {
+    label: 'ชาย',
+    build: male,
+    headSize: 1.2,
+    headH: 0.268,
+    sharp: 0.75,
+    skin: '#f1c9a6',
+    hair: '#232842',
+    hairStyle: 'spiky',
+    ears: true,
+    face: {
+      iris: '#e0a040',
+      eyeW: 0.042,
+      eyeH: 0.03,
+      eyeGap: 0.042,
+      tilt: 0.12,
+      irisSize: 0.66,
+      browAngle: 0.3,
+      browW: 0.0036,
+      lid: 0.0042,
+      mouthW: 0.016,
+      smile: 0.0006,
+    },
+    outfit: starter,
+  },
+  f: {
+    label: 'หญิง',
+    build: female,
+    headSize: 1.16,
+    headH: 0.262,
+    sharp: 0.62,
+    skin: '#f3d0b0',
+    hair: '#2b2740',
+    hairStyle: 'long',
+    ears: false,
+    face: {
+      iris: '#9b7cf0',
+      eyeW: 0.043,
+      eyeH: 0.035,
+      eyeGap: 0.041,
+      tilt: 0.1,
+      irisSize: 0.68,
+      lash: true,
+      browAngle: 0.12,
+      browW: 0.003,
+      lid: 0.0045,
+      mouthW: 0.015,
+      smile: 0.0016,
+    },
+    outfit: starter,
+  },
+};

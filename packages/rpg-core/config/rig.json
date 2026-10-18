@@ -97,5 +97,5 @@
     },
     { "name": "Body_Foot_R", "joint": "Foot_R", "box": [0.1, 0.09, 0.26], "from": [-0.1, 0, 0.07] }
   ],
-  "limits": { "triangles": 6000, "materials": 4, "fileKB": 1024 }
+  "limits": { "triangles": 10000, "materials": 4, "fileKB": 1024 }
 }
