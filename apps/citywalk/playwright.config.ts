@@ -15,6 +15,8 @@ function sandboxChromium(): string | undefined {
 
 export default defineConfig({
   testDir: 'e2e',
+  // every game starts through the character screen, which builds the character in software WebGL
+  timeout: 90_000,
   webServer: {
     command: 'pnpm preview',
     port: 4174,

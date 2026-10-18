@@ -7,7 +7,7 @@ const OUT = process.env.SHOTS_DIR ?? 'test-results/shots';
 const js = (page: Page, code: string) => page.evaluate(code);
 test.use({ viewport: { width: 1100, height: 700 } });
 test('skill effects step by step, seen from the side', async ({ page }) => {
-  test.setTimeout(120_000);
+  test.setTimeout(200_000);
   await page.goto('./?debug=1');
   await newGame(page);
   await page.waitForFunction(() => '__walk' in window);
