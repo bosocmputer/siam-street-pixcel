@@ -14,7 +14,10 @@ const here = dirname(fileURLToPath(import.meta.url));
 const app = resolve(here, '../..');
 const repo = resolve(app, '../..');
 const out = resolve(process.argv[2] ?? join(repo, 'newgame/refs/characters'));
-const only = process.argv.slice(3);
+const args = process.argv.slice(3);
+// --mixamo: also write a test copy dressed up as a Mixamo file (bone names, T-pose, centimetres)
+const mixamo = args.includes('--mixamo');
+const only = args.filter((a) => !a.startsWith('--'));
 mkdirSync(out, { recursive: true });
 
 function chromiumPath() {
@@ -60,5 +63,9 @@ for (const id of ids) {
   await page.evaluate((id) => window.maker.portrait(id), id);
   await page.screenshot({ path: join(out, `${id}_face.png`) });
   console.log(`${id}: ${r.triangles} triangles, ${Math.round(r.bytes / 1024)} KB`);
+  if (mixamo) {
+    const t = await page.evaluate((id) => window.maker.make(id, 'mixamo'), id);
+    writeFileSync(join(out, `${id}_mixamo.glb`), Buffer.from(t.glb, 'base64'));
+  }
 }
 await browser.close();

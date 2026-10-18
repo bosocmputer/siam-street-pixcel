@@ -22,6 +22,14 @@
         "Boss_Tidal_Charge",
         "Boss_Ground_Slam"
       ]
+    },
+    {
+      "id": "hero_m",
+      "file": "models/hero_m.glb"
+    },
+    {
+      "id": "hero_f",
+      "file": "models/hero_f.glb"
     }
   ]
 }

@@ -7,6 +7,18 @@ export interface ModelEntry {
   file: string;
   /** animation names the game needs from the file */
   clips?: string[];
+  // --- for a character model (see src/hero.ts) ---
+  /** rig joint name → this model's bone name, when they differ (a model from Blender, Mixamo...) */
+  joints?: Record<string, string> | 'mixamo' | 'vroid';
+  /** degrees [x, y, z] to turn joints so the model stands like the rig (arms down from a T-pose) */
+  restFix?: Record<string, [number, number, number]>;
+  /** metres tall to scale to (default: the rig's height) */
+  height?: number;
+  /** which way the model faces (default +z) */
+  forward?: '+z' | '-z' | '+x' | '-x';
+  /** dark edges round the body (default on), and how thick, metres */
+  outline?: boolean;
+  outlineWidth?: number;
 }
 
 export interface Manifest {

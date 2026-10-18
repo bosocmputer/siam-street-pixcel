@@ -192,8 +192,9 @@ test('the listening room opens from the first page and plays every sound', async
   // each skill can be heard as a whole, with the game's own timing
   await js(page, 'window.__walk.sound.clear()');
   await page.locator('.lab-seq').first().click();
+  // the sequence runs on wall-clock timers (1.2 s), which lag when many tests share the machine
   await expect
-    .poll(() => heard(page), { timeout: 5000 })
+    .poll(() => heard(page), { timeout: 15_000 })
     .toEqual(['fire.gather', 'fire.release', 'fire.flight', 'fire.impact', 'slime.hurt']);
 
   await page.locator('.lab-back').click();

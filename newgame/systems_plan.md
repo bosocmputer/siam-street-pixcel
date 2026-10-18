@@ -28,7 +28,7 @@
 
 | # | ระบบ | สถานะ |
 |---|---|---|
-| 10 | ตัวละคร + ท่าทางจากโค้ด | ⬜ รอ `Character_Base.glb` (prompt: `prompts/character_base.md`, สเปก: `refs/character_spec.png`) |
+| 10 | ตัวละคร + ท่าทางจากโค้ด | ✅ ชาย/หญิง สร้างด้วยโค้ด (`citywalk/tools/character/`) ท่าทางในโค้ด (`citywalk/src/hero.ts`): ยืน เดิน วิ่ง ขี่ ร่าย สะดุ้ง ล้ม เส้นขอบตัว · รับโมเดลจากโปรแกรมอื่นได้ (`prompts/character_import.md`) · ยังไม่มีหน้าสร้างตัวละคร (ต้องทำ mockup) |
 | 11 | ค่าสถานะ เลือด/พลัง/เลเวล | ✅ `rpg-core/src/stats.ts`, `config/player.json` · แผงบนจอ `citywalk/src/ui/playerHud.ts` (ตำแหน่งชั่วคราว รออนุมัติ) |
 | 12 | กระเป๋า + อุปกรณ์ | ⬜ ต้องทำ mockup ก่อน |
 | 13 | สกิลแบบข้อมูล | ✅ สกิล = 1 รายการใน `config/skills.json` (ธาตุ ค่าพลัง ความแรง) · ปุ่มเลือกจาก `player.json` slots · แรงขึ้นตามเลเวล |

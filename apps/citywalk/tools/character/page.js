@@ -15,8 +15,45 @@ renderer.outputColorSpace = THREE.SRGBColorSpace;
 document.body.append(renderer.domElement);
 const built = {};
 
-function make(id) {
+const MIXAMO = {
+  Hips: 'Hips',
+  Spine: 'Spine',
+  Chest: 'Spine2',
+  Neck: 'Neck',
+  Head: 'Head',
+  Shoulder_L: 'LeftShoulder',
+  UpperArm_L: 'LeftArm',
+  LowerArm_L: 'LeftForeArm',
+  Hand_L: 'LeftHand',
+  Shoulder_R: 'RightShoulder',
+  UpperArm_R: 'RightArm',
+  LowerArm_R: 'RightForeArm',
+  Hand_R: 'RightHand',
+  UpperLeg_L: 'LeftUpLeg',
+  LowerLeg_L: 'LeftLeg',
+  Foot_L: 'LeftFoot',
+  UpperLeg_R: 'RightUpLeg',
+  LowerLeg_R: 'RightLeg',
+  Foot_R: 'RightFoot',
+};
+
+/**
+ * A test copy that looks like a file from another program: Mixamo bone names, arms out in a
+ * T-pose, and built in centimetres. The game should still stand it up and animate it.
+ */
+function mixamoLike(root) {
+  root.traverse((o) => {
+    if (MIXAMO[o.name]) o.name = `mixamorig:${MIXAMO[o.name]}`;
+  });
+  root.getObjectByName('mixamorig:LeftArm').rotation.z = Math.PI / 2;
+  root.getObjectByName('mixamorig:RightArm').rotation.z = -Math.PI / 2;
+  root.scale.setScalar(100);
+  return root;
+}
+
+function make(id, variant) {
   const c = buildCharacter(DESIGNS[id], rig);
+  if (variant === 'mixamo') mixamoLike(c.root);
   built[id] = c;
   return new Promise((ok, fail) =>
     new GLTFExporter().parse(

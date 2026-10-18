@@ -65,6 +65,7 @@ import { $ } from './ui/dom';
 import { Hud } from './ui/hud';
 import { PlayerHud } from './ui/playerHud';
 import { makeWalker } from './walker';
+import { loadHero, makeHero, type HeroTemplate } from './hero';
 import { buildWorld, gateTowers } from './world';
 import './style.css';
 
@@ -127,10 +128,14 @@ async function start(): Promise<void> {
     }
   };
   // the gate model is optional: without it the gate keeps its simple stand-in towers
-  const [gateModel, slimeTemplate, bossTemplate] = await Promise.all([
+  // the player's body: the man unless the address asks for the woman (?hero=f), until there is
+  // a character screen to choose on
+  const heroId = new URLSearchParams(location.search).get('hero') === 'f' ? 'hero_f' : 'hero_m';
+  const [gateModel, slimeTemplate, bossTemplate, heroTemplate] = await Promise.all([
     parse('gate', loadModel),
     parse<SlimeTemplate>('slime', loadSlime),
     parse<SlimeTemplate>('tide_regent', loadSlime),
+    parse<HeroTemplate>(heroId, (b) => loadHero(b, entry(heroId)!)),
   ]);
   for (const [id, t] of [
     ['slime', slimeTemplate],
@@ -219,7 +224,7 @@ async function start(): Promise<void> {
       )
     : null;
   scene.add(city);
-  const walker = makeWalker();
+  const walker = heroTemplate ? makeHero(heroTemplate) : makeWalker();
   scene.add(walker.body);
 
   const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.3, 2500);
@@ -372,7 +377,7 @@ async function start(): Promise<void> {
   let camSide = 0;
   const place = (dt: number) => {
     const s = state.scale;
-    walker.body.position.set(state.x * s, 0.3, state.z * s);
+    walker.body.position.set(state.x * s, walker.lift, state.z * s);
     // turn the walker smoothly towards where it is going
     let d = state.heading - walker.body.rotation.y;
     d = Math.atan2(Math.sin(d), Math.cos(d));
@@ -441,8 +446,13 @@ async function start(): Promise<void> {
     return [Math.sin(h), Math.cos(h)];
   };
   /** the walker's right hand, held out a little to the side so the camera behind can see it */
+  const handAt = new THREE.Vector3();
   const hand = (): Vec3 => {
     const s = state.scale;
+    if (walker.hand) {
+      const h = walker.hand(handAt);
+      return [h.x / s, h.y / s, h.z / s];
+    }
     const r = walker.body.rotation.y;
     const fx = -Math.sin(r),
       fz = -Math.cos(r);
@@ -498,6 +508,7 @@ async function start(): Promise<void> {
     for (const b of blows) {
       const result = hurt(stats, b.damage);
       if (result === 'ignored') continue;
+      walker.hurt?.();
       // knocked back a little, away from the slime
       const dx = state.x - b.from[0],
         dz = state.z - b.from[1];
@@ -644,6 +655,13 @@ async function start(): Promise<void> {
       const moving = walked > 0;
       phase = moving ? phase + dt * (state.mode === 'walk' ? 9 : 14) : 0;
       walker.bob(phase, moving, state.mode === 'bike');
+      walker.animate?.(dt, {
+        moving,
+        mode: state.mode,
+        phase,
+        casting: combat?.gathering ?? false,
+        down: stats.down > 0,
+      });
       // fall over while down, stand up again after
       const lie = stats.down > 0 ? 1.45 : 0;
       walker.body.rotation.z += (lie - walker.body.rotation.z) * Math.min(1, dt * 8);
@@ -805,6 +823,11 @@ async function start(): Promise<void> {
       /** where the walker is on the screen, in CSS pixels */
       walkerOnScreen: () => screenOf([state.x, 1.2, state.z]),
       stats: () => ({ ...stats }),
+      /** where a joint of the player's body is, world metres (null for the stand-in) */
+      heroJoint: (name: string) => {
+        const v = walker.joint?.(name, new THREE.Vector3());
+        return v ? [v.x, v.y, v.z] : null;
+      },
       setStats: (patch: Partial<PlayerStats>) => Object.assign(stats, patch),
       combat: () =>
         combat

@@ -1,13 +1,41 @@
 import * as THREE from 'three';
 
-// A simple stand-in for the player until the creator's character model arrives: a body, a head,
+// A simple stand-in for the player, used when no character model loads: a body, a head,
 // a cap whose brim shows which way it faces, a shadow, and a motorbike shown when riding.
 
 export interface Walker {
   body: THREE.Group;
   bike: THREE.Group;
+  /** height of the body's feet above the map, metres */
+  lift: number;
   /** bounce the body while walking or running; `phase` grows with the steps */
   bob(phase: number, moving: boolean, riding: boolean): void;
+  /** a posed character moves its limbs here; the stand-in has none */
+  animate?(dt: number, m: import('./hero').Motion): void;
+  /** where the right hand is, in world space (for gathering a ball); null for the stand-in */
+  hand?(out: THREE.Vector3): THREE.Vector3;
+  /** flinch from a blow */
+  hurt?(): void;
+  /** where a rig joint is in world space (for tests); null if the model has no such joint */
+  joint?(name: string, out: THREE.Vector3): THREE.Vector3 | null;
+}
+
+/** The stand-in motorbike: a frame and two wheels, shown while riding. */
+export function makeBike(): THREE.Group {
+  const dark = new THREE.MeshLambertMaterial({ color: 0x2b2f36 });
+  const bike = new THREE.Group();
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.45, 1.7), dark);
+  frame.position.y = 0.55;
+  const wheelGeo = new THREE.CylinderGeometry(0.32, 0.32, 0.14, 16);
+  for (const z of [-0.7, 0.7]) {
+    const w = new THREE.Mesh(wheelGeo, dark);
+    w.rotation.z = Math.PI / 2;
+    w.position.set(0, 0.32, z);
+    bike.add(w);
+  }
+  bike.add(frame);
+  bike.visible = false;
+  return bike;
 }
 
 export function makeWalker(): Walker {
@@ -30,24 +58,14 @@ export function makeWalker(): Walker {
   shadow.position.y = 0.02;
   body.add(torso, head, cap, shadow);
 
-  const bike = new THREE.Group();
-  const frame = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.45, 1.7), dark);
-  frame.position.y = 0.55;
-  const wheelGeo = new THREE.CylinderGeometry(0.32, 0.32, 0.14, 16);
-  for (const z of [-0.7, 0.7]) {
-    const w = new THREE.Mesh(wheelGeo, dark);
-    w.rotation.z = Math.PI / 2;
-    w.position.set(0, 0.32, z);
-    bike.add(w);
-  }
-  bike.add(frame);
-  bike.visible = false;
+  const bike = makeBike();
   body.add(bike);
 
   const bouncing = [torso, head, cap];
   return {
     body,
     bike,
+    lift: 0.3,
     bob: (phase, moving, riding) => {
       const lift = moving && !riding ? Math.abs(Math.sin(phase)) * 0.12 : 0;
       for (const c of bouncing) c.position.y = (c.userData.y as number) + lift;

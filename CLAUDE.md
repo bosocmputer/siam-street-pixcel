@@ -13,7 +13,7 @@ SLIME HOOD (`apps/web`, `packages/game-core`) หยุดไว้แล้ว 
 
 กติกาเพิ่มสำหรับเกมนี้:
 
-- model 3D ผู้สร้างปั้นด้วย Gemini ส่งมาเป็น .glb อย่างเดียว ท่าทางตัวละครเขียนในโค้ด model มีแค่ข้อต่อ จุดเสียบ และชิ้นส่วน ชุดแต่ละชิ้นแยกไฟล์
+- model 3D ส่งมาเป็น .glb อย่างเดียว (ผู้สร้างปั้นด้วย Gemini/โปรแกรมปั้นโมเดล หรือผู้พัฒนาสร้างด้วยโค้ดใน `apps/citywalk/tools/character/`) ท่าทางตัวละครเขียนในโค้ด (`src/hero.ts`) model มีแค่ข้อต่อ จุดเสียบ และชิ้นส่วน ชุดแต่ละชิ้นแยกไฟล์ โมเดลที่ชื่อกระดูกไม่ตรง rig ใช้ได้ผ่าน `joints`/`restFix` ใน assets.json (ดู `newgame/prompts/character_import.md`)
 - ตัวละครต้องตรง `config/rig.json` ตรวจด้วย `pnpm --filter @newgame/rpg-core check-model <file.glb>` ถ้าแก้ rig ให้สร้างภาพสเปกใหม่ด้วย `python3 newgame/tools/character_spec.py`
 - ค่าสถานะรอบแรก: เลือด + พลัง (เกจ) + เลเวล · มอนสู้กลับเบา ๆ แพ้แล้วฟื้นที่จุดพัก ไม่มีบทลงโทษ
 - เซฟเก็บในเครื่องก่อน (`apps/citywalk/src/storage.ts`) ถ้าวันหลังออนไลน์ เซิร์ฟเวอร์ต้องเป็นผู้ตัดสินผล

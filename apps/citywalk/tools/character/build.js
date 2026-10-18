@@ -466,7 +466,20 @@ function hair(style, H) {
         L(s * 72, 0.72, front(s * 80, 0.3, 1.2), v3(s * 0.11, 1.18, 0.05), 0.06, 0.024);
         L(s * 92, 0.72, front(s * 98, 0.3, 1.25), v3(s * 0.13, 1.16, -0.01), 0.06, 0.024);
       }
-      // the back: a sheet of wide locks down past the shoulder blades
+      // the back: a solid sheet of hair, then wide locks over it down past the shoulder blades
+      geos.push(
+        lock(
+          front(180, 0.72, 1.06),
+          v3(0, H.chin + 0.02, -0.19),
+          v3(0, 1.1, -0.15),
+          0.27,
+          0.06,
+          centre,
+          col,
+          8,
+          6,
+        ),
+      );
       for (const [out, back, y, w] of [
         [1.42, 0, 1.08, 0.11],
         [1.3, 0.025, 1.14, 0.1],
@@ -735,7 +748,7 @@ export function buildCharacter(style, rig) {
       wr = at[`Hand_${side}`];
     // upper arm with a rounded shoulder, under a short sleeve with a turned hem
     // the top of the arm tucks under the slope of the shoulder so it reads as one body
-    const shoulder = v3(sh.x - s * 0.016, 1.385, 0);
+    const shoulder = v3(sh.x - s * 0.03, 1.37, 0);
     const sleeveEnd = O.longSleeves
       ? el.clone().add(v3(0, -0.03, 0))
       : shoulder.clone().lerp(el, 0.45);
