@@ -70,7 +70,15 @@ export class Input {
     el.addEventListener('touchmove', (e) => this.touches(e, 'move'), opts);
     el.addEventListener('touchend', (e) => this.touches(e, 'up'), opts);
     el.addEventListener('touchcancel', (e) => this.touches(e, 'up'), opts);
-    document.addEventListener('touchmove', (e) => e.preventDefault(), opts);
+    // ...but a window that scrolls (the status window, the listening room, a list of choices)
+    // still moves under the finger
+    document.addEventListener(
+      'touchmove',
+      (e) => {
+        if (!inScroller(e.target)) e.preventDefault();
+      },
+      opts,
+    );
 
     el.addEventListener('pointerdown', (e) => {
       if (e.pointerType === 'touch') return;
@@ -194,4 +202,18 @@ export class Input {
   pressed(action: PressAction): boolean {
     return this.presses.delete(action);
   }
+}
+
+/** Is this inside a box the player can scroll (one that has more to show than fits)? */
+export function inScroller(target: EventTarget | null): boolean {
+  for (
+    let n = target instanceof Element ? target : null;
+    n && n !== document.body;
+    n = n.parentElement
+  ) {
+    const s = getComputedStyle(n);
+    if (/(auto|scroll)/.test(s.overflowY) && n.scrollHeight > n.clientHeight + 1) return true;
+    if (/(auto|scroll)/.test(s.overflowX) && n.scrollWidth > n.clientWidth + 1) return true;
+  }
+  return false;
 }

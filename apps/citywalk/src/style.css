@@ -208,8 +208,15 @@ body {
 }
 .intro {
   background: rgba(20, 24, 28, 0.35);
+  /* a short screen scrolls the card instead of cutting its top off */
+  display: flex;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
 }
 .card {
+  margin: auto;
   max-width: 400px;
   background: #fbf8f2;
   border-radius: 14px;
@@ -1274,5 +1281,87 @@ body {
   .cr-rain,
   .st-tie {
     animation: none;
+  }
+}
+
+/* ---------- scrolling: every window scrolls when it does not fit ---------- */
+.status,
+.cr-sheet,
+.cr-sys-bg {
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
+}
+.cr-sheet {
+  max-height: 100%;
+  overflow-y: auto;
+}
+.cr-sys-bg {
+  display: flex;
+  overflow-y: auto;
+}
+.sys-window {
+  margin: auto;
+}
+.cr-strip {
+  touch-action: pan-x;
+  overscroll-behavior: contain;
+}
+/* short screens (a phone on its side): the parts rail sits under the dice, the dock leaves room
+   for it, and the status window splits into two columns */
+@media (max-height: 560px) {
+  .cr-rail {
+    top: calc(env(safe-area-inset-top, 0px) + 68px);
+    transform: none;
+    gap: 2px;
+  }
+  .cr-rail .cr-icon {
+    width: 40px;
+    height: 40px;
+  }
+  .cr-dock {
+    padding-top: 16px;
+    padding-right: calc(max(18px, env(safe-area-inset-right, 0px)) + 58px);
+    gap: 8px;
+  }
+  .cr-strip {
+    min-height: 60px;
+  }
+  .cr-thumb {
+    width: 56px;
+    height: 56px;
+  }
+}
+@media (max-height: 560px) and (min-width: 640px) {
+  .st-in {
+    max-width: 900px;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto auto 1fr auto;
+    column-gap: 28px;
+    align-content: start;
+  }
+  .st-head,
+  .st-xp {
+    grid-column: 1 / -1;
+  }
+  .st-radar {
+    grid-column: 1;
+    grid-row: 3;
+    max-width: 260px;
+    margin-top: 0;
+  }
+  .st-job {
+    grid-column: 1;
+    grid-row: 4;
+    align-self: start;
+  }
+  .st-list {
+    grid-column: 2;
+    grid-row: 3;
+  }
+  .st-foot {
+    grid-column: 2;
+    grid-row: 4;
+    align-self: start;
   }
 }
