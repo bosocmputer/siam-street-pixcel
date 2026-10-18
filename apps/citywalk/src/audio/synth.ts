@@ -13,6 +13,8 @@ export interface PlayOptions {
   pitch: number;
   /** 1 = as written; 2 lasts twice as long */
   stretch: number;
+  /** where the echo is made; the recipe's `space` says how much goes there (null = no echo) */
+  echo: AudioNode | null;
 }
 
 export interface Voice {
@@ -20,9 +22,11 @@ export interface Voice {
   length: number;
   /** fade it out over `fade` seconds (to make room for another sound, or when a shot lands) */
   stop(fade?: number): void;
+  /** follow something that moves: loudness on top of the recipe's (1 = as started) and side */
+  steer(gain: number, pan: number): void;
 }
 
-export const defaults = (): PlayOptions => ({ gain: 1, pan: 0, pitch: 1, stretch: 1 });
+export const defaults = (): PlayOptions => ({ gain: 1, pan: 0, pitch: 1, stretch: 1, echo: null });
 
 /** Three kinds of hiss, made once for each sound maker: 2 seconds each, played round and round. */
 export class NoiseBank {
@@ -114,13 +118,21 @@ export function playSound(
   const voice = ctx.createGain();
   voice.gain.value = spec.volume * o.gain;
   let tail: AudioNode = voice;
+  let panner: StereoPannerNode | null = null;
   if (typeof ctx.createStereoPanner === 'function') {
-    const p = ctx.createStereoPanner();
-    p.pan.value = Math.max(-1, Math.min(1, o.pan));
-    voice.connect(p);
-    tail = p;
+    panner = ctx.createStereoPanner();
+    panner.pan.value = Math.max(-1, Math.min(1, o.pan));
+    voice.connect(panner);
+    tail = panner;
   }
   tail.connect(out);
+  let send: GainNode | null = null;
+  if (o.echo && spec.space > 0) {
+    send = ctx.createGain();
+    send.gain.value = spec.space;
+    tail.connect(send);
+    send.connect(o.echo);
+  }
 
   let pending = 0;
   let end = startAt;
@@ -128,6 +140,7 @@ export function playSound(
     if (--pending > 0) return;
     voice.disconnect();
     tail.disconnect();
+    send?.disconnect();
   };
   for (const layer of spec.layers) {
     const copies = layer.repeat.count;
@@ -210,6 +223,11 @@ export function playSound(
       const t = ctx.currentTime;
       voice.gain.cancelScheduledValues(t);
       voice.gain.setTargetAtTime(0, t, fade / 3);
+    },
+    steer: (gain, pan) => {
+      const t = ctx.currentTime;
+      voice.gain.setTargetAtTime(spec.volume * o.gain * gain, t, 0.04);
+      panner?.pan.setTargetAtTime(Math.max(-1, Math.min(1, pan)), t, 0.04);
     },
   };
 }

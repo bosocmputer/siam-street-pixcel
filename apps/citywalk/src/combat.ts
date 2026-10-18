@@ -22,6 +22,8 @@ import {
   type Vec3,
 } from '@newgame/rpg-core';
 
+const QUIET = { stop: () => undefined, at: () => undefined };
+
 /** an element has a flying sound only if the recipes have one (water's whoosh is in its release) */
 const hasSound = (id: string): boolean => id in SOUNDS;
 
@@ -52,8 +54,8 @@ interface Flying {
   /** where the target last was, kept if it melts away mid-flight */
   aim: Vec3 | null;
   time: number;
-  /** stops the sound of it flying */
-  hush: () => void;
+  /** the sound of it flying, which follows it and stops when it lands */
+  roar: { stop(): void; at(x: number, z: number): void };
 }
 
 export interface HitEvent {
@@ -91,9 +93,12 @@ export class Combat {
     /** the player's level, which makes skills hit harder */
     private level: () => number,
     /** tells the sound system what just happened (a skill being gathered, released, landing) */
-    private say: (id: string, o?: { gain?: number; fit?: number }) => void = () => undefined,
-    /** starts a sound that lasts while a shot flies; returns how to stop it */
-    private hold: (id: string) => () => void = () => () => undefined,
+    private say: (
+      id: string,
+      o?: { gain?: number; fit?: number; at?: { x: number; z: number } },
+    ) => void = () => undefined,
+    /** starts a sound that lasts while a shot flies; it can follow the shot and be stopped */
+    private hold: (id: string) => { stop(): void; at(x: number, z: number): void } = () => QUIET,
   ) {
     // a dashed ring under the chosen slime and a small arrow over it
     const c = document.createElement('canvas');
@@ -200,7 +205,7 @@ export class Combat {
             HIT_COLOR[spec.element],
           );
           this.fx.impact(spec.element, s.pos, GROUND, s.dir);
-          this.say(`${spec.element}.impact`);
+          this.say(`${spec.element}.impact`, { at: { x: s.pos[0], z: s.pos[2] } });
           hits.push(this.hitEvent(spec, hit, amount, result, s.pos));
           this.burst(s, hit, hits);
           return this.land(f);
@@ -211,17 +216,21 @@ export class Combat {
         if (s.pos[1] < 0.1 || this.collider.solid(s.pos[0], s.pos[2]) || atAim) {
           const low = s.pos[1] < 1.5;
           this.fx.impact(s.skill.element, s.pos, GROUND, s.dir, !low);
-          this.say(`${s.skill.element}.impact`, { gain: low ? 0.8 : 0.4 });
+          this.say(`${s.skill.element}.impact`, {
+            gain: low ? 0.8 : 0.4,
+            at: { x: s.pos[0], z: s.pos[2] },
+          });
           if (low) this.burst(s, null, hits);
           return this.land(f);
         }
         if (spent(s)) {
           this.fx.impact(s.skill.element, s.pos, GROUND, s.dir, true);
-          this.say(`${s.skill.element}.impact`, { gain: 0.3 });
+          this.say(`${s.skill.element}.impact`, { gain: 0.3, at: { x: s.pos[0], z: s.pos[2] } });
           return this.land(f);
         }
       }
       f.orb.place(s.pos, s.dir, f.time, 1, true);
+      f.roar.at(s.pos[0], s.pos[2]);
       this.fx.trail(f.orb, s.skill.element, s.pos, s.dir, s.travelled - from, dt);
       return true;
     });
@@ -247,8 +256,8 @@ export class Combat {
     this.fx.release(spec.element, at, shot.dir);
     this.say(`${spec.element}.release`);
     const flight = `${spec.element}.flight`;
-    const hush = hasSound(flight) ? this.hold(flight) : () => undefined;
-    this.flying.push({ shot, orb: c.orb, aim, time: 0, hush });
+    const roar = hasSound(flight) ? this.hold(flight) : QUIET;
+    this.flying.push({ shot, orb: c.orb, aim, time: 0, roar });
     this.charging = null;
   }
 
@@ -297,7 +306,7 @@ export class Combat {
   }
 
   private land(f: Flying): false {
-    f.hush();
+    f.roar.stop();
     this.fx.removeOrb(f.orb);
     return false;
   }

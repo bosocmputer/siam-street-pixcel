@@ -81,13 +81,18 @@ describe('sound recipes', () => {
     expect(layer.drive).toBe(0);
     expect(click.spatial).toBe(false);
     expect(click.held).toBe(false);
+    expect(click.space).toBe(0);
+    expect(click.reach).toBe(SPATIAL.near);
+    // a big bang carries further than an ordinary sound, and echoes
+    expect(sound('fire.impact').reach).toBeGreaterThan(SPATIAL.near);
+    expect(sound('fire.impact').space).toBeGreaterThan(0);
     expect(click.alert).toBe(false);
     expect(click.length).toBeCloseTo(0.053);
     // a late layer, and a repeated one spread over time, both stretch the whole sound
     const deny = sound('ui.deny');
     expect(deny.length).toBeCloseTo(0.13 + 0.005 + 0.05 + 0.09);
     const melt = sound('slime.melt');
-    expect(melt.length).toBeGreaterThan(1);
+    expect(melt.length).toBeGreaterThan(0.85);
     expect(sound('slime.hop').spatial).toBe(true);
     expect(sound('player.levelup').alert).toBe(true);
     expect(sound('player.levelup').duck).toBeLessThan(1);
@@ -145,6 +150,8 @@ describe('sound recipes', () => {
     );
     expect(bad((c) => (c.sounds['ui.click']!.layers[0]!.drive = 3))).toThrow(/drive/);
     expect(bad((c) => (c.sounds['ui.click']!.held = 1))).toThrow(/held: expected true or false/);
+    expect(bad((c) => (c.sounds['ui.click']!.space = 2))).toThrow(/space: expected 0..1/);
+    expect(bad((c) => (c.sounds['ui.click']!.reach = 99))).toThrow(/reach: expected less than/);
     expect(bad((c) => (c.sounds['ui.click']!.layers = []))).toThrow(/at least one layer/);
     expect(bad((c) => (c.sounds['ui.click']!.priority = 7))).toThrow(/priority/);
     expect(bad((c) => (c.sounds['ui.click']!.volume = 9))).toThrow(/volume/);

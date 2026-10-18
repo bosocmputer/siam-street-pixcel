@@ -514,8 +514,9 @@ async function start(): Promise<void> {
       shake = Math.max(shake, h.element === 'fire' ? 0.22 : 0.09);
       combatHud?.hit(h);
       // a hit on a weakness rings out; a hit on something that resists falls dull
-      if (h.takes > 1) sound.play('hit.weak');
-      else if (h.takes < 1) sound.play('hit.resist');
+      const where = { at: { x: h.at[0], z: h.at[2] } };
+      if (h.takes > 1) sound.play('hit.weak', where);
+      else if (h.takes < 1) sound.play('hit.resist', where);
       if (!h.defeated) continue;
       const kind = monster(h.species);
       // it melts and leaves its drops lying round the puddle

@@ -162,7 +162,7 @@ test('the listening room opens from the first page and plays every sound', async
   await page.getByRole('button', { name: 'ฟังเสียงทั้งหมด' }).click();
   await page.waitForFunction(() => '__walk' in window);
   await expect(page.locator('.lab')).toBeVisible();
-  await expect(page.locator('.lab-play')).toHaveCount(26);
+  await expect(page.locator('.lab-play:not(.lab-seq)')).toHaveCount(26);
   // spectrograms are painted one by one; wait for the last
   await expect
     .poll(
@@ -183,11 +183,18 @@ test('the listening room opens from the first page and plays every sound', async
   await page.screenshot({ path: `${SHOTS}/lab.png` });
 
   await js(page, 'window.__walk.sound.clear()');
-  await page.locator('.lab-play').nth(5).click();
+  await page.locator('.lab-play:not(.lab-seq)').nth(5).click();
   await expect.poll(() => heard(page)).toHaveLength(1);
   await page.getByRole('button', { name: 'ขวา' }).click();
-  await page.locator('.lab-play').nth(0).click();
+  await page.locator('.lab-play:not(.lab-seq)').nth(0).click();
   await expect.poll(() => heard(page)).toHaveLength(2);
+
+  // each skill can be heard as a whole, with the game's own timing
+  await js(page, 'window.__walk.sound.clear()');
+  await page.locator('.lab-seq').first().click();
+  await expect
+    .poll(() => heard(page), { timeout: 5000 })
+    .toEqual(['fire.gather', 'fire.release', 'fire.flight', 'fire.impact', 'slime.hurt']);
 
   await page.locator('.lab-back').click();
   await expect(page.locator('.lab')).toHaveCount(0);

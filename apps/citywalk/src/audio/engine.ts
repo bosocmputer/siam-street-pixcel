@@ -1,4 +1,12 @@
-import { newMixer, release, request, sound, spatialize } from '@newgame/rpg-core';
+import {
+  SPATIAL,
+  newMixer,
+  release,
+  request,
+  sound,
+  spatialize,
+  type SoundSpec,
+} from '@newgame/rpg-core';
 import { NoiseBank, defaults, playSound, type Voice } from './synth';
 
 /** What a caller can ask of a sound. */
@@ -21,7 +29,47 @@ export interface Prefs {
   volume: number;
 }
 
+/** A sound that lasts until stopped, and can follow the thing making it. */
+export interface Held {
+  /** fade it out over `fade` seconds and free its place */
+  stop(fade?: number): void;
+  /** it is now here (map metres); a spatial sound turns and fades to match */
+  at(x: number, z: number): void;
+}
+
 type AudioCtor = typeof AudioContext;
+
+/**
+ * The echo of an open street between walls and buildings: a few early bounces off nearby walls,
+ * then a short tail dying away. Made from noise, so there is no recording to load.
+ */
+function streetEcho(ctx: BaseAudioContext): AudioBuffer {
+  const rate = ctx.sampleRate;
+  const n = Math.floor(rate * 1.1);
+  const buf = ctx.createBuffer(2, n, rate);
+  let seed = 777;
+  const rand = () => {
+    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+    return seed / 4294967296;
+  };
+  for (let ch = 0; ch < 2; ch++) {
+    const d = buf.getChannelData(ch);
+    for (let i = 0; i < n; i++) {
+      const t = i / rate;
+      // the tail: noise that dies away, duller as it goes
+      d[i] = (rand() * 2 - 1) * Math.exp(-t * 5.5) * 0.35;
+    }
+    // bounces off walls 8 to 30 metres away, a little different on each side
+    for (const ms of ch === 0 ? [23, 47, 71, 102] : [31, 55, 83, 118]) {
+      const i = Math.floor((ms / 1000) * rate);
+      d[i] = (d[i] ?? 0) + 0.5 * Math.exp(-ms / 90);
+    }
+    // smooth out the very top so the echo sounds like brick and plaster, not metal
+    let last = 0;
+    for (let i = 0; i < n; i++) last = d[i] = last + (d[i]! - last) * 0.35;
+  }
+  return buf;
+}
 
 /**
  * The game's sound. Nothing makes a sound until the player has tapped something (phones will not
@@ -38,6 +86,7 @@ export class Sound {
   private master: GainNode | null = null;
   private main: GainNode | null = null;
   private alert: GainNode | null = null;
+  private echo: ConvolverNode | null = null;
   private noise: NoiseBank | null = null;
   private mixer = newMixer();
   private voices = new Map<number, Voice>();
@@ -80,6 +129,13 @@ export class Sound {
       this.alert = ctx.createGain();
       this.main.connect(limiter);
       this.alert.connect(limiter);
+      try {
+        this.echo = ctx.createConvolver();
+        this.echo.buffer = streetEcho(ctx);
+        this.echo.connect(this.main);
+      } catch {
+        this.echo = null; // sounds simply have no echo
+      }
       limiter.connect(this.master);
       this.master.connect(ctx.destination);
       this.noise = new NoiseBank(ctx);
@@ -139,15 +195,29 @@ export class Sound {
    * Start a held sound (one that lasts until told to stop, like a fireball's roar while it flies).
    * Returns the way to stop it: a short fade, then its place is free for other sounds.
    */
-  hold(id: string, o: SoundCall = {}): (fade?: number) => void {
+  hold(id: string, o: SoundCall = {}): Held {
     const uid = this.begin(id, o);
-    return (fade = 0.12) => {
-      const v = this.voices.get(uid);
-      if (!v || !this.ctx) return;
-      v.stop(fade);
-      release(this.mixer, uid, this.ctx.currentTime, fade);
-      this.voices.delete(uid);
+    const spec = sound(id);
+    return {
+      stop: (fade = 0.12) => {
+        const v = this.voices.get(uid);
+        if (!v || !this.ctx) return;
+        v.stop(fade);
+        release(this.mixer, uid, this.ctx.currentTime, fade);
+        this.voices.delete(uid);
+      },
+      at: (x, z) => {
+        const v = this.voices.get(uid);
+        if (!v || !spec.spatial) return;
+        const s = this.place(spec, { x, z });
+        v.steer((o.gain ?? 1) * s.gain, s.pan);
+      },
     };
+  }
+
+  /** How loud and on which side a sound at `at` is for the listener. */
+  private place(spec: SoundSpec, at: { x: number; z: number }): { gain: number; pan: number } {
+    return spatialize(this.ear, at, { near: spec.reach, far: SPATIAL.far });
   }
 
   /** Start a sound; its number, or 0 if nothing was started. */
@@ -159,7 +229,7 @@ export class Sound {
     let gain = o.gain ?? 1;
     let pan = o.pan ?? 0;
     if (spec.spatial && o.at) {
-      const s = spatialize(this.ear, o.at);
+      const s = this.place(spec, o.at);
       gain *= s.gain;
       if (o.pan === undefined) pan = s.pan;
     }
@@ -183,7 +253,14 @@ export class Sound {
       bus,
       spec,
       this.noise,
-      { ...defaults(), gain, pan, pitch: o.pitch ?? 1, stretch },
+      {
+        ...defaults(),
+        gain,
+        pan,
+        pitch: o.pitch ?? 1,
+        stretch,
+        echo: spec.alert ? null : this.echo,
+      },
       Math.random,
     );
     this.voices.set(d.uid, voice);

@@ -98,6 +98,7 @@ export const TH = {
     muted: 'ตอนนี้ปิดเสียงอยู่ กดปุ่ม "เสียง" เพื่อเปิด',
     none: 'เครื่องนี้ไม่รองรับระบบเสียง',
     seconds: (s: number) => `${s.toFixed(2)} วินาที`,
+    sequence: 'ฟังต่อกันทั้งชุด เหมือนตอนเล่น (รวมพลัง → ปล่อย → พุ่ง → กระทบสไลม์)',
   },
   camera: 'กล้อง',
   cameraModes: { back: 'หลัง', shoulder: 'ไหล่' } as Record<string, string>,

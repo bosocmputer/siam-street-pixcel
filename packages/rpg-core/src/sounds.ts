@@ -68,6 +68,10 @@ export interface SoundSpec {
   spatial: boolean;
   /** plays until the game stops it (a fireball's roar while it flies); the recipe is the longest */
   held: boolean;
+  /** metres within which a spatial sound is at full loudness (big bangs carry further) */
+  reach: number;
+  /** 0..1, how much of it echoes off the walls and buildings around */
+  space: number;
   alert: boolean;
   /** level other sounds drop to while an alert plays (1 = no change) */
   duck: number;
@@ -173,6 +177,9 @@ export function readSounds(raw: unknown): SoundsConfig {
     const volume = num(o, 'volume', w);
     if (volume > 1.5) throw new ConfigError(`${w}.volume: expected 0..1.5, got ${volume}`);
     const alert = flag(o, 'alert', w, false);
+    const space = numOr(o, 'space', w, 0);
+    if (space > 1) throw new ConfigError(`${w}.space: expected 0..1, got ${space}`);
+    const reach = numOr(o, 'reach', w, 0);
     const duck = numOr(o, 'duck', w, 1);
     if (duck > 1) throw new ConfigError(`${w}.duck: expected 0..1, got ${duck}`);
     if (alert && duck === 1) throw new ConfigError(`${w}: an alert needs a duck below 1`);
@@ -183,6 +190,8 @@ export function readSounds(raw: unknown): SoundsConfig {
       cooldown: numOr(o, 'cooldown', w, 0),
       spatial: flag(o, 'spatial', w, false),
       held: flag(o, 'held', w, false),
+      reach,
+      space,
       alert,
       duck,
       layers,
@@ -214,6 +223,12 @@ export function readSounds(raw: unknown): SoundsConfig {
   };
   if (cfg.spatial.far <= cfg.spatial.near)
     throw new ConfigError('sounds.spatial: expected far to be more than near');
+  for (const s of Object.values(sounds)) {
+    if (s.reach >= cfg.spatial.far)
+      throw new ConfigError(`sounds.${s.id}.reach: expected less than spatial.far`);
+    // a sound with no reach of its own carries as far as an ordinary one
+    s.reach = Math.max(s.reach, cfg.spatial.near);
+  }
   // every footstep sound the game asks for must exist
   for (const mode of ['walk', 'run', 'bike'] as const)
     if (!sounds[`step.${mode}`]) throw new ConfigError(`sounds: missing step.${mode}`);

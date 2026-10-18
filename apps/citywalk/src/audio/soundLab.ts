@@ -1,4 +1,4 @@
-import { SOUNDS, seeded, sound as soundSpec } from '@newgame/rpg-core';
+import { SKILLS, SOUNDS, seeded, sound as soundSpec } from '@newgame/rpg-core';
 import { TH } from '../th';
 import { el } from '../ui/dom';
 import { spectrogram } from './analyze';
@@ -37,6 +37,31 @@ function paint(canvas: HTMLCanvasElement, grid: number[][]): void {
       g.fillStyle = heat(grid[c]![r]!);
       g.fillRect(c * 2, (rows - 1 - r) * 2, 2, 2);
     }
+}
+
+/** how far the shot flies in the sequence played on this page, metres */
+const SEQUENCE_REACH = 10;
+
+/**
+ * Play one skill's sounds one after another with the game's own timing (gathering as long as the
+ * skill's charge, flying as long as the shot takes over 10 metres, then the hit on a slime), so it
+ * can be judged the way it is heard in play rather than sound by sound.
+ */
+function playSequence(sound: Sound, element: string, pan: number): void {
+  const spec = Object.values(SKILLS).find((s) => s.element === element);
+  if (!spec) return;
+  const fly = SEQUENCE_REACH / spec.speed;
+  const later = (seconds: number, f: () => void) => window.setTimeout(f, seconds * 1000);
+  sound.play(`${element}.gather`, { fit: spec.charge, pan });
+  later(spec.charge, () => {
+    sound.play(`${element}.release`, { pan });
+    const roar = `${element}.flight` in SOUNDS ? sound.hold(`${element}.flight`, { pan }) : null;
+    later(fly, () => {
+      roar?.stop();
+      sound.play(`${element}.impact`, { pan });
+      sound.play('slime.hurt', { pan });
+    });
+  });
 }
 
 /**
@@ -111,6 +136,15 @@ export function openLab(
   const canvases = new Map<string, HTMLCanvasElement>();
   for (const group of SOUND_GROUPS) {
     page.append(el('h3', '', TH.soundGroups[group.key] ?? group.key));
+    if (Object.values(SKILLS).some((s) => s.element === group.key)) {
+      const all = el('button', 'lab-play lab-seq', TH.lab.sequence);
+      all.type = 'button';
+      all.addEventListener('click', () => {
+        hooks.unlock();
+        playSequence(sound, group.key, pan);
+      });
+      page.append(all);
+    }
     for (const id of group.ids) {
       const spec = soundSpec(id);
       const row = el('div', 'lab-item');

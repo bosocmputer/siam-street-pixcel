@@ -613,6 +613,13 @@ body {
 .lab-play:active {
   background: #f3e7da;
 }
+.lab-seq {
+  width: 100%;
+  margin-bottom: 8px;
+  background: #fbeee0;
+  font-weight: 600;
+  text-align: left;
+}
 .lab-play small {
   display: block;
   color: #7a7f86;
