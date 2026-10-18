@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { seeded } from '../src/rng';
-import { HOP, NEAR, airborne, newBrain, stepBrain, type BrainWorld } from '../src/slimeBrain';
+import { DEFAULT_SPECIES, HOP, monster } from '../src/monsters';
+import { airborne, newBrain, stepBrain, type BrainWorld } from '../src/slimeBrain';
+
+const NEAR = monster(DEFAULT_SPECIES).near;
 
 const far = { x: 1000, z: 1000 };
 const open: BrainWorld = {
-  wander: 5,
   rng: seeded(7),
   move: (x, z, dx, dz) => [x + dx, z + dz],
   allowed: () => true,

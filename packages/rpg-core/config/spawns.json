@@ -1,0 +1,11 @@
+{
+  "about": "Where monsters live, by zone. at is [x, z] in metres in the Tha Phae Gate frame: x runs along the wall, z goes out from the gate onto the square (the player starts at 0, 20). Keep monsters on streets and squares; temples and other religious places are background only.",
+  "plaza": [
+    { "species": "slime_water", "at": [-2, 10] },
+    { "species": "slime_water", "at": [2.5, 7] },
+    { "species": "slime_fire", "at": [-30, 24] },
+    { "species": "slime_giant", "at": [-60, 16] },
+    { "species": "slime_mini", "at": [30, 15] },
+    { "species": "slime_fire", "at": [55, 10] }
+  ]
+}

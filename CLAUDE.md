@@ -7,7 +7,7 @@ Idle RPG บนแผนที่จริงของเชียงใหม�
 SLIME HOOD (`apps/web`, `packages/game-core`) หยุดไว้แล้ว เก็บไว้อ้างอิง งานใหม่อยู่ที่:
 
 - `packages/rpg-core` สมองเกม: pure, deterministic, ห้าม `Math.random()`/`Date.now()` (รับจากแอป), ทุกฟังก์ชันมีเทสต์ (coverage ≥ 90%)
-- `packages/rpg-core/config/*.json` ตัวเลขเกมทั้งหมด (สกิล มอน ปุ่ม โครงตัวละคร) ห้ามฝังในโค้ด
+- `packages/rpg-core/config/*.json` ตัวเลขเกมทั้งหมด (สกิล มอน จุดเกิด ของ กล้อง ปุ่ม โครงตัวละคร) ห้ามฝังในโค้ด รหัสของ (`gel_water` ฯลฯ) อยู่ในเซฟ ห้ามเปลี่ยนชื่อรหัสหลังเริ่มใช้ ชื่อที่ผู้เล่นเห็นอยู่ใน `th.ts` (เทสต์จะล้มถ้ามีของ/มอน/สกิลที่ไม่มีชื่อไทย)
 - `apps/citywalk` ตัวเกม (three.js 0.170.0): แผนที่จาก OSM, ไฟล์ที่โหลดอยู่ใน `public/assets.json`, ข้อความไทยใน `src/th.ts`, เอฟเฟกต์วาดด้วยโค้ด
 - `newgame/` เอกสาร แนวคิด แผนระบบ (`systems_plan.md`) prompt สำหรับ Gemini (`prompts/`) และภาพสเปก (`refs/`)
 

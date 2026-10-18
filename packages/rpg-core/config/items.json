@@ -1,0 +1,18 @@
+{
+  "about": "Things that can be picked up. color tints the placeholder shown on the ground (a small glowing gem drawn by code); size is its width in metres. When a modelled file exists, put its id from apps/citywalk/public/assets.json in model and the model is shown instead, scaled to size; the placeholder is only used while model is null or the file fails to load. Item ids are kept in saves, so never rename one: the name players see is in the game's Thai text. kind: material for now. pickup: life = seconds on the ground; popTime = seconds the drop flies out before it can be picked up; magnetRange/collectRange/magnetSpeed = metres, metres, metres per second; scatter = how far a drop lands from where the monster fell.",
+  "maxStack": 999,
+  "pickup": {
+    "life": 30,
+    "popTime": 0.6,
+    "magnetRange": 3.5,
+    "collectRange": 0.7,
+    "magnetSpeed": 12,
+    "scatter": 1.3
+  },
+  "items": {
+    "gel_water": { "kind": "material", "color": "#38d8f0", "size": 0.3, "model": null },
+    "gel_fire": { "kind": "material", "color": "#ff7a2a", "size": 0.3, "model": null },
+    "gel_lime": { "kind": "material", "color": "#c8e84a", "size": 0.22, "model": null },
+    "gel_core": { "kind": "material", "color": "#9a6cff", "size": 0.38, "model": null }
+  }
+}

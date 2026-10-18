@@ -296,11 +296,26 @@ body {
   outline: 3px solid #fff;
   outline-offset: 2px;
 }
-.hpbar {
+.hpbox {
   position: absolute;
   left: 0;
   top: 0;
-  width: 56px;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+}
+.hpname {
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #fff;
+  background: rgba(20, 24, 28, 0.7);
+  padding: 1px 7px;
+  border-radius: 999px;
+}
+.hpbar {
+  width: 64px;
   height: 8px;
   border-radius: 4px;
   background: rgba(20, 24, 28, 0.7);
@@ -476,4 +491,13 @@ body {
   .chips {
     gap: 5px;
   }
+}
+
+.dmg-weak {
+  font-size: 32px;
+  color: #fff27a;
+}
+.dmg-resist {
+  font-size: 16px;
+  color: #cfd6dc;
 }

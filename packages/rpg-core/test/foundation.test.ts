@@ -3,10 +3,12 @@ import { BINDINGS, moveFrom, readBindings, type HoldAction } from '../src/action
 import { advance, newClock } from '../src/clock';
 import { ConfigError } from '../src/config';
 import { RIG, checkRig, readRig, type ModelFacts } from '../src/rig';
-import { SAVE_VERSION, decodeSave, encodeSave, type SaveData } from '../src/save';
+import { DEFAULT_CAMERA, SAVE_VERSION, decodeSave, encodeSave, type SaveData } from '../src/save';
+import { MAX_STACK } from '../src/items';
 import { nextScreen, worldRuns } from '../src/screens';
 import { readSkills } from '../src/skills';
-import { readSlime } from '../src/slimeBrain';
+import { readMonsters } from '../src/monsters';
+import monstersJson from '../config/monsters.json';
 import rigJson from '../config/rig.json';
 import skillsJson from '../config/skills.json';
 
@@ -75,24 +77,52 @@ describe('save', () => {
     version: SAVE_VERSION,
     savedAt: 1_700_000_000_000,
     player: { x: 120.5, z: -40, heading: 1.2 },
-    settings: { mode: 'run', scale: 0.5, labels: false, haze: true },
+    settings: { mode: 'run', scale: 0.5, labels: false, haze: true, camera: 'back' },
     stats: { level: 4, exp: 12, hp: 80.5, energy: 33 },
+    items: { gel_water: 5, gel_core: 1 },
   };
 
   it('reads back exactly what was saved', () => {
     expect(decodeSave(encodeSave(good))).toEqual(good);
   });
 
-  it('a save from before levels comes back at level 1 with full health', () => {
+  it('a save from before levels comes back at level 1, with an empty bag and the new camera', () => {
     const old: Record<string, unknown> = { ...good, version: 1 };
     delete old.stats;
+    delete old.items;
+    old.settings = { mode: 'run', scale: 0.5, labels: false, haze: true };
     const fresh = { level: 1, exp: 0, hp: 100, energy: 100 };
     expect(decodeSave(JSON.stringify(old), fresh)).toEqual({
       ...good,
       version: SAVE_VERSION,
       stats: fresh,
+      items: {},
+      settings: { ...good.settings, camera: DEFAULT_CAMERA },
     });
     expect(decodeSave(JSON.stringify(old))!.stats.level).toBe(1);
+  });
+
+  it('a version 2 save keeps its stats and gets an empty bag', () => {
+    const v2: Record<string, unknown> = { ...good, version: 2 };
+    delete v2.items;
+    v2.settings = { mode: 'run', scale: 0.5, labels: false, haze: true };
+    const got = decodeSave(JSON.stringify(v2))!;
+    expect(got.stats).toEqual(good.stats);
+    expect(got.items).toEqual({});
+    expect(got.settings.camera).toBe(DEFAULT_CAMERA);
+  });
+
+  it('drops items that are no longer in the game and empty stacks, but refuses a broken bag', () => {
+    const keep = (items: unknown) => decodeSave(JSON.stringify({ ...good, items }));
+    expect(keep({ gel_water: 3, old_thing: 9, gel_fire: 0 })!.items).toEqual({ gel_water: 3 });
+    expect(keep([1, 2])).toBeNull();
+    expect(keep({ gel_water: 1.5 })).toBeNull();
+    expect(keep({ gel_water: -1 })).toBeNull();
+    expect(keep({ gel_water: MAX_STACK + 1 })).toBeNull();
+    expect(keep({ gel_water: 'many' })).toBeNull();
+    expect(
+      decodeSave(JSON.stringify({ ...good, settings: { ...good.settings, camera: 'sky' } })),
+    ).toBeNull();
   });
 
   it('refuses broken stats', () => {
@@ -141,7 +171,7 @@ describe('screens', () => {
 describe('config checks', () => {
   it('reads the real config files', () => {
     expect(readSkills(skillsJson).skills.fireball!.damage).toBeGreaterThan(0);
-    expect(readSlime({ slime: { ...validSlime() } }).vitals.hp).toBe(100);
+    expect(readMonsters(monstersJson).species.slime_water!.hp).toBe(100);
   });
 
   it('names the exact place of a bad number', () => {
@@ -150,30 +180,9 @@ describe('config checks', () => {
     };
     broken.skills.fireball.speed = 'fast';
     expect(() => readSkills(broken)).toThrow(/skills.fireball.speed/);
-    expect(() =>
-      readSlime({ slime: { ...validSlime(), attack: { ...validSlime().attack, strikeAt: 9 } } }),
-    ).toThrow(/strikeAt/);
-    expect(() => readSlime({ slime: { ...validSlime(), hp: -1 } })).toThrow(/monsters.slime.hp/);
     expect(() => readSkills(null)).toThrow(ConfigError);
   });
 });
-
-function validSlime() {
-  return {
-    hp: 100,
-    hurt: 0.35,
-    melt: 0.9,
-    respawn: 5,
-    grow: 0.5,
-    wander: 8,
-    exp: 20,
-    takes: { fire: 1, water: 1 },
-    hop: { cycle: 1.6, liftOff: 0.3, land: 1.12, distance: 1.2 },
-    near: { watch: 6, lunge: 2.2, forget: 7.5 },
-    attack: { damage: 8, reach: 1.8, cycle: 1.5, strikeAt: 0.6 },
-    anger: { time: 8, leash: 20 },
-  };
-}
 
 describe('character rig', () => {
   /** a model that matches the rig exactly */

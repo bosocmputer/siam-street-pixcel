@@ -5,7 +5,6 @@ import type { SlimeHerd } from './slime';
 import {
   HIT_RADIUS,
   PLAYER,
-  SLIME,
   chooseTarget,
   launch,
   readyCooldowns,
@@ -55,7 +54,13 @@ export interface HitEvent {
   skill: string;
   element: Element;
   slime: number;
+  /** which kind of slime it was, by species id */
+  species: string;
   damage: number;
+  /** how much of the element it takes: above 1 is weak to it, below 1 resists it */
+  takes: number;
+  /** the slime's height, metres, for placing the number above it */
+  height: number;
   defeated: boolean;
   /** where it landed, map metres */
   at: Vec3;
@@ -173,7 +178,7 @@ export class Combat {
         const hit = this.touching(s.pos);
         if (hit !== null) {
           const spec = s.skill;
-          const amount = this.damage(spec.damage, spec.element);
+          const amount = this.damage(spec.damage, spec.element, hit);
           const result = this.herd.hit(
             hit,
             amount,
@@ -235,15 +240,15 @@ export class Combat {
     const splash = spec.splash;
     if (!splash) return;
     for (const i of splashed(s.pos, this.candidates(), splash.radius, direct)) {
-      const amount = this.damage(splash.damage, spec.element);
+      const amount = this.damage(splash.damage, spec.element, i);
       const result = this.herd.hit(i, amount, s.pos[0], s.pos[2], 0.7, HIT_COLOR[spec.element]);
       if (result !== 'ignored') hits.push(this.hitEvent(spec, i, amount, result, s.pos));
     }
   }
 
   /** a skill's damage at the player's level, against how much of the element a slime takes */
-  private damage(base: number, element: Element): number {
-    return skillDamage(base, this.level(), PLAYER.damagePerLevel, SLIME.takes[element]);
+  private damage(base: number, element: Element, slime: number): number {
+    return skillDamage(base, this.level(), PLAYER.damagePerLevel, this.herd.takes(slime, element));
   }
 
   private hitEvent(
@@ -257,10 +262,20 @@ export class Combat {
     const where = this.herd.state()[slime];
     const at: Vec3 = where ? [where.x, pos[1], where.z] : [...pos];
     if (defeated) {
-      this.fx.melt(at, GROUND);
+      this.fx.melt(at, GROUND, this.herd.species(slime).scale);
       if (this.target === slime) this.target = null;
     }
-    return { skill: spec.id, element: spec.element, slime, damage, defeated, at };
+    return {
+      skill: spec.id,
+      element: spec.element,
+      slime,
+      species: this.herd.species(slime).id,
+      damage,
+      takes: this.herd.takes(slime, spec.element),
+      height: this.herd.heightOf(slime),
+      defeated,
+      at,
+    };
   }
 
   private land(f: Flying): false {
@@ -272,7 +287,12 @@ export class Combat {
   private touching(p: Vec3): number | null {
     for (let i = 0; i < this.herd.count; i++) {
       const a = this.herd.aimPoint(i);
-      if (a && Math.hypot(p[0] - a[0], (p[1] - a[1]) * 0.8, p[2] - a[2]) < HIT_RADIUS) return i;
+      if (
+        a &&
+        Math.hypot(p[0] - a[0], (p[1] - a[1]) * 0.8, p[2] - a[2]) <
+          this.herd.hitRadius(i, HIT_RADIUS)
+      )
+        return i;
     }
     return null;
   }
@@ -283,9 +303,11 @@ export class Combat {
     if (!a) return;
     this.marker.position.set(a[0], 0, a[2]);
     this.ring.position.y = 0.07;
-    this.ring.scale.setScalar(1.5 + Math.sin(this.time * 5) * 0.06);
+    const size = this.herd.species(this.target!).scale;
+    this.ring.scale.setScalar((1.5 + Math.sin(this.time * 5) * 0.06) * Math.max(0.8, size));
     this.ring.rotation.y = this.time * 1.2;
-    this.arrow.position.y = this.herd.height + 0.45 + Math.abs(Math.sin(this.time * 4)) * 0.18;
+    this.arrow.position.y =
+      this.herd.heightOf(this.target!) + 0.45 + Math.abs(Math.sin(this.time * 4)) * 0.18;
     this.arrow.rotation.y = this.time * 2;
   }
 

@@ -1,6 +1,7 @@
 {
-  "about": "Monster numbers. hp in hit points, times in seconds, distances in metres. hop follows the model's Jumping clip: it leaves the ground at liftOff and lands at land. takes: how much of each element's damage it takes (1 = normal). A slime that is hit gets angry for anger.time seconds: it chases the player (never further than anger.leash from home) and attacks; attack.cycle matches the Attacking clip and the blow lands at strikeAt if the player is within reach. Slimes that are not angry only threaten and never hurt. exp: what beating one gives.",
-  "slime": {
+  "about": "Monster numbers. Every species starts from base and lists only what is different. hp in hit points, times in seconds, distances in metres. body.hop follows the model's Jumping clip: it leaves the ground at liftOff and lands at land (seconds of clip time). scale sizes the whole slime; tint recolours its body (null keeps the model's own blue); pace plays its clips faster (above 1) or slower; stride is how far each hop goes compared with the normal one; radius is how much room it takes. takes: how much of each element's damage it takes (1 = normal, above 1 = weak to it). A slime that is hit gets angry for anger.time seconds: it chases the player (never further than anger.leash from home) and attacks; the blow lands at attack.strikeAt of attack.cycle if the player is within attack.reach. Slimes that are not angry only threaten and never hurt. exp: what beating one gives. drops: what it may leave behind: item id, chance 0..1, and how many (min..max).",
+  "body": { "hop": { "cycle": 1.6, "liftOff": 0.3, "land": 1.12, "distance": 1.2 } },
+  "base": {
     "hp": 100,
     "hurt": 0.35,
     "melt": 0.9,
@@ -8,10 +9,60 @@
     "grow": 0.5,
     "wander": 8,
     "exp": 20,
+    "scale": 1,
+    "tint": null,
+    "pace": 1,
+    "stride": 1,
+    "radius": 0.45,
     "takes": { "fire": 1, "water": 1 },
-    "hop": { "cycle": 1.6, "liftOff": 0.3, "land": 1.12, "distance": 1.2 },
     "near": { "watch": 6, "lunge": 2.2, "forget": 7.5 },
     "attack": { "damage": 8, "reach": 1.8, "cycle": 1.5, "strikeAt": 0.6 },
-    "anger": { "time": 8, "leash": 20 }
+    "anger": { "time": 8, "leash": 20 },
+    "drops": []
+  },
+  "species": {
+    "slime_water": {
+      "drops": [{ "item": "gel_water", "chance": 0.8, "min": 1, "max": 2 }]
+    },
+    "slime_fire": {
+      "hp": 80,
+      "exp": 25,
+      "respawn": 8,
+      "tint": "#ff6a2a",
+      "takes": { "fire": 0.5, "water": 1.5 },
+      "attack": { "damage": 10 },
+      "drops": [{ "item": "gel_fire", "chance": 0.8, "min": 1, "max": 2 }]
+    },
+    "slime_giant": {
+      "hp": 300,
+      "exp": 90,
+      "respawn": 15,
+      "wander": 6,
+      "scale": 1.7,
+      "tint": "#7a55e0",
+      "pace": 0.75,
+      "stride": 1.4,
+      "radius": 0.8,
+      "near": { "watch": 9, "lunge": 3.6, "forget": 11 },
+      "attack": { "damage": 18, "reach": 2.9 },
+      "drops": [
+        { "item": "gel_water", "chance": 1, "min": 2, "max": 4 },
+        { "item": "gel_core", "chance": 0.25, "min": 1, "max": 1 }
+      ]
+    },
+    "slime_mini": {
+      "hp": 40,
+      "exp": 8,
+      "respawn": 4,
+      "wander": 10,
+      "scale": 0.6,
+      "tint": "#b6e03a",
+      "pace": 1.5,
+      "stride": 0.8,
+      "radius": 0.3,
+      "near": { "watch": 5, "lunge": 1.6, "forget": 6.5 },
+      "attack": { "damage": 4, "reach": 1.2 },
+      "drops": [{ "item": "gel_lime", "chance": 0.5, "min": 1, "max": 1 }]
+    }
   }
 }

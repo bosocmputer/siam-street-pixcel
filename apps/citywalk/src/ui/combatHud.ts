@@ -18,8 +18,12 @@ interface Floating {
 
 export class CombatHud {
   private buttons = new Map<string, HTMLButtonElement>();
+  /** the chosen slime's name and weakness over its health bar */
+  private box = el('div', 'hpbox');
+  private name = el('div', 'hpname');
   private bar = el('div', 'hpbar');
   private fill = el('div', 'hpfill');
+  private shownName = '';
   private numbers: Floating[] = [];
 
   /** `slots` are the skill ids on the buttons, in order; pressing one calls `onPress(slot)`. */
@@ -47,15 +51,18 @@ export class CombatHud {
       this.buttons.set(id, b);
     });
     this.bar.append(this.fill);
-    this.bar.hidden = true;
-    root.append(box, this.bar);
+    this.box.append(this.name, this.bar);
+    this.box.hidden = true;
+    root.append(box, this.box);
   }
 
   /** Numbers pop out above the slime, a little to one side so they do not stack up. */
-  hit(h: HitEvent, slimeHeight: number): void {
-    const top = slimeHeight + 0.35;
+  hit(h: HitEvent): void {
+    const top = h.height + 0.35;
     const side = (Math.random() - 0.5) * 0.8;
-    const n = el('div', `dmg dmg-${h.element}`, String(h.damage));
+    // a hit on a weakness is big and ends with "!", on something that resists it small and grey
+    const kind = h.takes > 1 ? ' dmg-weak' : h.takes < 1 ? ' dmg-resist' : '';
+    const n = el('div', `dmg dmg-${h.element}${kind}`, `${h.damage}${h.takes > 1 ? '!' : ''}`);
     this.root.append(n);
     this.numbers.push({ e: n, at: [h.at[0] + side, top, h.at[2]], t: 0 });
     if (h.defeated) {
@@ -89,11 +96,18 @@ export class CombatHud {
     }
     const t = combat.target;
     const aim = t !== null ? herd.aimPoint(t) : null;
-    const at = aim ? toScreen([aim[0], herd.height + 1.35, aim[2]]) : null;
-    this.bar.hidden = !at;
+    const at = aim && t !== null ? toScreen([aim[0], herd.heightOf(t) + 1.0, aim[2]]) : null;
+    this.box.hidden = !at;
     if (at && t !== null) {
-      this.bar.style.transform = `translate(-50%, -100%) translate(${at[0]}px, ${at[1]}px)`;
-      this.fill.style.width = `${herd.hp(t)}%`;
+      this.box.style.transform = `translate(-50%, -100%) translate(${at[0]}px, ${at[1]}px)`;
+      this.fill.style.width = `${(100 * herd.hpRatio(t)).toFixed(1)}%`;
+      const spec = herd.species(t);
+      if (spec.id !== this.shownName) {
+        this.shownName = spec.id;
+        const weak = (['fire', 'water'] as const).find((e) => spec.takes[e] > 1);
+        this.name.textContent =
+          (TH.monsters[spec.id] ?? spec.id) + (weak ? ` · ${TH.weakTo(TH.elements[weak]!)}` : '');
+      }
     }
     for (let i = this.numbers.length - 1; i >= 0; i--) {
       const n = this.numbers[i]!;

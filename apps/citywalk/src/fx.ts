@@ -847,8 +847,22 @@ export class Fx {
     }
   }
 
-  /** A defeated slime melts into a puddle with a few drops. */
-  melt(p: Vec3, ground: number): void {
+  /** A small sparkle where a drop is picked up, in the item's colour. */
+  glint(p: Vec3, color: number): void {
+    for (let i = 0; i < 12; i++)
+      this.bright.emit({
+        pos: p,
+        vel: [rand(-1.5, 1.5), rand(1, 3), rand(-1.5, 1.5)],
+        life: rand(0.3, 0.5),
+        size: [0.1, 0.02],
+        color: [0xffffff, color],
+        alpha: [1, 0],
+        drag: 3,
+      });
+  }
+
+  /** A defeated slime melts into a puddle with a few drops; `size` is how big the slime was. */
+  melt(p: Vec3, ground: number, size = 1): void {
     for (let i = 0; i < 26; i++) {
       const a = rand(0, Math.PI * 2),
         s = rand(0.6, 2.2);
@@ -863,7 +877,7 @@ export class Fx {
         shape: 1,
       });
     }
-    this.stain([p[0], ground + 0.05, p[2]], 1.6, 0x2a8fc4, 0.45, 2.2);
+    this.stain([p[0], ground + 0.05, p[2]], 1.6 * size, 0x2a8fc4, 0.45, 2.2);
   }
 
   private ring(

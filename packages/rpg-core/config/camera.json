@@ -1,0 +1,24 @@
+{
+  "about": "Camera. back sits straight behind the player; shoulder sits behind and to the right so the player is left of centre and the middle of the screen is clear for aiming. distance is metres behind the player (bike when riding). side is how far left of the screen's centre the player stands, as a share of half the screen width (0 = in the middle, 0.35 = a third of the way to the left edge), so it looks the same on a narrow phone and a wide screen. targetHeight is where the camera looks, in metres above the ground. pitch is how far down it looks, in radians. lock: in shoulder view the camera turns by itself towards the chosen target while the player stands still or casts; rate is how fast (per second), range how far away a target still pulls the camera (metres), idle how many seconds after the player last turned the camera by hand before it may do so.",
+  "back": {
+    "distance": 7.5,
+    "bike": 10,
+    "side": 0
+  },
+  "shoulder": {
+    "distance": 6.2,
+    "bike": 8.5,
+    "side": 0.35
+  },
+  "targetHeight": 2.1,
+  "pitch": {
+    "start": 0.24,
+    "min": 0.12,
+    "max": 1.25
+  },
+  "lock": {
+    "rate": 2.6,
+    "range": 26,
+    "idle": 1.2
+  }
+}

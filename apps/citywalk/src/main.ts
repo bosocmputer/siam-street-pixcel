@@ -1,21 +1,33 @@
 import * as THREE from 'three';
 import {
+  CAMERA,
+  CAMERA_MODES,
+  DEFAULT_CAMERA,
+  ITEMS,
   PLAYER,
   SAVE_VERSION,
-  SLIME,
-  WANDER,
+  SPAWNS,
+  addItem,
   advance,
+  countOf,
   gainExp,
   hurt,
+  lockYaw,
   maxEnergy,
   maxHp,
+  monster,
   newClock,
   newStats,
   nextScreen,
+  rigFor,
+  sideMetres,
+  seeded,
   skill,
   spend,
   stepStats,
   worldRuns,
+  type CameraMode,
+  type Inventory,
   type MoveMode,
   type PlayerStats,
   type SaveData,
@@ -30,8 +42,10 @@ import { Fx } from './fx';
 import { frameToMap, gateFrame, loadModel, placeModel, type PlacedModel } from './gateModel';
 import { pointInPolygon } from './geo';
 import { Input } from './input';
+import { loadItemModels } from './itemModels';
 import { Minimap } from './minimap';
 import { buildPlaza } from './plaza';
+import { PickupField } from './pickups';
 import { SlimeHerd, loadSlime, type SlimeTemplate } from './slime';
 import { clearSave, readSave, writeSave } from './storage';
 import { TH } from './th';
@@ -146,19 +160,12 @@ async function start(): Promise<void> {
   // slimes wander on the square; they stay on it and bump into walls like the walker does
   let herd: SlimeHerd | null = null;
   if (slimeTemplate && plaza && gateAt) {
-    const homes = (
-      [
-        [-2, 10],
-        [2.5, 7],
-        [-30, 24],
-        [-60, 16],
-        [30, 15],
-        [55, 10],
-      ] as const
-    ).map(([fx, fz]) => frameToMap(gateAt, fx, fz));
+    const homes = SPAWNS.plaza!.map((sp) => {
+      const [x, z] = frameToMap(gateAt, sp.at[0], sp.at[1]);
+      return { spec: monster(sp.species), x, z };
+    });
     herd = new SlimeHerd(slimeTemplate, homes, {
-      wander: WANDER,
-      move: (x, z, dx, dz) => collider.move(x, z, dx, dz, 0.45),
+      move: (x, z, dx, dz, r) => collider.move(x, z, dx, dz, r),
       allowed: (x, z) => pointInPolygon(x, z, plaza.outline),
     });
     city.add(herd.object);
@@ -166,6 +173,14 @@ async function start(): Promise<void> {
   // skill effects and shots live in the city too, so they shrink with it
   const fx = new Fx();
   city.add(fx.object);
+  // what monsters leave behind: shown as the item's model if there is one, else a glowing gem.
+  // The dice use a seed (?seed=N in the address for repeatable runs, else the clock).
+  const itemModels = await loadItemModels(assets.models);
+  const seedParam = Number(new URLSearchParams(location.search).get('seed'));
+  const pickups = new PickupField(itemModels, seeded(seedParam || Date.now() >>> 0));
+  city.add(pickups.object);
+  // what the player carries
+  const bag: Inventory = {};
   // the player's health, energy and level
   const stats: PlayerStats = newStats();
   const combat = herd ? new Combat(fx, herd, collider, city, () => stats.level) : null;
@@ -184,12 +199,13 @@ async function start(): Promise<void> {
     x: startX,
     z: startZ,
     yaw: startYaw,
-    pitch: 0.24,
+    pitch: CAMERA.pitch.start,
     heading: startYaw,
     mode: 'walk' as MoveMode,
     scale: 1,
     labels: true,
     haze: false,
+    camera: DEFAULT_CAMERA as CameraMode,
   };
 
   const input = new Input(canvas, TH.stickHint);
@@ -228,6 +244,15 @@ async function start(): Promise<void> {
         applySky();
       },
     },
+    {
+      id: 'camera',
+      label: TH.camera,
+      value: () => TH.cameraModes[state.camera] ?? state.camera,
+      onClick: () => {
+        state.camera =
+          CAMERA_MODES[(CAMERA_MODES.indexOf(state.camera) + 1) % CAMERA_MODES.length]!;
+      },
+    },
   ]);
   const combatHud = combat
     ? new CombatHud(hud.root, SLOTS, (i) => input.trigger(i === 0 ? 'skill1' : 'skill2'))
@@ -249,8 +274,15 @@ async function start(): Promise<void> {
     version: SAVE_VERSION,
     savedAt: Date.now(),
     player: { x: state.x, z: state.z, heading: state.heading },
-    settings: { mode: state.mode, scale: state.scale, labels: state.labels, haze: state.haze },
+    settings: {
+      mode: state.mode,
+      scale: state.scale,
+      labels: state.labels,
+      haze: state.haze,
+      camera: state.camera,
+    },
     stats: { level: stats.level, exp: stats.exp, hp: stats.hp, energy: stats.energy },
+    items: { ...bag },
   });
   const save = () => (screen === 'play' || screen === 'paused' ? writeSave(snapshot()) : false);
   const saved = readSave();
@@ -268,6 +300,8 @@ async function start(): Promise<void> {
     stats.exp = d.stats.exp;
     stats.hp = Math.min(maxHp(stats.level), Math.max(1, d.stats.hp));
     stats.energy = Math.min(maxEnergy(stats.level), d.stats.energy);
+    for (const id of Object.keys(bag)) delete bag[id];
+    Object.assign(bag, d.items);
     applyScale();
     applySky();
     hud.paintChips();
@@ -287,7 +321,11 @@ async function start(): Promise<void> {
   };
 
   const target = new THREE.Vector3();
-  const place = () => {
+  // how far behind and to the side the camera is now; they ease towards the view's numbers so
+  // switching views glides instead of jumping
+  let camBack = CAMERA[state.camera].distance;
+  let camSide = 0;
+  const place = (dt: number) => {
     const s = state.scale;
     walker.body.position.set(state.x * s, 0.3, state.z * s);
     // turn the walker smoothly towards where it is going
@@ -295,8 +333,31 @@ async function start(): Promise<void> {
     d = Math.atan2(Math.sin(d), Math.cos(d));
     walker.body.rotation.y += d * 0.25;
 
-    target.set(walker.body.position.x, 2.1, walker.body.position.z);
-    let dist = state.mode === 'bike' ? 10 : 7.5;
+    const rig = rigFor(state.camera, state.mode === 'bike');
+    // to the player's right (the way "right" walks)
+    const rx = Math.cos(state.yaw),
+      rz = -Math.sin(state.yaw);
+    // keep the camera out of a wall at the player's side
+    let side = sideMetres(rig.side, camBack, camera.fov, camera.aspect);
+    while (
+      side > 0.05 &&
+      collider.solid(
+        (walker.body.position.x + rx * side) / s,
+        (walker.body.position.z + rz * side) / s,
+      )
+    )
+      side *= 0.6;
+    if (side <= 0.05) side = 0;
+    const glide = 1 - Math.exp(-dt * 9);
+    camSide += (side - camSide) * glide;
+    camBack += (rig.distance - camBack) * glide;
+
+    target.set(
+      walker.body.position.x + rx * camSide,
+      CAMERA.targetHeight,
+      walker.body.position.z + rz * camSide,
+    );
+    let dist = camBack;
     // pull the camera in when a building stands between it and the walker
     const bx = Math.sin(state.yaw) * Math.cos(state.pitch),
       bz = Math.cos(state.yaw) * Math.cos(state.pitch);
@@ -414,18 +475,33 @@ async function start(): Promise<void> {
     for (const h of combat?.update(dt) ?? []) {
       freeze = Math.max(freeze, h.element === 'fire' ? 0.08 : 0.04);
       shake = Math.max(shake, h.element === 'fire' ? 0.22 : 0.09);
-      combatHud?.hit(h, herd?.height ?? 0.9);
-      if (h.defeated && gainExp(stats, SLIME.exp) > 0) {
+      combatHud?.hit(h);
+      if (!h.defeated) continue;
+      const kind = monster(h.species);
+      // it melts and leaves its drops lying round the puddle
+      pickups.drop(kind.drops, { x: h.at[0], z: h.at[2] }, (x, z, dx, dz) =>
+        collider.move(x, z, dx, dz, 0.2),
+      );
+      if (gainExp(stats, kind.exp) > 0) {
         hud.say(TH.levelUp(stats.level), true);
         fx.levelUp([state.x, 0, state.z], GROUND);
         save();
       }
     }
+    // walk over a drop (or near it) to pick it up
+    for (const p of pickups.update(dt, { x: state.x, z: state.z, down: stats.down > 0 })) {
+      const put = addItem(bag, p.item, p.count);
+      if (put === 0) continue;
+      const name = TH.items[p.item] ?? p.item;
+      hud.say(TH.picked(name, put, countOf(bag, p.item)));
+      fx.glint([p.x, 0.8, p.z], ITEMS[p.item]!.color);
+    }
   };
   const effects = (dt: number) => fx.update(dt, camera, canvas.height, state.scale);
 
   /** commands from keys and buttons, once per frame */
-  const commands = () => {
+  let lastTurn = -1e9;
+  const commands = (dt: number) => {
     for (const m of ['walk', 'run', 'bike'] as const) if (input.pressed(m)) setMode(m);
     if (input.pressed('skill1')) castSkill(SLOTS[0]!);
     if (input.pressed('skill2')) castSkill(SLOTS[1]!);
@@ -433,8 +509,19 @@ async function start(): Promise<void> {
       combat?.cycleTarget({ x: state.x, z: state.z, heading: lookHeading() });
     for (const [sx, sy] of input.takeTaps()) tapSlime(sx, sy);
     const [tx, ty] = input.takeTurn();
+    if (tx !== 0 || ty !== 0) lastTurn = performance.now();
     state.yaw -= tx * 0.006;
-    state.pitch = Math.min(1.25, Math.max(0.12, state.pitch + ty * 0.004));
+    state.pitch = Math.min(CAMERA.pitch.max, Math.max(CAMERA.pitch.min, state.pitch + ty * 0.004));
+    // in shoulder view the camera eases round to the chosen slime while the player stands still or
+    // casts, unless they have just turned it by hand
+    const aim = combat?.target != null && herd ? herd.aimPoint(combat.target) : null;
+    if (aim && state.camera === 'shoulder' && screen === 'play' && stats.down === 0) {
+      const { forward, right } = input.read();
+      const standing = forward === 0 && right === 0;
+      const handsOff = (performance.now() - lastTurn) / 1000 > CAMERA.lock.idle;
+      if ((standing || combat?.gathering) && handsOff)
+        state.yaw = lockYaw(state.yaw, state, { x: aim[0], z: aim[2] }, dt);
+    }
   };
 
   /** one fixed step of the game: walking, then the world */
@@ -468,7 +555,7 @@ async function start(): Promise<void> {
     last = now;
     lastTick = now;
     try {
-      commands();
+      commands(dt);
       let worldTime = 0;
       walked = 0;
       if (worldRuns(screen)) {
@@ -487,7 +574,7 @@ async function start(): Promise<void> {
       // fall over while down, stand up again after
       const lie = stats.down > 0 ? 1.45 : 0;
       walker.body.rotation.z += (lie - walker.body.rotation.z) * Math.min(1, dt * 8);
-      place();
+      place(dt);
       if (shake > 0.002) {
         camera.position.x += (Math.random() - 0.5) * shake;
         camera.position.y += (Math.random() - 0.5) * shake;
@@ -496,8 +583,7 @@ async function start(): Promise<void> {
       renderer.render(scene, camera);
       // name tags never cover the panel and buttons at the top or the minimap
       const covered = [
-        ...Array.from(hud.top.children),
-        ...Array.from(hud.top.querySelectorAll('.chip')),
+        ...Array.from(hud.top.querySelectorAll('.title, .player, .near, .chip')),
         minimap.canvas,
       ].map((e) => e.getBoundingClientRect());
       hud.landmarks(state, state.scale, state.labels, camera, covered, screen === 'play');
@@ -547,6 +633,8 @@ async function start(): Promise<void> {
   });
   newButton.addEventListener('click', () => {
     clearSave();
+    Object.assign(stats, newStats());
+    for (const id of Object.keys(bag)) delete bag[id];
     Object.assign(state, { x: startX, z: startZ, yaw: startYaw, heading: startYaw });
     walker.body.rotation.y = startYaw;
     go('start');
@@ -591,6 +679,13 @@ async function start(): Promise<void> {
         }
       },
       cast: (id: string) => castSkill(id),
+      inventory: () => ({ ...bag }),
+      grant: (id: string, n: number) => addItem(bag, id, n),
+      pickups: () =>
+        pickups.all.map((p) => ({ item: p.item, count: p.count, x: p.x, z: p.z, age: p.age })),
+      setCamera: (m: CameraMode) => (state.camera = m),
+      /** where the walker is on the screen, in CSS pixels */
+      walkerOnScreen: () => screenOf([state.x, 1.2, state.z]),
       stats: () => ({ ...stats }),
       setStats: (patch: Partial<PlayerStats>) => Object.assign(stats, patch),
       combat: () =>

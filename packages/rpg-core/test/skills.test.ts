@@ -14,7 +14,10 @@ import {
   useSkill,
   type Vec3,
 } from '../src/skills';
-import { VITALS, damage, hittable, newVitals, stepVitals } from '../src/slimeBrain';
+import { DEFAULT_SPECIES, monster } from '../src/monsters';
+import { damage, hittable, newVitals, stepVitals } from '../src/slimeBrain';
+
+const VITALS = { ...monster(DEFAULT_SPECIES).vitals, hp: monster(DEFAULT_SPECIES).hp };
 
 const dist = (a: Vec3, b: Vec3) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 

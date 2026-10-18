@@ -47,7 +47,10 @@ export class Hud {
       const b = el('button', 'mode', TH.modes[m]);
       b.type = 'button';
       b.dataset.mode = m;
-      b.addEventListener('click', () => onMode(m));
+      b.addEventListener('click', () => {
+        onMode(m);
+        b.blur(); // keep the keyboard for walking
+      });
       this.modes.append(b);
       return b;
     });
@@ -59,6 +62,7 @@ export class Hud {
       b.addEventListener('click', () => {
         c.onClick();
         paint();
+        b.blur(); // keep the keyboard for walking
       });
       paint();
       this.chipPaints.push(paint);
@@ -100,8 +104,8 @@ export class Hud {
 
   /**
    * Move the name tags over their places, show the nearest place, and say when one is reached.
-   * Tags are hidden where they would cover `covered` (screen boxes of the top panel and
-   * minimap); places
+   * Tags slide below `covered` (screen boxes of the top panel, buttons and minimap) rather than
+   * cover it; places
    * are only announced while `playing`.
    */
   landmarks(
@@ -123,13 +127,15 @@ export class Hud {
       this.v.set(m.x * scale, 5.5 * Math.max(scale, 0.5), m.z * scale).project(camera);
       const sy = ((1 - this.v.y) / 2) * window.innerHeight;
       const sx = ((this.v.x + 1) / 2) * window.innerWidth;
-      // a tag is about 120 px wide and sits above its point
-      const hidden = covered.some(
-        (r) => sx > r.left - 60 && sx < r.right + 60 && sy > r.top && sy < r.bottom + 30,
-      );
-      const show = labels && this.v.z < 1 && d * scale < 450 && !hidden;
+      // a tag is about 120 px wide and sits above its point; where that would cover a button or
+      // the minimap it slides down to just under it instead of disappearing
+      let ty = sy;
+      for (const r of covered)
+        if (sx > r.left - 60 && sx < r.right + 60 && ty > r.top && ty < r.bottom + 30)
+          ty = r.bottom + 30;
+      const show = labels && this.v.z < 1 && d * scale < 450 && ty < window.innerHeight * 0.6;
       t.hidden = !show;
-      if (show) t.style.transform = `translate(-50%, -100%) translate(${sx}px, ${sy}px)`;
+      if (show) t.style.transform = `translate(-50%, -100%) translate(${sx}px, ${ty}px)`;
       if (playing && d < 25 && !this.visited.has(m.name)) {
         this.visited.add(m.name);
         if (labels) this.say(TH.arrived(m.name));

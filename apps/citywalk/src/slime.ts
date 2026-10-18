@@ -2,17 +2,17 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import {
-  VITALS,
   damage,
   hittable,
   newBrain,
   newVitals,
   provoke,
   seeded,
-  ATTACK,
   stepBrain,
   stepVitals,
   type BrainWorld,
+  type Element,
+  type MonsterSpec,
   type Prey,
   type SlimeBrain,
   type SlimeMode,
@@ -108,6 +108,7 @@ export async function loadSlime(bytes: ArrayBuffer): Promise<SlimeTemplate> {
 }
 
 interface Slime {
+  spec: MonsterSpec;
   brain: SlimeBrain;
   root: THREE.Object3D;
   mixer: THREE.AnimationMixer;
@@ -126,14 +127,22 @@ interface Slime {
 /** how long a slime glows after being hit, seconds */
 const FLASH = 0.14;
 
-/** Give a cloned slime its own copies of the materials. */
-function ownSkins(root: THREE.Object3D): THREE.MeshStandardMaterial[] {
+/**
+ * Give a cloned slime its own copies of the materials, and recolour its body with `tint` (the
+ * body is the see-through material; the eyes, mouth and sparkles keep their colours).
+ */
+function ownSkins(root: THREE.Object3D, tint: number | null): THREE.MeshStandardMaterial[] {
   const copies = new Map<THREE.Material, THREE.MeshStandardMaterial>();
   root.traverse((o) => {
     if (!(o instanceof THREE.Mesh) || !(o.material instanceof THREE.MeshStandardMaterial)) return;
     let c = copies.get(o.material);
     if (!c) {
       c = o.material.clone();
+      if (tint !== null && c.transparent) {
+        c.color.setHex(tint);
+        // the body glows faintly from inside in its own colour
+        c.emissive.setHex(tint).multiplyScalar(0.16);
+      }
       c.userData.emissive = c.emissive.clone();
       c.userData.emissiveIntensity = c.emissiveIntensity;
       copies.set(o.material, c);
@@ -141,6 +150,13 @@ function ownSkins(root: THREE.Object3D): THREE.MeshStandardMaterial[] {
     o.material = c;
   });
   return [...copies.values()];
+}
+
+/** Where one slime lives and what kind it is. */
+export interface SlimeHome {
+  spec: MonsterSpec;
+  x: number;
+  z: number;
 }
 
 /** A group of slimes that wander around their homes, watch the walker, and lunge when close. */
@@ -152,7 +168,7 @@ export class SlimeHerd {
 
   constructor(
     template: SlimeTemplate,
-    homes: [number, number][],
+    homes: SlimeHome[],
     world: Omit<BrainWorld, 'rng'>,
     seed = 1,
   ) {
@@ -160,26 +176,28 @@ export class SlimeHerd {
     this.height = template.height;
     const rng = seeded(seed);
     this.world = { ...world, rng };
-    homes.forEach(([x, z], i) => {
+    homes.forEach(({ spec, x, z }, i) => {
       const root = template.scene.clone(true);
       root.name = `Slime_${i + 1}`;
+      root.scale.setScalar(spec.scale);
       const mixer = new THREE.AnimationMixer(root);
       const actions = new Map<string, THREE.AnimationAction>();
       for (const clip of template.clips) actions.set(clip.name, mixer.clipAction(clip));
-      const brain = newBrain(x, z, rng() * 3);
+      const brain = newBrain(x, z, rng() * 3, spec);
       brain.heading = rng() * Math.PI * 2;
       root.position.set(x, 0, z);
       root.rotation.y = brain.heading;
       this.object.add(root);
       const slime: Slime = {
+        spec,
         brain,
         root,
         mixer,
         actions,
         playing: null,
         current: null,
-        vitals: newVitals(),
-        skins: ownSkins(root),
+        vitals: newVitals(spec),
+        skins: ownSkins(root, spec.tint),
         flash: 0,
         flashColor: new THREE.Color(),
         knock: [0, 0],
@@ -196,6 +214,7 @@ export class SlimeHerd {
     s.playing = mode;
     if (!next) return;
     next.reset();
+    next.timeScale = s.spec.pace; // a quick species moves quicker, a heavy one slower
     // noticing the walker is a single squish; after it the slime breathes while it keeps watching
     next.setLoop(mode === 'watch' ? THREE.LoopOnce : THREE.LoopRepeat, Infinity);
     next.play();
@@ -226,15 +245,22 @@ export class SlimeHerd {
       if (changed === 'growing') {
         // back at home, growing out of the ground
         const [hx, hz] = s.brain.home;
-        Object.assign(s.brain, newBrain(hx, hz, 1), { heading: s.brain.heading });
+        Object.assign(s.brain, newBrain(hx, hz, 1, s.spec), { heading: s.brain.heading });
         s.root.visible = true;
       }
       if (changed === 'gone') s.root.visible = false;
       if (v.life === 'alive') {
         stepBrain(s.brain, dt, player, this.world);
-        if (s.brain.struck) blows.push({ damage: ATTACK.damage, from: [s.brain.x, s.brain.z] });
+        if (s.brain.struck)
+          blows.push({ damage: s.spec.attack.damage, from: [s.brain.x, s.brain.z] });
       } else if (v.life === 'hurt' && (s.knock[0] || s.knock[1])) {
-        const [nx, nz] = this.world.move(s.brain.x, s.brain.z, s.knock[0] * dt, s.knock[1] * dt);
+        const [nx, nz] = this.world.move(
+          s.brain.x,
+          s.brain.z,
+          s.knock[0] * dt,
+          s.knock[1] * dt,
+          s.spec.radius,
+        );
         s.brain.x = nx;
         s.brain.z = nz;
         const k = Math.max(0, 1 - dt * 8);
@@ -261,21 +287,22 @@ export class SlimeHerd {
     let y = 1,
       xz = 1;
     if (v.life === 'hurt') {
-      const t = 1 - v.timer / VITALS.hurt;
+      const t = 1 - v.timer / v.times.hurt;
       const q = Math.sin(t * Math.PI) * Math.exp(-t * 1.5);
       y = 1 - 0.35 * q;
       xz = 1 + 0.22 * q;
     } else if (v.life === 'melting') {
-      const t = 1 - v.timer / VITALS.melt;
+      const t = 1 - v.timer / v.times.melt;
       y = Math.max(0.04, 1 - t * 1.2);
       xz = 1 + 0.7 * Math.min(1, t * 1.3);
     } else if (v.life === 'growing') {
-      const t = 1 - v.timer / VITALS.grow;
+      const t = 1 - v.timer / v.times.grow;
       // overshoot a little, like jelly settling
       const b = 1 + 2.7 * Math.pow(t - 1, 3) + 1.7 * Math.pow(t - 1, 2);
       y = xz = Math.max(0.01, b);
     }
-    s.root.scale.set(xz, y, xz);
+    const k = s.spec.scale;
+    s.root.scale.set(xz * k, y * k, xz * k);
   }
 
   private glow(s: Slime, k: number): void {
@@ -291,7 +318,29 @@ export class SlimeHerd {
   aimPoint(i: number): [number, number, number] | null {
     const s = this.slimes[i];
     if (!s || !hittable(s.vitals)) return null;
-    return [s.brain.x, this.height * 0.45, s.brain.z];
+    return [s.brain.x, this.heightOf(i) * 0.45, s.brain.z];
+  }
+
+  /** How tall slime i is, metres (a giant is taller, a mini shorter). */
+  heightOf(i: number): number {
+    return this.height * (this.slimes[i]?.spec.scale ?? 1);
+  }
+
+  /** Which kind slime i is. */
+  species(i: number): MonsterSpec {
+    const s = this.slimes[i];
+    if (!s) throw new Error(`no slime ${i}`);
+    return s.spec;
+  }
+
+  /** How much of an element's damage slime i takes (1 = normal, above 1 = weak to it). */
+  takes(i: number, element: Element): number {
+    return this.slimes[i]?.spec.takes[element] ?? 1;
+  }
+
+  /** How close a shot must come to slime i to hit it, metres. */
+  hitRadius(i: number, base: number): number {
+    return base * Math.max(0.6, this.slimes[i]?.spec.scale ?? 1);
   }
 
   /**
@@ -329,6 +378,12 @@ export class SlimeHerd {
     return this.slimes[i]?.vitals.hp ?? 0;
   }
 
+  /** Health left as a share of its most, 0..1. */
+  hpRatio(i: number): number {
+    const v = this.slimes[i]?.vitals;
+    return v ? v.hp / v.max : 0;
+  }
+
   get count(): number {
     return this.slimes.length;
   }
@@ -342,14 +397,17 @@ export class SlimeHerd {
     x: number;
     z: number;
     mode: SlimeMode;
+    species: string;
     hp: number;
     life: Vitals['life'];
     alive: boolean;
+    angry: boolean;
   }[] {
     return this.slimes.map((s) => ({
       x: s.brain.x,
       z: s.brain.z,
       mode: s.brain.mode,
+      species: s.spec.id,
       hp: s.vitals.hp,
       life: s.vitals.life,
       alive: hittable(s.vitals),

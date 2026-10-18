@@ -1,18 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { seeded } from '../src/rng';
-import {
-  ANGER,
-  ATTACK,
-  NEAR,
-  SLIME,
-  newBrain,
-  provoke,
-  stepBrain,
-  type BrainWorld,
-} from '../src/slimeBrain';
+import { DEFAULT_SPECIES, HOP, MONSTERS, monster } from '../src/monsters';
+import { newBrain, provoke, stepBrain, type BrainWorld } from '../src/slimeBrain';
 
 const open: BrainWorld = {
-  wander: 5,
   rng: seeded(7),
   move: (x, z, dx, dz) => [x + dx, z + dz],
   allowed: () => true,
@@ -31,6 +22,9 @@ function run(
   }
   return blows;
 }
+
+const SLIME = monster(DEFAULT_SPECIES);
+const { near: NEAR, attack: ATTACK, anger: ANGER } = SLIME;
 
 describe('slimes fight back', () => {
   it('a calm slime only threatens: it never lands a blow', () => {
@@ -95,5 +89,44 @@ describe('slimes fight back', () => {
   it('reads its numbers from the config', () => {
     expect(SLIME.exp).toBeGreaterThan(0);
     expect(SLIME.takes.fire).toBe(1);
+  });
+
+  it('a quick little slime strikes sooner and a heavy giant reaches further', () => {
+    const mini = MONSTERS.slime_mini!,
+      giant = MONSTERS.slime_giant!;
+    const blows = (spec: typeof mini, dist: number, seconds: number) => {
+      const b = newBrain(0, 0, 0, spec);
+      provoke(b);
+      return run(b, seconds, { x: dist, z: 0 });
+    };
+    // in 6 seconds the quick one lands more blows than its cycle length alone would give
+    expect(blows(mini, 1, 6)).toBeGreaterThan(Math.floor(6 / mini.attack.cycle));
+    // 2.5 m away is beyond a plain slime's threatening range but inside the giant's reach, so
+    // the giant strikes within 1.5 s while the plain slime is still hopping over
+    expect(2.5).toBeGreaterThan(SLIME.near.lunge);
+    expect(2.5).toBeLessThan(giant.attack.reach);
+    expect(blows(giant, 2.5, 1.5)).toBeGreaterThan(0);
+    expect(blows(SLIME, 2.5, 1.5)).toBe(0);
+  });
+
+  it('a long-striding species covers more ground per hop, and a quick one hops sooner', () => {
+    const oneHop = (spec: typeof SLIME) => {
+      const b = newBrain(0, 0, 0, spec);
+      provoke(b);
+      let t = 0;
+      for (; t < 10; t += 1 / 60) {
+        stepBrain(b, 1 / 60, { x: 50, z: 0 }, open);
+        if (b.phase >= HOP.cycle) break;
+      }
+      return { x: b.x, t };
+    };
+    const plain = oneHop(SLIME),
+      giant = oneHop(MONSTERS.slime_giant!),
+      mini = oneHop(MONSTERS.slime_mini!);
+    expect(giant.x).toBeCloseTo(HOP.distance * MONSTERS.slime_giant!.stride, 0);
+    expect(giant.x).toBeGreaterThan(plain.x);
+    expect(plain.x).toBeGreaterThan(mini.x);
+    expect(giant.t).toBeGreaterThan(plain.t); // slower
+    expect(mini.t).toBeLessThan(plain.t); // quicker
   });
 });

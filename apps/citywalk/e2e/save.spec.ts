@@ -1,6 +1,13 @@
 import { expect, test, type Page } from '@playwright/test';
 
-type State = { x: number; z: number; mode: string; scale: number; haze: boolean };
+type State = {
+  x: number;
+  z: number;
+  mode: string;
+  scale: number;
+  haze: boolean;
+  camera: string;
+};
 const state = (page: Page) => page.evaluate('window.__walk.state()') as Promise<State>;
 
 test('the walk is saved on this device and carries on after a reload', async ({ page }) => {
@@ -20,6 +27,8 @@ test('the walk is saved on this device and carries on after a reload', async ({ 
     w.simulate(1, 0, 6);
   })()`);
   await page.evaluate('window.__walk.setStats({ level: 3, exp: 7 })');
+  await page.evaluate('window.__walk.grant("gel_fire", 7)');
+  await page.evaluate('window.__walk.setCamera("back")');
   await page.getByRole('button', { name: 'วิ่ง' }).click();
   await page.locator('[data-chip="haze"]').click();
   await expect.poll(async () => (await state(page)).mode).toBe('run');
@@ -38,6 +47,8 @@ test('the walk is saved on this device and carries on after a reload', async ({ 
   expect(back.haze).toBe(true);
   const kept = (await page.evaluate('window.__walk.stats()')) as { level: number; exp: number };
   expect([kept.level, kept.exp]).toEqual([3, 7]);
+  expect(await page.evaluate('window.__walk.inventory()')).toEqual({ gel_fire: 7 });
+  expect(back.camera).toBe('back');
   await expect(page.locator('.player')).toContainText('Lv 3');
   await expect(page.locator('[data-chip="haze"]')).toContainText('เปิด');
 
@@ -48,6 +59,9 @@ test('the walk is saved on this device and carries on after a reload', async ({ 
   const again = await state(page);
   expect(again.x).toBeCloseTo(start.x, 3);
   expect(again.z).toBeCloseTo(start.z, 3);
+  // starting again also starts the level and the bag again
+  expect(await page.evaluate('window.__walk.inventory()')).toEqual({});
+  expect(((await page.evaluate('window.__walk.stats()')) as { level: number }).level).toBe(1);
 });
 
 test('a damaged save is ignored and the game starts fresh', async ({ page }) => {

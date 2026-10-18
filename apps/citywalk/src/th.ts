@@ -32,4 +32,21 @@ export const TH = {
   down: 'ล้มแล้ว… กำลังฟื้นที่จุดพัก',
   up: 'ฟื้นแล้ว ที่จุดพักหน้าประตูท่าแพ',
   melted: 'ละลาย!',
+  monsters: {
+    slime_water: 'สไลม์น้ำ',
+    slime_fire: 'สไลม์ไฟ',
+    slime_giant: 'สไลม์ยักษ์',
+    slime_mini: 'สไลม์จิ๋ว',
+  } as Record<string, string>,
+  items: {
+    gel_water: 'เจลสไลม์น้ำ',
+    gel_fire: 'เจลสไลม์ไฟ',
+    gel_lime: 'เจลสไลม์เขียว',
+    gel_core: 'แกนเจลม่วง',
+  } as Record<string, string>,
+  elements: { fire: 'ไฟ', water: 'น้ำ' } as Record<string, string>,
+  weakTo: (element: string) => `แพ้${element}`,
+  picked: (name: string, n: number, total: number) => `ได้ ${name} ×${n} (มี ${total})`,
+  camera: 'กล้อง',
+  cameraModes: { back: 'หลัง', shoulder: 'ไหล่' } as Record<string, string>,
 } as const;
