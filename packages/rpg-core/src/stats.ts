@@ -4,6 +4,7 @@
 import playerJson from '../config/player.json';
 import { ConfigError, num, obj, strings } from './config';
 import { SKILLS } from './skills';
+import { attrBonus, baseAttrs, type Attrs } from './attributes';
 
 export interface PlayerSpec {
   hp: { base: number; perLevel: number };
@@ -62,23 +63,27 @@ export interface PlayerStats {
   safe: number;
   /** seconds left lying down after running out of health; 0 = standing */
   down: number;
+  /** the five attributes, which add health and energy */
+  attrs: Attrs;
 }
 
-export const maxHp = (level: number, p = PLAYER) => p.hp.base + p.hp.perLevel * (level - 1);
-export const maxEnergy = (level: number, p = PLAYER) =>
-  p.energy.base + p.energy.perLevel * (level - 1);
+export const maxHp = (level: number, p = PLAYER, attrs?: Attrs) =>
+  p.hp.base + p.hp.perLevel * (level - 1) + (attrs ? attrBonus(attrs).hp : 0);
+export const maxEnergy = (level: number, p = PLAYER, attrs?: Attrs) =>
+  p.energy.base + p.energy.perLevel * (level - 1) + (attrs ? attrBonus(attrs).energy : 0);
 export const expToNext = (level: number, p = PLAYER) =>
   Math.round(p.exp.base * Math.pow(level, p.exp.growth));
 
-export function newStats(level = 1, p = PLAYER): PlayerStats {
+export function newStats(level = 1, p = PLAYER, attrs = baseAttrs()): PlayerStats {
   return {
     level,
     exp: 0,
-    hp: maxHp(level, p),
-    energy: maxEnergy(level, p),
+    hp: maxHp(level, p, attrs),
+    energy: maxEnergy(level, p, attrs),
     sinceHit: 999,
     safe: 0,
     down: 0,
+    attrs: { ...attrs },
   };
 }
 
@@ -97,8 +102,8 @@ export function gainExp(s: PlayerStats, amount: number, p = PLAYER): number {
   }
   if (s.level >= p.maxLevel) s.exp = 0;
   if (gained) {
-    s.hp = maxHp(s.level, p);
-    s.energy = maxEnergy(s.level, p);
+    s.hp = maxHp(s.level, p, s.attrs);
+    s.energy = maxEnergy(s.level, p, s.attrs);
   }
   return gained;
 }
@@ -131,15 +136,15 @@ export function stepStats(s: PlayerStats, dt: number, p = PLAYER): 'up' | null {
   if (s.down > 0) {
     s.down = Math.max(0, s.down - dt);
     if (s.down > 0) return null;
-    s.hp = maxHp(s.level, p);
-    s.energy = maxEnergy(s.level, p);
+    s.hp = maxHp(s.level, p, s.attrs);
+    s.energy = maxEnergy(s.level, p, s.attrs);
     s.safe = p.invulnerable;
     return 'up';
   }
   s.safe = Math.max(0, s.safe - dt);
   s.sinceHit += dt;
-  s.energy = Math.min(maxEnergy(s.level, p), s.energy + p.energy.regen * dt);
+  s.energy = Math.min(maxEnergy(s.level, p, s.attrs), s.energy + p.energy.regen * dt);
   if (s.sinceHit >= p.hpRegen.delay)
-    s.hp = Math.min(maxHp(s.level, p), s.hp + p.hpRegen.perSecond * dt);
+    s.hp = Math.min(maxHp(s.level, p, s.attrs), s.hp + p.hpRegen.perSecond * dt);
   return null;
 }

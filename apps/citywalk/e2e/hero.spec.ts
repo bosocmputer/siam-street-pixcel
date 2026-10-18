@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
+import { newGame } from './start';
 
 const SHOTS = process.env.SHOTS_DIR ?? 'test-results/shots';
 type V = [number, number, number];
@@ -12,7 +13,7 @@ test.describe.configure({ timeout: 120_000 });
 
 async function open(page: Page) {
   await page.goto('./?debug=1');
-  await page.getByRole('button', { name: 'เริ่มเดิน' }).click();
+  await newGame(page);
   await page.waitForFunction(() => '__walk' in window);
   await page.waitForTimeout(300);
 }
@@ -59,7 +60,9 @@ async function checkPoses(page: Page, shot: string) {
   await page.screenshot({ path: `${SHOTS}/${shot}-bike.png` });
 }
 
-test('the player is the character model, posed in code', async ({ page }) => {
+test('the player is the character made on the character screen, posed in code', async ({
+  page,
+}) => {
   await open(page);
   await checkPoses(page, 'hero');
 });
@@ -67,19 +70,20 @@ test('the player is the character model, posed in code', async ({ page }) => {
 test('a model from another program (Mixamo bones, T-pose, centimetres) works the same', async ({
   page,
 }) => {
-  // swap the man's file for a copy dressed up as a Mixamo export, and tell the game how to read it
+  // list a "hero" model: a copy of the character dressed up as a Mixamo export, with the notes
+  // that tell the game how to read it
   await page.route('**/assets.json', async (route) => {
     const res = await route.fetch();
     const manifest = (await res.json()) as { models: Record<string, unknown>[] };
-    for (const m of manifest.models)
-      if (m.id === 'hero_m')
-        Object.assign(m, {
-          joints: 'mixamo',
-          restFix: { UpperArm_L: [0, 0, -90], UpperArm_R: [0, 0, 90] },
-        });
+    manifest.models.push({
+      id: 'hero',
+      file: 'models/hero.glb',
+      joints: 'mixamo',
+      restFix: { UpperArm_L: [0, 0, -90], UpperArm_R: [0, 0, 90] },
+    });
     await route.fulfill({ response: res, json: manifest });
   });
-  await page.route('**/models/hero_m.glb', (route) =>
+  await page.route('**/models/hero.glb', (route) =>
     route.fulfill({
       body: readFileSync(new URL('./fixtures/hero_mixamo.glb', import.meta.url)),
       contentType: 'model/gltf-binary',

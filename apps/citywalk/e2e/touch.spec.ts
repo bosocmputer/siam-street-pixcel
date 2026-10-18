@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { newGame } from './start';
 
 test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
 // software WebGL is slow when several test files run at once
@@ -6,7 +7,7 @@ test.describe.configure({ timeout: 60_000 });
 
 test('dragging a finger on the left side walks', async ({ page }) => {
   await page.goto('./?debug=1');
-  await page.getByRole('button', { name: 'เริ่มเดิน' }).tap();
+  await newGame(page, { tap: true });
   await page.waitForFunction(() => '__walk' in window);
   const before = (await page.evaluate('window.__walk.state()')) as Pos;
   const cdp = await page.context().newCDPSession(page);
@@ -27,7 +28,7 @@ test('dragging a finger on the left side walks', async ({ page }) => {
 
 test('the joystick is visible and dragging the right side turns the camera', async ({ page }) => {
   await page.goto('./?debug=1');
-  await page.getByRole('button', { name: 'เริ่มเดิน' }).tap();
+  await newGame(page, { tap: true });
   await page.waitForFunction(() => '__walk' in window);
   await expect(page.locator('.stick')).toBeVisible();
   await expect(page.locator('.stick-hint')).toHaveText('ลากเพื่อเดิน');

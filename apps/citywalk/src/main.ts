@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {
+  ATTR,
   CAMERA,
   CAMERA_MODES,
   DEFAULT_CAMERA,
@@ -9,6 +10,9 @@ import {
   SOUNDS,
   SPAWNS,
   addItem,
+  attrBonus,
+  defaultLook,
+  leaning,
   advance,
   advanceSteps,
   countOf,
@@ -33,7 +37,9 @@ import {
   stepStats,
   worldRuns,
   type CameraMode,
+  type Attrs,
   type Inventory,
+  type Look,
   type MoveMode,
   type PlayerStats,
   type SaveData,
@@ -48,6 +54,9 @@ import { renderSound } from './audio/synth';
 import { stats as soundStats } from './audio/analyze';
 import { Collider } from './collide';
 import { Combat } from './combat';
+import { heroFromLook } from './lookModel';
+import { Creator } from './ui/creator';
+import { StatsPanel } from './ui/statsPanel';
 import { Fx } from './fx';
 import { frameToMap, gateFrame, loadModel, placeModel, type PlacedModel } from './gateModel';
 import { pointInPolygon } from './geo';
@@ -64,7 +73,7 @@ import { CombatHud } from './ui/combatHud';
 import { $ } from './ui/dom';
 import { Hud } from './ui/hud';
 import { PlayerHud } from './ui/playerHud';
-import { makeWalker } from './walker';
+import { makeWalker, type Walker } from './walker';
 import { loadHero, makeHero, type HeroTemplate } from './hero';
 import { buildWorld, gateTowers } from './world';
 import './style.css';
@@ -128,14 +137,13 @@ async function start(): Promise<void> {
     }
   };
   // the gate model is optional: without it the gate keeps its simple stand-in towers
-  // the player's body: the man unless the address asks for the woman (?hero=f), until there is
-  // a character screen to choose on
-  const heroId = new URLSearchParams(location.search).get('hero') === 'f' ? 'hero_f' : 'hero_m';
+  // the player's body is built from the look chosen on the character screen; a model from
+  // another program listed as "hero" in assets.json takes its place instead
   const [gateModel, slimeTemplate, bossTemplate, heroTemplate] = await Promise.all([
     parse('gate', loadModel),
     parse<SlimeTemplate>('slime', loadSlime),
     parse<SlimeTemplate>('tide_regent', loadSlime),
-    parse<HeroTemplate>(heroId, (b) => loadHero(b, entry(heroId)!)),
+    parse<HeroTemplate>('hero', (b) => loadHero(b, entry('hero')!)),
   ]);
   for (const [id, t] of [
     ['slime', slimeTemplate],
@@ -221,11 +229,36 @@ async function start(): Promise<void> {
         () => stats.level,
         (id, o) => sound.play(id, o),
         (id) => sound.hold(id),
+        () => attrBonus(stats.attrs).power,
       )
     : null;
   scene.add(city);
-  const walker = heroTemplate ? makeHero(heroTemplate) : makeWalker();
+  const saved = readSave();
+  // the character as made on the character screen (an older save without one gets the default)
+  let look: Look = saved?.look ?? defaultLook('m');
+  const bodyFor = (l: Look): Walker => {
+    if (heroTemplate) return makeHero(heroTemplate);
+    try {
+      return makeHero(heroFromLook(l));
+    } catch (err) {
+      console.error('the character could not be built:', err);
+      return makeWalker();
+    }
+  };
+  let walker = bodyFor(look);
   scene.add(walker.body);
+  /** put on a new look: the body is rebuilt where the old one stood */
+  const setLook = (l: Look) => {
+    look = l;
+    if (heroTemplate) return;
+    const next = bodyFor(l);
+    next.body.position.copy(walker.body.position);
+    next.body.rotation.copy(walker.body.rotation);
+    next.bike.visible = walker.bike.visible;
+    scene.remove(walker.body);
+    walker = next;
+    scene.add(walker.body);
+  };
 
   const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.3, 2500);
 
@@ -308,6 +341,23 @@ async function start(): Promise<void> {
     ? new CombatHud(hud.root, SLOTS, (i) => input.trigger(i === 0 ? 'skill1' : 'skill2'))
     : null;
   const playerHud = new PlayerHud(hud.top);
+  // the status window: tap the player panel; the world waits while it is open
+  const status = new StatsPanel(
+    () => ({ name: look.name, level: stats.level, exp: stats.exp, attrs: stats.attrs }),
+    (a: Attrs) => {
+      stats.attrs = a;
+      save();
+    },
+    () => sound.play('ui.click'),
+  );
+  document.body.append(status.root);
+  status.onClose = () => go('close');
+  playerHud.onOpen = () => {
+    if (screen !== 'play') return;
+    sound.play('ui.click');
+    go('menu');
+    status.open();
+  };
   const minimap = new Minimap(world);
   if (plaza) minimap.addArea(plaza.outline, '#d8b48c');
   hud.root.append(minimap.canvas);
@@ -333,9 +383,11 @@ async function start(): Promise<void> {
     },
     stats: { level: stats.level, exp: stats.exp, hp: stats.hp, energy: stats.energy },
     items: { ...bag },
+    look,
+    attrs: { ...stats.attrs },
   });
-  const save = () => (screen === 'play' || screen === 'paused' ? writeSave(snapshot()) : false);
-  const saved = readSave();
+  const save = () =>
+    screen === 'play' || screen === 'menu' || screen === 'paused' ? writeSave(snapshot()) : false;
   const restore = (d: SaveData) => {
     // a save inside something solid (the map changed since) puts the walker back at the start
     if (!collider.blocked(d.player.x, d.player.z, RADIUS)) {
@@ -347,9 +399,10 @@ async function start(): Promise<void> {
     Object.assign(state, d.settings);
     // a save made while lying down comes back standing, with a little health
     stats.level = Math.min(d.stats.level, PLAYER.maxLevel);
+    stats.attrs = { ...d.attrs };
     stats.exp = d.stats.exp;
-    stats.hp = Math.min(maxHp(stats.level), Math.max(1, d.stats.hp));
-    stats.energy = Math.min(maxEnergy(stats.level), d.stats.energy);
+    stats.hp = Math.min(maxHp(stats.level, undefined, stats.attrs), Math.max(1, d.stats.hp));
+    stats.energy = Math.min(maxEnergy(stats.level, undefined, stats.attrs), d.stats.energy);
     for (const id of Object.keys(bag)) delete bag[id];
     Object.assign(bag, d.items);
     applyScale();
@@ -548,7 +601,11 @@ async function start(): Promise<void> {
       if (dropped.length > 0) sound.play('item.drop', { at: { x: h.at[0], z: h.at[2] } });
       if (gainExp(stats, kind.exp) > 0) {
         sound.play('player.levelup');
-        hud.say(TH.levelUp(stats.level), true);
+        // at a few levels the system hints which way the player is leaning
+        const hint = ATTR.hintLevels.includes(stats.level)
+          ? ` · ${TH.hint(TH.attrs[leaning(stats.attrs)]!)}`
+          : '';
+        hud.say(TH.levelUp(stats.level) + hint, true);
         fx.levelUp([state.x, 0, state.z], GROUND);
         save();
       }
@@ -581,6 +638,14 @@ async function start(): Promise<void> {
   /** commands from keys and buttons, once per frame */
   let lastTurn = -1e9;
   const commands = (dt: number) => {
+    // off the game (a window open, the intro): drop what was pressed so it does not fire later
+    if (screen !== 'play') {
+      for (const a of ['walk', 'run', 'bike', 'skill1', 'skill2', 'target'] as const)
+        input.pressed(a);
+      input.takeTaps();
+      input.takeTurn();
+      return;
+    }
     for (const m of ['walk', 'run', 'bike'] as const) if (input.pressed(m)) setMode(m);
     if (input.pressed('skill1')) castSkill(SLOTS[0]!);
     if (input.pressed('skill2')) castSkill(SLOTS[1]!);
@@ -729,10 +794,28 @@ async function start(): Promise<void> {
   const newButton = $('#intro-new');
   goButton.textContent = saved ? TH.resume : TH.start;
   newButton.hidden = !saved;
+  // a new game makes the character first; the system then speaks, and the walk begins
+  const creator = new Creator(
+    (l) => {
+      setLook(l);
+      go('start');
+      hud.say(lapText());
+      save();
+    },
+    defaultLook('m'),
+    () => sound.play('ui.click'),
+  );
+  document.body.append(creator.root);
+  const create = () => {
+    go('create');
+    creator.open();
+  };
   goButton.addEventListener('click', () => {
     sound.unlock();
-    go('start');
-    hud.say(lapText());
+    if (saved) {
+      go('start');
+      hud.say(lapText());
+    } else create();
   });
   newButton.addEventListener('click', () => {
     sound.unlock();
@@ -741,8 +824,7 @@ async function start(): Promise<void> {
     for (const id of Object.keys(bag)) delete bag[id];
     Object.assign(state, { x: startX, z: startZ, yaw: startYaw, heading: startYaw });
     walker.body.rotation.y = startYaw;
-    go('start');
-    hud.say(lapText());
+    create();
   });
   // the listening page, over the intro card
   const labButton = $('#intro-lab');
@@ -831,6 +913,9 @@ async function start(): Promise<void> {
       /** where the walker is on the screen, in CSS pixels */
       walkerOnScreen: () => screenOf([state.x, 1.2, state.z]),
       stats: () => ({ ...stats }),
+      look: () => ({ ...look }),
+      creatorChoice: () => creator.choice,
+      status: () => ({ open: status.isOpen, pending: status.pending }),
       /** where a joint of the player's body is, world metres (null for the stand-in) */
       heroJoint: (name: string) => {
         const v = walker.joint?.(name, new THREE.Vector3());

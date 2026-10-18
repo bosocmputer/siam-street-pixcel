@@ -1,5 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { CAMERA_MODES, ELEMENTS, ITEMS, MONSTERS, SKILLS, SOUNDS } from '@newgame/rpg-core';
+import {
+  APPEARANCE,
+  ATTRS,
+  CAMERA_MODES,
+  ELEMENTS,
+  ITEMS,
+  JOB_IDS,
+  LOOK_PARTS,
+  MONSTERS,
+  SKILLS,
+  SOUNDS,
+  choices,
+} from '@newgame/rpg-core';
 import { SOUND_GROUPS } from './audio/groups';
 import { TH } from './th';
 
@@ -20,6 +32,16 @@ describe('Thai names cover the game data', () => {
       TH.soundGroups,
       SOUND_GROUPS.map((g) => g.key),
     ));
+  it('attributes and jobs', () => {
+    same(TH.attrs, [...ATTRS]);
+    same(TH.jobs, JOB_IDS);
+    same(TH.jobRoles, JOB_IDS);
+  });
+  it('every choice on the character screen', () => {
+    for (const p of LOOK_PARTS) same(TH.create.names[p]!, choices(p));
+    same(TH.create.parts, [...LOOK_PARTS]);
+    same(TH.create.bodies, APPEARANCE.bodies);
+  });
   it('every sound is on the listening page exactly once', () => {
     const listed = SOUND_GROUPS.flatMap((g) => g.ids);
     expect([...listed].sort()).toEqual(Object.keys(SOUNDS).sort());
@@ -33,6 +55,10 @@ describe('Thai names cover the game data', () => {
       TH.cameraModes,
       TH.sounds,
       TH.soundGroups,
+      TH.attrs,
+      TH.jobs,
+      TH.jobRoles,
+      ...Object.values(TH.create.names),
     ])
       for (const name of Object.values(group)) expect(name.trim().length).toBeGreaterThan(0);
   });

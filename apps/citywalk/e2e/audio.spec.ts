@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { newGame } from './start';
 
 const SHOTS = process.env.SHOTS_DIR ?? 'test-results/shots';
 
@@ -11,7 +12,7 @@ test.describe.configure({ timeout: 120_000 });
 
 async function open(page: Page) {
   await page.goto('./?debug=1');
-  await page.getByRole('button', { name: 'เริ่มเดิน' }).click();
+  await newGame(page);
   await page.waitForFunction(() => '__walk' in window);
   await js(page, 'window.__walk.pause(true)');
 }
@@ -127,7 +128,7 @@ test('walking makes steps, and the sound chip turns everything off and stays off
   page,
 }) => {
   await page.goto('./?debug=1');
-  await page.getByRole('button', { name: 'เริ่มเดิน' }).click();
+  await newGame(page);
   await page.waitForFunction(() => '__walk' in window);
   await js(page, 'window.__walk.sound.clear()');
   // footsteps come from the main loop, so walk for real (keys only count when no button has focus)

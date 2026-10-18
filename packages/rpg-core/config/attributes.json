@@ -1,0 +1,17 @@
+{
+  "about": "The five attributes the player raises (GDD v2.2 section 6). Each starts at `base`; every level after the first gives `perLevel` points. `order` is the wheel, clockwise from the top: each job sits on one side of it, between two neighbouring attributes. At `jobLevel` the highest attribute and its higher neighbour pick the job; a tie goes to the job that suits how the player fights (`range`), then to the wheel's order. `secret`: every attribute within `spread` of the others, and the three-hands task done, gives the secret job instead. The system hints at the leaning attribute at `hintLevels`. effects: extra max health per VIT point and max energy per INT point above base, and skill power per point of the highest attribute above base.",
+  "order": ["str", "agi", "dex", "int", "vit"],
+  "base": 5,
+  "perLevel": 3,
+  "jobs": [
+    { "id": "striker", "between": ["str", "agi"], "range": "near" },
+    { "id": "ranger", "between": ["agi", "dex"], "range": "far" },
+    { "id": "elementalist", "between": ["dex", "int"], "range": "far" },
+    { "id": "cleric", "between": ["int", "vit"], "range": "far" },
+    { "id": "guardian", "between": ["vit", "str"], "range": "near" }
+  ],
+  "secret": { "id": "freelancer", "spread": 2 },
+  "jobLevel": 10,
+  "hintLevels": [3, 6, 9],
+  "effects": { "hpPerVit": 6, "energyPerInt": 3, "powerPerPoint": 0.02 }
+}

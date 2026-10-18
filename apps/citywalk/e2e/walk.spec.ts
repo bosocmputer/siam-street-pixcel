@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { newGame } from './start';
 
 interface Walk {
   state: () => { x: number; z: number; scale: number; mode: string; labels: boolean };
@@ -11,7 +12,7 @@ const SHOTS = process.env.SHOTS_DIR ?? 'test-results/shots';
 
 async function open(page: Page) {
   await page.goto('./?debug=1');
-  await page.getByRole('button', { name: 'เริ่มเดิน' }).click();
+  await newGame(page);
   await page.waitForFunction(() => '__walk' in window);
 }
 
@@ -30,7 +31,7 @@ for (const [name, size] of [
     await page.goto('./?debug=1');
     await expect(page.getByRole('button', { name: 'เริ่มเดิน' })).toBeVisible();
     await page.screenshot({ path: `${SHOTS}/${name}-intro.png` });
-    await page.getByRole('button', { name: 'เริ่มเดิน' }).click();
+    await newGame(page);
     await page.waitForTimeout(800);
     await expect(page.locator('.tag', { hasText: 'ประตูท่าแพ' })).toBeVisible();
     await expect(page.locator('.near')).toContainText('ประตูท่าแพ');

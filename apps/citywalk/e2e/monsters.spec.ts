@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { newGame } from './start';
 
 const SHOTS = process.env.SHOTS_DIR ?? 'test-results/shots';
 
@@ -23,7 +24,7 @@ test.describe.configure({ timeout: 150_000 });
 
 async function open(page: Page) {
   await page.goto('./?debug=1&seed=7');
-  await page.getByRole('button', { name: 'เริ่มเดิน' }).click();
+  await newGame(page);
   await page.waitForFunction(() => '__walk' in window);
   await js(page, 'window.__walk.pause(true)');
 }

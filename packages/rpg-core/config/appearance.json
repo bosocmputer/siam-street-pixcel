@@ -1,0 +1,61 @@
+{
+  "about": "Choices on the character screen. Ids are kept in saves: never rename one once used (add new ones instead). hair: the hair shapes tools/character/build.js can make; every one is open to both bodies. hairColors, eyes, skins: id → colour. faces: how the painted face is drawn (eye tilt, brow angle, eye height multiplier eyeK, iris size, smile per body [m, f], chin sharpness per body [m, f]). earsHiddenBy: hair that covers the ears. nameMax: the longest name, in characters.",
+  "bodies": ["m", "f"],
+  "hair": ["spiky", "undercut", "fluffy", "bob", "long", "ponytail"],
+  "hairColors": {
+    "navy": "#232842",
+    "black": "#17171c",
+    "brown": "#3b2a22",
+    "auburn": "#6b3f2a",
+    "silver": "#8d8f99",
+    "blond": "#c99a52",
+    "wine": "#6e2433",
+    "indigo": "#3a3480"
+  },
+  "faces": {
+    "sharp": {
+      "tilt": 0.14,
+      "browAngle": 0.3,
+      "eyeK": 0.92,
+      "irisSize": 0.64,
+      "smile": [0.0004, 0.001],
+      "sharp": [0.8, 0.66]
+    },
+    "soft": {
+      "tilt": 0.06,
+      "browAngle": 0.08,
+      "eyeK": 1.08,
+      "irisSize": 0.68,
+      "smile": [0.0014, 0.002],
+      "sharp": [0.6, 0.52]
+    },
+    "bright": {
+      "tilt": 0.02,
+      "browAngle": -0.02,
+      "eyeK": 1.2,
+      "irisSize": 0.72,
+      "smile": [0.0026, 0.003],
+      "sharp": [0.5, 0.45]
+    }
+  },
+  "eyes": {
+    "amber": "#e0a040",
+    "violet": "#9b7cf0",
+    "brown": "#7a4b2a",
+    "teal": "#3fa7a0",
+    "blue": "#4a7fd6",
+    "red": "#c4474f"
+  },
+  "skins": {
+    "tone1": "#f6d7bd",
+    "tone2": "#f1c9a6",
+    "tone3": "#dcae86",
+    "tone4": "#b98563"
+  },
+  "defaults": {
+    "m": { "hair": "spiky", "hairColor": "navy", "face": "sharp", "eye": "amber", "skin": "tone2" },
+    "f": { "hair": "long", "hairColor": "navy", "face": "soft", "eye": "violet", "skin": "tone1" }
+  },
+  "earsHiddenBy": ["long", "bob", "fluffy"],
+  "nameMax": 12
+}

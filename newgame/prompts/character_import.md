@@ -1,6 +1,6 @@
 # เอาโมเดลตัวละครจากโปรแกรมอื่นเข้าเกม
 
-เกมใช้ตัวละครได้ 2 แบบ ไม่ต้องแก้โค้ด แก้แค่รายการใน `apps/citywalk/public/assets.json`
+ปกติตัวละครของผู้เล่นสร้างสดจากหน้าสร้างตัวละคร (ทรงผม สี หน้า) ถ้าอยากใช้โมเดลจากที่อื่นแทน ใส่ไฟล์ไว้ใน `apps/citywalk/public/models/` แล้วเพิ่มรายการรหัส `hero` ใน `apps/citywalk/public/assets.json` ได้ 2 แบบ ไม่ต้องแก้โค้ด (ตอนมีรายการ `hero` ตัวเลือกบนหน้าสร้างตัวละครจะไม่เปลี่ยนรูปร่าง ใช้โมเดลนั้นแทน)
 
 ## แบบที่ 1: ตรงสเปกของเกม (เหมือนตัวที่ผมสร้าง)
 
@@ -8,7 +8,7 @@
 `pnpm --filter @newgame/rpg-core check-model <ไฟล์.glb>` ใส่ในรายการได้เลย:
 
 ```json
-{ "id": "hero_m", "file": "models/hero_m.glb" }
+{ "id": "hero", "file": "models/hero.glb" }
 ```
 
 ## แบบที่ 2: จากโปรแกรมปั้นโมเดล (Blender, VRoid Studio, Mixamo ฯลฯ)
@@ -18,8 +18,8 @@
 
 ```json
 {
-  "id": "hero_m",
-  "file": "models/hero_m.glb",
+  "id": "hero",
+  "file": "models/hero.glb",
   "joints": "mixamo",
   "restFix": { "UpperArm_L": [0, 0, -90], "UpperArm_R": [0, 0, 90] }
 }

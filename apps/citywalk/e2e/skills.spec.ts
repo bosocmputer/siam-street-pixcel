@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { newGame } from './start';
 
 const SHOTS = process.env.SHOTS_DIR ?? 'test-results/shots';
 
@@ -11,7 +12,7 @@ const combat = (page: Page) => js<CombatState>(page, 'window.__walk.combat()');
 
 async function open(page: Page) {
   await page.goto('./?debug=1');
-  await page.getByRole('button', { name: 'เริ่มเดิน' }).click();
+  await newGame(page);
   await page.waitForFunction(() => '__walk' in window);
   // stop the world so every step below is ours, and screenshots catch the moment we want
   await js(page, 'window.__walk.pause(true)');

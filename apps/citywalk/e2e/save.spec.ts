@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { newGame } from './start';
 
 type State = {
   x: number;
@@ -16,7 +17,7 @@ test('the walk is saved on this device and carries on after a reload', async ({ 
   // a first visit has nothing to carry on from
   await expect(page.getByRole('button', { name: 'เริ่มเดิน' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'เริ่มใหม่ที่ประตูท่าแพ' })).toBeHidden();
-  await page.getByRole('button', { name: 'เริ่มเดิน' }).click();
+  await newGame(page);
   await page.waitForFunction(() => '__walk' in window);
   const start = await state(page);
 
@@ -73,7 +74,7 @@ test('a damaged save is ignored and the game starts fresh', async ({ page }) => 
 
 test('the world stops while the page is hidden', async ({ page }) => {
   await page.goto('./?debug=1');
-  await page.getByRole('button', { name: 'เริ่มเดิน' }).click();
+  await newGame(page);
   await page.waitForFunction(() => '__walk' in window);
   expect(await page.evaluate('window.__walk.screen()')).toBe('play');
   await page.evaluate(() => {

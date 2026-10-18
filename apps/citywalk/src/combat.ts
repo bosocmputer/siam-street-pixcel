@@ -99,6 +99,8 @@ export class Combat {
     ) => void = () => undefined,
     /** starts a sound that lasts while a shot flies; it can follow the shot and be stopped */
     private hold: (id: string) => { stop(): void; at(x: number, z: number): void } = () => QUIET,
+    /** how much harder skills hit from the player's attributes (1 = no change) */
+    private power: () => number = () => 1,
   ) {
     // a dashed ring under the chosen slime and a small arrow over it
     const c = document.createElement('canvas');
@@ -273,9 +275,14 @@ export class Combat {
     }
   }
 
-  /** a skill's damage at the player's level, against how much of the element a slime takes */
+  /** a skill's damage at the player's level and attributes, against how much of the element a slime takes */
   private damage(base: number, element: Element, slime: number): number {
-    return skillDamage(base, this.level(), PLAYER.damagePerLevel, this.herd.takes(slime, element));
+    return skillDamage(
+      base * this.power(),
+      this.level(),
+      PLAYER.damagePerLevel,
+      this.herd.takes(slime, element),
+    );
   }
 
   private hitEvent(

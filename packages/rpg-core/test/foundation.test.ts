@@ -5,6 +5,8 @@ import { ConfigError } from '../src/config';
 import { RIG, checkRig, readRig, type ModelFacts } from '../src/rig';
 import { DEFAULT_CAMERA, SAVE_VERSION, decodeSave, encodeSave, type SaveData } from '../src/save';
 import { MAX_STACK } from '../src/items';
+import { baseAttrs } from '../src/attributes';
+import { defaultLook } from '../src/look';
 import { nextScreen, worldRuns } from '../src/screens';
 import { readSkills } from '../src/skills';
 import { readMonsters } from '../src/monsters';
@@ -80,6 +82,8 @@ describe('save', () => {
     settings: { mode: 'run', scale: 0.5, labels: false, haze: true, camera: 'back' },
     stats: { level: 4, exp: 12, hp: 80.5, energy: 33 },
     items: { gel_water: 5, gel_core: 1 },
+    look: { ...defaultLook('f'), hair: 'ponytail', name: 'ต้นข้าว' },
+    attrs: { ...baseAttrs(), int: 9, dex: 7 },
   };
 
   it('reads back exactly what was saved', () => {
@@ -98,6 +102,8 @@ describe('save', () => {
       stats: fresh,
       items: {},
       settings: { ...good.settings, camera: DEFAULT_CAMERA },
+      look: null,
+      attrs: baseAttrs(),
     });
     expect(decodeSave(JSON.stringify(old))!.stats.level).toBe(1);
   });
@@ -110,6 +116,25 @@ describe('save', () => {
     expect(got.stats).toEqual(good.stats);
     expect(got.items).toEqual({});
     expect(got.settings.camera).toBe(DEFAULT_CAMERA);
+  });
+
+  it('a version 3 save gets no look and the starting attributes', () => {
+    const v3: Record<string, unknown> = { ...good, version: 3 };
+    delete v3.look;
+    delete v3.attrs;
+    const got = decodeSave(JSON.stringify(v3))!;
+    expect(got.look).toBeNull();
+    expect(got.attrs).toEqual(baseAttrs());
+  });
+
+  it('a look or attributes that no longer fit fall back instead of losing the save', () => {
+    const with_ = (patch: Record<string, unknown>) =>
+      decodeSave(JSON.stringify({ ...good, ...patch }))!;
+    expect(with_({ look: { ...good.look, hair: 'mohawk' } }).look).toBeNull();
+    expect(with_({ look: null }).look).toBeNull();
+    // level 4 has 9 points; 10 spent is too many, so they come back to spend again
+    expect(with_({ attrs: { ...baseAttrs(), str: 15 } }).attrs).toEqual(baseAttrs());
+    expect(with_({ attrs: 'strong' }).attrs).toEqual(baseAttrs());
   });
 
   it('drops items that are no longer in the game and empty stacks, but refuses a broken bag', () => {
@@ -158,6 +183,13 @@ describe('screens', () => {
     expect(nextScreen('loading', 'loaded')).toBe('intro');
     expect(nextScreen('loading', 'loadFailed')).toBe('failed');
     expect(nextScreen('intro', 'start')).toBe('play');
+    expect(nextScreen('intro', 'create')).toBe('create');
+    expect(nextScreen('create', 'start')).toBe('play');
+    expect(nextScreen('create', 'hide')).toBe('create');
+    expect(nextScreen('play', 'menu')).toBe('menu');
+    expect(nextScreen('menu', 'hide')).toBe('menu');
+    expect(nextScreen('menu', 'close')).toBe('play');
+    expect(worldRuns('menu')).toBe(false);
     expect(nextScreen('play', 'hide')).toBe('paused');
     expect(nextScreen('paused', 'show')).toBe('play');
     // events that do not apply change nothing

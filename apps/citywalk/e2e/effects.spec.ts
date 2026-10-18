@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { newGame } from './start';
 
 // Pictures of each step of both skills from the side (charge, release, flight, impact, burst,
 // after), to compare with the creator's reference sheets.
@@ -8,7 +9,7 @@ test.use({ viewport: { width: 1100, height: 700 } });
 test('skill effects step by step, seen from the side', async ({ page }) => {
   test.setTimeout(120_000);
   await page.goto('./?debug=1');
-  await page.getByRole('button', { name: 'เริ่มเดิน' }).click();
+  await newGame(page);
   await page.waitForFunction(() => '__walk' in window);
   await js(page, 'window.__walk.pause(true)');
   await js(page, "window.__walk.setCamera('back')");

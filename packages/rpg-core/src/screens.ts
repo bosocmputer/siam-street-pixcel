@@ -1,13 +1,25 @@
 // Which screen the game is on, and what moves it to the next one.
 
-export type Screen = 'loading' | 'failed' | 'intro' | 'play' | 'paused';
-export type ScreenEvent = 'loaded' | 'loadFailed' | 'start' | 'hide' | 'show';
+export type Screen = 'loading' | 'failed' | 'intro' | 'create' | 'play' | 'menu' | 'paused';
+export type ScreenEvent =
+  | 'loaded'
+  | 'loadFailed'
+  | 'create'
+  | 'start'
+  | 'menu'
+  | 'close'
+  | 'hide'
+  | 'show';
 
 const NEXT: Partial<Record<Screen, Partial<Record<ScreenEvent, Screen>>>> = {
   loading: { loaded: 'intro', loadFailed: 'failed' },
-  intro: { start: 'play' },
+  // a new game makes the character first
+  intro: { start: 'play', create: 'create' },
+  create: { start: 'play' },
   // the game stops while the page is hidden (another app, a locked phone) and carries on after
-  play: { hide: 'paused' },
+  play: { hide: 'paused', menu: 'menu' },
+  // a window over the game (the status window) stops the world until it closes
+  menu: { close: 'play' },
   paused: { show: 'play' },
 };
 

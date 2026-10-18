@@ -3,8 +3,10 @@
 
 import { CAMERA_MODES, type CameraMode } from './camera';
 import { ITEMS, MAX_STACK, type Inventory } from './items';
+import { baseAttrs, validAttrs, type Attrs } from './attributes';
+import { validLook, type Look } from './look';
 
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 /** the view a save from before the camera setting comes back with */
 export const DEFAULT_CAMERA: CameraMode = 'shoulder';
 
@@ -20,6 +22,10 @@ export interface SaveData {
   stats: { level: number; exp: number; hp: number; energy: number };
   /** what the player carries, by item id (version 3 on) */
   items: Inventory;
+  /** the character made on the character screen; null before there was one (version 4 on) */
+  look: Look | null;
+  /** the five attributes (version 4 on) */
+  attrs: Attrs;
 }
 
 const MODES: MoveMode[] = ['walk', 'run', 'bike'];
@@ -37,7 +43,8 @@ const isObj = (v: unknown): v is Record<string, unknown> =>
  * Read a save back. Anything damaged, from a newer version of the game, or out of range gives
  * null, and the game starts fresh instead of breaking. An older save still reads: version 1
  * (before levels) comes back at level 1 with full health and energy (`fresh`), and anything
- * before version 3 comes back with an empty bag and the default camera. Items that are no longer
+ * before version 3 comes back with an empty bag and the default camera, and anything before
+ * version 4 with no character look and the starting attributes. Items that are no longer
  * in the game are dropped from the bag rather than spoiling the whole save.
  */
 export function decodeSave(
@@ -53,10 +60,12 @@ export function decodeSave(
   }
   if (
     !isObj(raw) ||
-    (raw.version !== 1 && raw.version !== 2 && raw.version !== 3) ||
+    !isNum(raw.version) ||
+    ![1, 2, 3, 4].includes(raw.version) ||
     !isNum(raw.savedAt)
   )
     return null;
+  const version = raw.version;
   const p = raw.player,
     s = raw.settings;
   if (!isObj(p) || !isObj(s)) return null;
@@ -68,7 +77,7 @@ export function decodeSave(
   if (typeof s.labels !== 'boolean' || typeof s.haze !== 'boolean') return null;
   let camera = DEFAULT_CAMERA;
   const items: Inventory = {};
-  if (raw.version === 3) {
+  if (version >= 3) {
     const c = CAMERA_MODES.find((m) => m === s.camera);
     if (!c) return null;
     camera = c;
@@ -79,7 +88,7 @@ export function decodeSave(
     }
   }
   let stats = fresh;
-  if (raw.version >= 2) {
+  if (version >= 2) {
     const t = raw.stats;
     if (!isObj(t) || !isNum(t.level) || !isNum(t.exp) || !isNum(t.hp) || !isNum(t.energy))
       return null;
@@ -87,6 +96,10 @@ export function decodeSave(
     if (t.exp < 0 || t.hp < 0 || t.energy < 0) return null;
     stats = { level: t.level, exp: t.exp, hp: t.hp, energy: t.energy };
   }
+  // a look or attributes that no longer fit (a choice was taken out of the game) fall back to
+  // none and the starting attributes, with the points free to spend again
+  const look = version >= 4 ? validLook(raw.look) : null;
+  const attrs = (version >= 4 && validAttrs(raw.attrs, stats.level)) || baseAttrs();
   return {
     version: SAVE_VERSION,
     savedAt: raw.savedAt,
@@ -94,5 +107,7 @@ export function decodeSave(
     settings: { mode, scale, labels: s.labels, haze: s.haze, camera },
     stats,
     items,
+    look,
+    attrs,
   };
 }
