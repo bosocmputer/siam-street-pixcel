@@ -28,6 +28,8 @@ export class Hud {
   private visited = new Set<string>();
   private toastTimer = 0;
   private holdUntil = 0;
+  /** called when a button on this panel is pressed (for a click sound) */
+  onTap: (() => void) | null = null;
   private v = new THREE.Vector3();
 
   constructor(
@@ -49,6 +51,7 @@ export class Hud {
       b.dataset.mode = m;
       b.addEventListener('click', () => {
         onMode(m);
+        this.onTap?.();
         b.blur(); // keep the keyboard for walking
       });
       this.modes.append(b);
@@ -62,6 +65,7 @@ export class Hud {
       b.addEventListener('click', () => {
         c.onClick();
         paint();
+        this.onTap?.();
         b.blur(); // keep the keyboard for walking
       });
       paint();

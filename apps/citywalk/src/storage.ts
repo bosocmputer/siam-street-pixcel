@@ -29,3 +29,42 @@ export function clearSave(): void {
     // nothing saved, nothing to clear
   }
 }
+
+const PREFS_KEY = 'citywalk.sound';
+
+export interface SoundPrefs {
+  muted: boolean;
+  volume: number;
+}
+
+export const DEFAULT_PREFS: SoundPrefs = { muted: false, volume: 0.7 };
+
+/** Sound settings belong to this device, not to the game save, so "start again" keeps them. */
+export function readPrefs(): SoundPrefs {
+  try {
+    const raw: unknown = JSON.parse(localStorage.getItem(PREFS_KEY) ?? 'null');
+    if (typeof raw === 'object' && raw !== null) {
+      const o = raw as Record<string, unknown>;
+      const volume = o.volume;
+      if (
+        typeof o.muted === 'boolean' &&
+        typeof volume === 'number' &&
+        Number.isFinite(volume) &&
+        volume >= 0 &&
+        volume <= 1
+      )
+        return { muted: o.muted, volume };
+    }
+  } catch {
+    // nothing stored, or storage is blocked
+  }
+  return { ...DEFAULT_PREFS };
+}
+
+export function writePrefs(p: SoundPrefs): void {
+  try {
+    localStorage.setItem(PREFS_KEY, JSON.stringify(p));
+  } catch {
+    // the setting just does not stick
+  }
+}

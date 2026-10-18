@@ -1,4 +1,5 @@
 export * from './actions';
+export * from './audioMath';
 export * from './camera';
 export * from './clock';
 export * from './config';
@@ -11,6 +12,7 @@ export * from './save';
 export * from './screens';
 export * from './skills';
 export * from './slimeBrain';
+export * from './sounds';
 export * from './spawns';
 export * from './glb';
 export * from './stats';

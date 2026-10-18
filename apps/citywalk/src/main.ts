@@ -6,9 +6,11 @@ import {
   ITEMS,
   PLAYER,
   SAVE_VERSION,
+  SOUNDS,
   SPAWNS,
   addItem,
   advance,
+  advanceSteps,
   countOf,
   gainExp,
   hurt,
@@ -17,12 +19,16 @@ import {
   maxHp,
   monster,
   newClock,
+  newCombo,
+  newStepClock,
   newStats,
+  nextCombo,
   nextScreen,
   rigFor,
   sideMetres,
   seeded,
   skill,
+  sound as soundRecipe,
   spend,
   stepStats,
   worldRuns,
@@ -36,6 +42,10 @@ import {
   type Vec3,
 } from '@newgame/rpg-core';
 import { loadAssets, missingClips } from './assets';
+import { Sound } from './audio/engine';
+import { openLab } from './audio/soundLab';
+import { renderSound } from './audio/synth';
+import { stats as soundStats } from './audio/analyze';
 import { Collider } from './collide';
 import { Combat } from './combat';
 import { Fx } from './fx';
@@ -47,7 +57,7 @@ import { Minimap } from './minimap';
 import { buildPlaza } from './plaza';
 import { PickupField } from './pickups';
 import { SlimeHerd, loadSlime, type SlimeTemplate } from './slime';
-import { clearSave, readSave, writeSave } from './storage';
+import { clearSave, readPrefs, readSave, writePrefs, writeSave } from './storage';
 import { TH } from './th';
 import type { Landmark, WorldData } from './types';
 import { CombatHud } from './ui/combatHud';
@@ -183,7 +193,19 @@ async function start(): Promise<void> {
   const bag: Inventory = {};
   // the player's health, energy and level
   const stats: PlayerStats = newStats();
-  const combat = herd ? new Combat(fx, herd, collider, city, () => stats.level) : null;
+  // sound: nothing plays until the first tap (phones insist); then it follows the player's settings
+  const prefs = readPrefs();
+  const sound = new Sound(prefs);
+  const combat = herd
+    ? new Combat(
+        fx,
+        herd,
+        collider,
+        city,
+        () => stats.level,
+        (id, o) => sound.play(id, o),
+      )
+    : null;
   scene.add(city);
   const walker = makeWalker();
   scene.add(walker.body);
@@ -245,6 +267,16 @@ async function start(): Promise<void> {
       },
     },
     {
+      id: 'sound',
+      label: TH.sound,
+      value: () => (sound.muted ? TH.off : TH.on),
+      onClick: () => {
+        sound.unlock();
+        sound.setMuted(!sound.muted);
+        writePrefs({ muted: sound.muted, volume: sound.volume });
+      },
+    },
+    {
       id: 'camera',
       label: TH.camera,
       value: () => TH.cameraModes[state.camera] ?? state.camera,
@@ -254,6 +286,7 @@ async function start(): Promise<void> {
       },
     },
   ]);
+  hud.onTap = () => sound.play('ui.click');
   const combatHud = combat
     ? new CombatHud(hud.root, SLOTS, (i) => input.trigger(i === 0 ? 'skill1' : 'skill2'))
     : null;
@@ -411,6 +444,7 @@ async function start(): Promise<void> {
     if (!combat || stats.down > 0 || combat.gathering || (combat.cooldowns[id] ?? 0) > 0) return;
     if (!spend(stats, skill(id).cost)) {
       combatHud?.refuse(id);
+      sound.play('ui.deny');
       hud.say(TH.noEnergy, true);
       return;
     }
@@ -460,6 +494,7 @@ async function start(): Promise<void> {
       fx.playerHit([state.x - (dx / d) * 0.3, 1.1 / s, state.z - (dz / d) * 0.3]);
       playerHud.hurt();
       shake = Math.max(shake, 0.18);
+      sound.play(result === 'down' ? 'player.down' : 'player.hurt');
       if (result === 'down') {
         hud.say(TH.down, true);
         if (combat) combat.target = null;
@@ -469,6 +504,7 @@ async function start(): Promise<void> {
       // back on their feet at the rest point in front of the gate, nothing lost
       Object.assign(state, { x: startX, z: startZ, yaw: startYaw, heading: startYaw });
       walker.body.rotation.y = startYaw;
+      sound.play('player.up');
       hud.say(TH.up, true);
     }
     combatHud?.age(dt);
@@ -476,13 +512,18 @@ async function start(): Promise<void> {
       freeze = Math.max(freeze, h.element === 'fire' ? 0.08 : 0.04);
       shake = Math.max(shake, h.element === 'fire' ? 0.22 : 0.09);
       combatHud?.hit(h);
+      // a hit on a weakness rings out; a hit on something that resists falls dull
+      if (h.takes > 1) sound.play('hit.weak');
+      else if (h.takes < 1) sound.play('hit.resist');
       if (!h.defeated) continue;
       const kind = monster(h.species);
       // it melts and leaves its drops lying round the puddle
-      pickups.drop(kind.drops, { x: h.at[0], z: h.at[2] }, (x, z, dx, dz) =>
+      const dropped = pickups.drop(kind.drops, { x: h.at[0], z: h.at[2] }, (x, z, dx, dz) =>
         collider.move(x, z, dx, dz, 0.2),
       );
+      if (dropped.length > 0) sound.play('item.drop', { at: { x: h.at[0], z: h.at[2] } });
       if (gainExp(stats, kind.exp) > 0) {
+        sound.play('player.levelup');
         hud.say(TH.levelUp(stats.level), true);
         fx.levelUp([state.x, 0, state.z], GROUND);
         save();
@@ -495,7 +536,12 @@ async function start(): Promise<void> {
       const name = TH.items[p.item] ?? p.item;
       hud.say(TH.picked(name, put, countOf(bag, p.item)));
       fx.glint([p.x, 0.8, p.z], ITEMS[p.item]!.color);
+      // picking things up one after another climbs in pitch
+      sound.play('item.pickup', { pitch: nextCombo(combo, performance.now() / 1000) });
     }
+    // what the slimes did this step (landed, noticed us, struck, got hurt, melted, grew back)
+    for (const e of herd?.takeSounds() ?? [])
+      sound.play(e.id, { at: { x: e.x, z: e.z }, pitch: e.pitch });
   };
   const effects = (dt: number) => fx.update(dt, camera, canvas.height, state.scale);
 
@@ -524,6 +570,8 @@ async function start(): Promise<void> {
     }
   };
 
+  const combo = newCombo();
+  const stepClock = newStepClock();
   /** one fixed step of the game: walking, then the world */
   let walked = 0;
   const simStep = (dt: number): number => {
@@ -531,6 +579,9 @@ async function start(): Promise<void> {
     const { forward, right } = stats.down > 0 ? { forward: 0, right: 0 } : input.read();
     step(dt, forward, right);
     if (forward !== 0 || right !== 0) walked += dt;
+    // footsteps keep the beat of walking, running or riding
+    for (let n = advanceSteps(stepClock, dt, forward !== 0 || right !== 0, state.mode); n > 0; n--)
+      sound.play(`step.${state.mode}`);
     if (combat?.gathering) {
       // keep facing the target while the ball is gathered
       const [fx, fz] = throwDir();
@@ -588,6 +639,7 @@ async function start(): Promise<void> {
       ].map((e) => e.getBoundingClientRect());
       hud.landmarks(state, state.scale, state.labels, camera, covered, screen === 'play');
       minimap.draw(state.x, state.z, state.heading, state.labels, herd?.dots());
+      sound.hear(state.x, state.z, state.yaw);
       if (combat && herd) combatHud?.draw(combat, herd, screenOf, stats.energy);
       playerHud.draw(stats);
     } catch (err) {
@@ -612,6 +664,8 @@ async function start(): Promise<void> {
   // stop while the page is hidden, and save on the way out
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) save();
+    if (document.hidden) sound.suspend();
+    else sound.resume();
     go(document.hidden ? 'hide' : 'show');
   });
   window.addEventListener('pagehide', () => save());
@@ -628,10 +682,12 @@ async function start(): Promise<void> {
   goButton.textContent = saved ? TH.resume : TH.start;
   newButton.hidden = !saved;
   goButton.addEventListener('click', () => {
+    sound.unlock();
     go('start');
     hud.say(lapText());
   });
   newButton.addEventListener('click', () => {
+    sound.unlock();
     clearSave();
     Object.assign(stats, newStats());
     for (const id of Object.keys(bag)) delete bag[id];
@@ -640,6 +696,23 @@ async function start(): Promise<void> {
     go('start');
     hud.say(lapText());
   });
+  // the listening page, over the intro card
+  const labButton = $('#intro-lab');
+  const showLab = () => {
+    intro.hidden = true;
+    openLab(sound, {
+      unlock: () => sound.unlock(),
+      onChange: () => {
+        writePrefs({ muted: sound.muted, volume: sound.volume });
+        hud.paintChips();
+      },
+      onClose: () => (intro.hidden = screen !== 'intro'),
+    });
+  };
+  labButton.addEventListener('click', showLab);
+  if (location.hash === '#sounds') showLab();
+  // sound can only start from a tap; the buttons above do it, and this catches any other first tap
+  window.addEventListener('pointerdown', () => sound.unlock(), { once: true });
   requestAnimationFrame(frame);
 
   if (DEBUG) {
@@ -681,6 +754,19 @@ async function start(): Promise<void> {
       cast: (id: string) => castSkill(id),
       inventory: () => ({ ...bag }),
       grant: (id: string, n: number) => addItem(bag, id, n),
+      sound: {
+        ready: () => sound.ready,
+        muted: () => sound.muted,
+        ids: () => Object.keys(SOUNDS),
+        log: () => [...sound.log],
+        clear: () => (sound.log.length = 0),
+        /** how a sound comes out when made without playing it: loudness, length, clipping */
+        measure: async (id: string, stretch = 1) => {
+          const spec = soundRecipe(id);
+          const buf = await renderSound(spec, { stretch }, () => 0.5);
+          return { ...soundStats(buf.getChannelData(0), buf.sampleRate), recipe: spec.length };
+        },
+      },
       pickups: () =>
         pickups.all.map((p) => ({ item: p.item, count: p.count, x: p.x, z: p.z, age: p.age })),
       setCamera: (m: CameraMode) => (state.camera = m),
@@ -713,6 +799,7 @@ function setupText(): void {
   $('#intro-touch').textContent = TH.howTouch;
   $('#intro-go').textContent = TH.start;
   $('#intro-new').textContent = TH.restart;
+  $('#intro-lab').textContent = TH.lab.link;
 }
 
 setupText();

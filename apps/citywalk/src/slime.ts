@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import {
+  airborne,
   damage,
   hittable,
   newBrain,
@@ -120,6 +121,9 @@ interface Slime {
   skins: THREE.MeshStandardMaterial[];
   flash: number;
   flashColor: THREE.Color;
+  /** for sounds: was it in the air last step, and what was it doing */
+  air: boolean;
+  lastMode: SlimeMode;
   /** push-back still to travel, metres per second */
   knock: [number, number];
 }
@@ -152,6 +156,15 @@ function ownSkins(root: THREE.Object3D, tint: number | null): THREE.MeshStandard
   return [...copies.values()];
 }
 
+/** Something a slime did that makes a noise, and where. */
+export interface SlimeSound {
+  id: string;
+  x: number;
+  z: number;
+  /** a big slime sounds lower, a small one higher */
+  pitch: number;
+}
+
 /** Where one slime lives and what kind it is. */
 export interface SlimeHome {
   spec: MonsterSpec;
@@ -164,6 +177,7 @@ export class SlimeHerd {
   object = new THREE.Group();
   private slimes: Slime[] = [];
   private world: BrainWorld;
+  private noises: SlimeSound[] = [];
   readonly height: number;
 
   constructor(
@@ -200,6 +214,8 @@ export class SlimeHerd {
         skins: ownSkins(root, spec.tint),
         flash: 0,
         flashColor: new THREE.Color(),
+        air: false,
+        lastMode: brain.mode,
         knock: [0, 0],
       };
       mixer.addEventListener('finished', (e) => this.settle(slime, e.action));
@@ -247,6 +263,8 @@ export class SlimeHerd {
         const [hx, hz] = s.brain.home;
         Object.assign(s.brain, newBrain(hx, hz, 1, s.spec), { heading: s.brain.heading });
         s.root.visible = true;
+        s.lastMode = s.brain.mode;
+        this.noise(s, 'slime.respawn');
       }
       if (changed === 'gone') s.root.visible = false;
       if (v.life === 'alive') {
@@ -266,6 +284,7 @@ export class SlimeHerd {
         const k = Math.max(0, 1 - dt * 8);
         s.knock = [s.knock[0] * k, s.knock[1] * k];
       }
+      this.sounds(s);
       this.play(s, s.brain.mode);
       s.root.position.set(s.brain.x, 0, s.brain.z);
       this.shape(s);
@@ -279,6 +298,42 @@ export class SlimeHerd {
       s.mixer.update(dt);
     }
     return blows;
+  }
+
+  /** Note a noise slime `s` makes: lower for a big one, higher for a small one. */
+  private noise(s: Slime, id: string, pitch = 1): void {
+    this.noises.push({
+      id,
+      x: s.brain.x,
+      z: s.brain.z,
+      pitch: pitch * Math.pow(s.spec.scale, -0.6),
+    });
+  }
+
+  /** Noises from what the slime did this step: landing a hop, noticing, threatening, striking. */
+  private sounds(s: Slime): void {
+    const b = s.brain;
+    if (s.vitals.life !== 'alive') {
+      s.air = false;
+      return;
+    }
+    const air = (b.mode === 'hop' || b.mode === 'chase') && airborne(b.phase);
+    if (s.air && !air) this.noise(s, 'slime.hop');
+    s.air = air;
+    if (b.mode !== s.lastMode) {
+      // noticing the walker, and a lower, threatening one when it squares up to attack
+      if (b.mode === 'watch' && s.lastMode !== 'lunge') this.noise(s, 'slime.watch');
+      if (b.mode === 'lunge') this.noise(s, 'slime.watch', 0.8);
+      s.lastMode = b.mode;
+    }
+    if (b.struck) this.noise(s, 'slime.attack');
+  }
+
+  /** The noises made since the last call, to hand to the sound system. */
+  takeSounds(): SlimeSound[] {
+    const out = this.noises;
+    this.noises = [];
+    return out;
   }
 
   /** Squash when hit, flatten into a puddle when beaten, pop back up when growing again. */
@@ -369,6 +424,8 @@ export class SlimeHerd {
     s.brain.target = null;
     provoke(s.brain); // it fights back now
     s.playing = null; // replay the squish
+    s.lastMode = 'watch'; // already looking at them: not a new "noticed" sound
+    this.noise(s, result === 'defeated' ? 'slime.melt' : 'slime.hurt');
     s.flash = FLASH;
     s.flashColor.setHex(color);
     return result;

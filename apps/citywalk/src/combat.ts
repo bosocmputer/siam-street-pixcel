@@ -84,6 +84,8 @@ export class Combat {
     parent: THREE.Object3D,
     /** the player's level, which makes skills hit harder */
     private level: () => number,
+    /** tells the sound system what just happened (a skill being gathered, released, landing) */
+    private say: (id: string, o?: { gain?: number; fit?: number }) => void = () => undefined,
   ) {
     // a dashed ring under the chosen slime and a small arrow over it
     const c = document.createElement('canvas');
@@ -148,6 +150,8 @@ export class Combat {
     const orb = this.fx.orb(spec.element);
     this.fx.addOrb(orb);
     this.charging = { skill: spec, hand, heading: player.heading, orb, t: 0 };
+    // the build-up sound lasts exactly as long as the ball takes to gather
+    this.say(`${spec.element}.gather`, { fit: spec.charge });
     return true;
   }
 
@@ -188,6 +192,7 @@ export class Combat {
             HIT_COLOR[spec.element],
           );
           this.fx.impact(spec.element, s.pos, GROUND, s.dir);
+          this.say(`${spec.element}.impact`);
           hits.push(this.hitEvent(spec, hit, amount, result, s.pos));
           this.burst(s, hit, hits);
           return this.land(f);
@@ -198,11 +203,13 @@ export class Combat {
         if (s.pos[1] < 0.1 || this.collider.solid(s.pos[0], s.pos[2]) || atAim) {
           const low = s.pos[1] < 1.5;
           this.fx.impact(s.skill.element, s.pos, GROUND, s.dir, !low);
+          this.say(`${s.skill.element}.impact`, { gain: low ? 0.8 : 0.4 });
           if (low) this.burst(s, null, hits);
           return this.land(f);
         }
         if (spent(s)) {
           this.fx.impact(s.skill.element, s.pos, GROUND, s.dir, true);
+          this.say(`${s.skill.element}.impact`, { gain: 0.3 });
           return this.land(f);
         }
       }
@@ -230,6 +237,7 @@ export class Combat {
     if (t < 1) return;
     const shot = launch(spec, at, c.heading, aim, this.target);
     this.fx.release(spec.element, at, shot.dir);
+    this.say(`${spec.element}.release`);
     this.flying.push({ shot, orb: c.orb, aim, time: 0 });
     this.charging = null;
   }
