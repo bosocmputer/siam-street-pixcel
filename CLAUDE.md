@@ -16,6 +16,7 @@ SLIME HOOD (`apps/web`, `packages/game-core`) หยุดไว้แล้ว 
 - model 3D ส่งมาเป็น .glb อย่างเดียว (ผู้สร้างปั้นด้วย Gemini/โปรแกรมปั้นโมเดล หรือผู้พัฒนาสร้างด้วยโค้ดใน `apps/citywalk/tools/character/`) ท่าทางตัวละครเขียนในโค้ด (`src/hero.ts`) model มีแค่ข้อต่อ จุดเสียบ และชิ้นส่วน ชุดแต่ละชิ้นแยกไฟล์ โมเดลที่ชื่อกระดูกไม่ตรง rig ใช้ได้ผ่าน `joints`/`restFix` ใน assets.json (ดู `newgame/prompts/character_import.md`)
 - ตัวละครต้องตรง `config/rig.json` ตรวจด้วย `pnpm --filter @newgame/rpg-core check-model <file.glb>` ถ้าแก้ rig ให้สร้างภาพสเปกใหม่ด้วย `python3 newgame/tools/character_spec.py`
 - เอกสารหลักของเกมนี้: `newgame/gdd.md` (Chiang Mai Awakening / ตื่นเชียงใหม่ GDD v2.2)
+- ออกแบบละเอียด: `newgame/asset_list.md` (โมเดล ของ ภาพ) · `newgame/vfx_sound.md` (เอฟเฟกต์ เสียง สีที่มีความหมาย) · `newgame/systems_design.md` (ทุกระบบ ตัวเลขเริ่มต้น ลำดับทำ) ทำงานใหม่ให้ตรงเอกสารเหล่านี้ และอัปเดตสถานะในเอกสารเมื่อทำเสร็จ
 - ค่าสถานะ: เลือด + พลัง (เกจ) + เลเวล + 5 ค่า (`config/attributes.json`) · หน้าตาตัวละครเลือกในเกม (`config/appearance.json`) · มอนสู้กลับเบา ๆ แพ้แล้วฟื้นที่จุดพัก ไม่มีบทลงโทษ
 - หน้าจอที่ผู้สร้างอนุมัติแล้ว: หน้าสร้างตัวละคร และหน้าต่างค่าสถานะ (18 ต.ค. 2569) · ข้อความบนจอสั้น ใช้ภาพและไอคอนแทนคำอธิบาย ไม่ใส่สิ่งที่ไม่จำเป็น
 - เซฟเก็บในเครื่องก่อน (`apps/citywalk/src/storage.ts`) ถ้าวันหลังออนไลน์ เซิร์ฟเวอร์ต้องเป็นผู้ตัดสินผล
