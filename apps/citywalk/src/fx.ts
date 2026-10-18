@@ -210,6 +210,179 @@ function stainTexture(): THREE.Texture {
   return new THREE.CanvasTexture(c);
 }
 
+const canvasOf = (w: number, h = w): [HTMLCanvasElement, CanvasRenderingContext2D] => {
+  const c = document.createElement('canvas');
+  c.width = w;
+  c.height = h;
+  return [c, c.getContext('2d')!];
+};
+
+/**
+ * The swirl seen inside a flying ball (the reference sheets show a spiral, not a plain glow):
+ * fire is a hot yellow-white heart with orange arms, water a clear blue ball with white arms.
+ */
+function swirlTexture(kind: Element): THREE.Texture {
+  const n = 128,
+    m = n / 2;
+  const [c, g] = canvasOf(n);
+  const grad = g.createRadialGradient(m, m, 0, m, m, m);
+  if (kind === 'fire') {
+    grad.addColorStop(0, '#fffbe6');
+    grad.addColorStop(0.28, '#ffd34d');
+    grad.addColorStop(0.68, '#ff8a1e');
+    grad.addColorStop(0.92, 'rgba(216,56,15,0.7)');
+    grad.addColorStop(1, 'rgba(216,56,15,0)');
+  } else {
+    grad.addColorStop(0, 'rgba(242,253,255,0.95)');
+    grad.addColorStop(0.45, 'rgba(140,220,248,0.7)');
+    grad.addColorStop(0.85, 'rgba(46,150,222,0.65)');
+    grad.addColorStop(1, 'rgba(46,150,222,0)');
+  }
+  g.fillStyle = grad;
+  g.fillRect(0, 0, n, n);
+  // spiral arms, thick near the middle and thin at the rim
+  const arms = kind === 'fire' ? 4 : 3;
+  const strokes: [string, number, number][] =
+    kind === 'fire'
+      ? [
+          ['rgba(196,52,10,0.55)', 0.35, 1],
+          ['rgba(255,246,216,0.95)', 0, 0.7],
+        ]
+      : [
+          ['rgba(24,96,180,0.5)', 0.3, 1],
+          ['rgba(255,255,255,0.95)', 0, 0.75],
+        ];
+  g.lineCap = 'round';
+  for (const [color, shift, width] of strokes) {
+    g.strokeStyle = color;
+    for (let a = 0; a < arms; a++) {
+      const base = (a / arms) * Math.PI * 2 + shift;
+      let px = m,
+        py = m;
+      for (let r = 3; r < m * 0.9; r += 2) {
+        const ang = base + (r / m) * 3;
+        const x = m + Math.cos(ang) * r,
+          y = m + Math.sin(ang) * r;
+        g.lineWidth = Math.max(0.8, 7 * (1 - r / m) * width);
+        g.beginPath();
+        g.moveTo(px, py);
+        g.lineTo(x, y);
+        g.stroke();
+        px = x;
+        py = y;
+      }
+    }
+  }
+  return new THREE.CanvasTexture(c);
+}
+
+/** Thin spikes of light around the hand while fire gathers. */
+function raysTexture(): THREE.Texture {
+  const n = 128,
+    m = n / 2;
+  const [c, g] = canvasOf(n);
+  for (let i = 0; i < 16; i++) {
+    const a = (i / 16) * Math.PI * 2 + (i % 2) * 0.1;
+    const len = m * (i % 2 ? 0.55 : 0.95);
+    const w = 0.07;
+    const grad = g.createLinearGradient(m, m, m + Math.cos(a) * len, m + Math.sin(a) * len);
+    grad.addColorStop(0, 'rgba(255,255,255,0.95)');
+    grad.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = grad;
+    g.beginPath();
+    g.moveTo(m + Math.cos(a - w) * 6, m + Math.sin(a - w) * 6);
+    g.lineTo(m + Math.cos(a) * len, m + Math.sin(a) * len);
+    g.lineTo(m + Math.cos(a + w) * 6, m + Math.sin(a + w) * 6);
+    g.fill();
+  }
+  const core = g.createRadialGradient(m, m, 0, m, m, m * 0.35);
+  core.addColorStop(0, 'rgba(255,255,255,1)');
+  core.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = core;
+  g.fillRect(0, 0, n, n);
+  return new THREE.CanvasTexture(c);
+}
+
+/** The shape of a comet tail: as wide as the ball at the head, tapering to a point. */
+function tailMask(): THREE.Texture {
+  const w = 64,
+    h = 256;
+  const [c, g] = canvasOf(w, h);
+  const img = g.createImageData(w, h);
+  for (let y = 0; y < h; y++) {
+    const t = y / (h - 1); // 0 at the head, 1 at the tip
+    const half = 0.5 * Math.pow(1 - t, 0.75) * Math.min(1, 0.7 + t * 6);
+    const fade = Math.pow(1 - t, 0.6) * Math.min(1, t * 10 + 0.5);
+    for (let x = 0; x < w; x++) {
+      const u = Math.abs(x / (w - 1) - 0.5);
+      const edge = half > 0 ? Math.max(0, 1 - Math.pow(u / half, 3.5)) : 0;
+      const v = Math.round(255 * edge * fade);
+      const i = (y * w + x) * 4;
+      img.data[i] = img.data[i + 1] = img.data[i + 2] = v;
+      img.data[i + 3] = 255;
+    }
+  }
+  g.putImageData(img, 0, 0);
+  return new THREE.CanvasTexture(c);
+}
+
+/** Streaks running along a tail; the texture scrolls so they rush backwards. */
+function streakTexture(): THREE.Texture {
+  const w = 64,
+    h = 64;
+  const [c, g] = canvasOf(w, h);
+  const img = g.createImageData(w, h);
+  const lane = Array.from({ length: w }, () => 0.55 + Math.random() * 0.45);
+  const phase = Array.from({ length: w }, () => Math.random() * Math.PI * 2);
+  for (let y = 0; y < h; y++)
+    for (let x = 0; x < w; x++) {
+      const k = lane[x]! * (0.75 + 0.25 * Math.sin((y / h) * Math.PI * 2 + phase[x]!));
+      const v = Math.round(255 * k);
+      const i = (y * w + x) * 4;
+      img.data[i] = img.data[i + 1] = img.data[i + 2] = v;
+      img.data[i + 3] = 255;
+    }
+  g.putImageData(img, 0, 0);
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  return t;
+}
+
+/** Cracks spreading through the paving from where a fireball hit. */
+function crackTexture(): THREE.Texture {
+  const n = 256,
+    m = n / 2;
+  const [c, g] = canvasOf(n);
+  const scorch = g.createRadialGradient(m, m, 0, m, m, m * 0.5);
+  scorch.addColorStop(0, 'rgba(255,255,255,0.75)');
+  scorch.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = scorch;
+  g.fillRect(0, 0, n, n);
+  g.strokeStyle = 'rgba(255,255,255,0.95)';
+  g.lineCap = 'round';
+  const crack = (x: number, y: number, a: number, len: number, width: number) => {
+    for (let s = 0; s < len; s += 6) {
+      a += (Math.random() - 0.5) * 0.7;
+      const nx = x + Math.cos(a) * 6,
+        ny = y + Math.sin(a) * 6;
+      g.lineWidth = Math.max(0.8, width * (1 - s / len));
+      g.beginPath();
+      g.moveTo(x, y);
+      g.lineTo(nx, ny);
+      g.stroke();
+      x = nx;
+      y = ny;
+      if (Math.random() < 0.08 && width > 1.5)
+        crack(x, y, a + (Math.random() - 0.5) * 1.6, (len - s) * 0.5, width * 0.5);
+    }
+  };
+  for (let i = 0; i < 9; i++) {
+    const a = (i / 9) * Math.PI * 2 + Math.random() * 0.4;
+    crack(m + Math.cos(a) * 10, m + Math.sin(a) * 10, a, m * (0.55 + Math.random() * 0.35), 5);
+  }
+  return new THREE.CanvasTexture(c);
+}
+
 /** The thing that flies: a ball of flame for fire, a bubble that stretches into a spear for water. */
 export interface Orb {
   object: THREE.Object3D;
@@ -277,6 +450,11 @@ const SMOKE: [number, number] = [0x3d3330, 0x9a958f];
 
 const Z_AXIS = new THREE.Vector3(0, 0, 1);
 const tmp = new THREE.Vector3();
+const tx = new THREE.Vector3(),
+  ty = new THREE.Vector3(),
+  tz = new THREE.Vector3(),
+  tp = new THREE.Vector3();
+const basis = new THREE.Matrix4();
 
 const add = (a: Vec3, b: Vec3, k = 1): Vec3 => [a[0] + b[0] * k, a[1] + b[1] * k, a[2] + b[2] * k];
 const cross = (a: Vec3, b: Vec3): Vec3 => [
@@ -325,9 +503,42 @@ export class Fx {
     depthWrite: false,
   });
   private shine = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  private swirl = { fire: swirlTexture('fire'), water: swirlTexture('water') };
+  private rays = raysTexture();
+  private streaks = streakTexture();
+  /** a flat strip from 0 to 1 along z, lying in x-z; turned to face the camera around its length */
+  private tailGeo = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2).translate(0, 0, 0.5);
+  private tails: Record<Element, [THREE.MeshBasicMaterial, THREE.MeshBasicMaterial]>;
+  /** where the camera is, in this group's own metres, so tails can turn to face it */
+  private eye = new THREE.Vector3(0, 50, 0);
+  private cracks: Stain[] = [];
 
   constructor() {
     this.object.name = 'Effects';
+    const mask = tailMask();
+    const tail = (color: number, opacity: number, blending: THREE.Blending) =>
+      new THREE.MeshBasicMaterial({
+        color,
+        map: this.streaks,
+        alphaMap: mask,
+        transparent: true,
+        opacity,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+        blending,
+      });
+    // the body of each tail covers what is behind (bright colours wash out on the light paving),
+    // and a thinner bright line runs down its middle
+    this.tails = {
+      fire: [
+        tail(FIRE.flame, 0.92, THREE.NormalBlending),
+        tail(FIRE.yellow, 0.9, THREE.AdditiveBlending),
+      ],
+      water: [
+        tail(WATER.light, 0.75, THREE.NormalBlending),
+        tail(WATER.white, 0.75, THREE.AdditiveBlending),
+      ],
+    };
     this.bright = new Particles(1600, THREE.AdditiveBlending, this.uniforms);
     this.solid = new Particles(1400, THREE.NormalBlending, this.uniforms);
     this.object.add(this.solid.points, this.bright.points);
@@ -369,16 +580,34 @@ export class Fx {
       this.object.add(mesh);
       this.stains.push({ mesh, age: 1, life: 1, alpha: 1 });
     }
+    const crackTex = crackTexture();
+    for (let i = 0; i < 4; i++) {
+      const mesh = new THREE.Mesh(
+        stainGeo,
+        new THREE.MeshBasicMaterial({
+          map: crackTex,
+          transparent: true,
+          depthWrite: false,
+          polygonOffset: true,
+          polygonOffsetFactor: -5,
+          polygonOffsetUnits: -5,
+        }),
+      );
+      mesh.visible = false;
+      this.object.add(mesh);
+      this.cracks.push({ mesh, age: 1, life: 1, alpha: 1 });
+    }
   }
 
   private sprite(
     color: number,
     opacity: number,
     blending: THREE.Blending = THREE.AdditiveBlending,
+    map: THREE.Texture = this.glow,
   ): THREE.Sprite {
     const s = new THREE.Sprite(
       new THREE.SpriteMaterial({
-        map: this.glow,
+        map,
         color,
         opacity,
         transparent: true,
@@ -390,54 +619,100 @@ export class Fx {
     return s;
   }
 
+  /** A comet tail behind a ball: a wide body and a bright thin line down its middle. */
+  private tail(element: Element): THREE.Group {
+    const [bodyMat, coreMat] = this.tails[element];
+    const body = new THREE.Mesh(this.tailGeo, bodyMat);
+    const core = new THREE.Mesh(this.tailGeo, coreMat);
+    body.renderOrder = 3;
+    core.renderOrder = 4;
+    core.scale.set(0.4, 1, 0.65);
+    core.position.y = 0.001;
+    const g = new THREE.Group();
+    g.add(body, core);
+    g.visible = false;
+    return g;
+  }
+
+  /**
+   * Lay a tail out behind a ball heading along `dir`: `length` metres long, `width` wide, turned
+   * around its length so its flat side faces the camera.
+   */
+  private aimTail(tail: THREE.Group, at: Vec3, dir: Vec3, length: number, width: number): void {
+    const z = tz.set(-dir[0], -dir[1], -dir[2]).normalize();
+    const y = ty.copy(this.eye).sub(tp.set(...at));
+    y.addScaledVector(z, -y.dot(z));
+    if (y.lengthSq() < 1e-8) y.set(0, 1, 0);
+    y.normalize();
+    const x = tx.crossVectors(y, z);
+    tail.quaternion.setFromRotationMatrix(basis.makeBasis(x, y, z));
+    tail.scale.set(width, 1, length);
+    tail.visible = length > 0.02;
+  }
+
   /** Make the ball for a skill; add it to the scene with `addOrb`. */
   orb(element: Element): Orb {
     const g = new THREE.Group();
+    const tail = this.tail(element);
+    g.add(tail);
     if (element === 'fire') {
+      // a swirling ball of flame: dark-orange flames round it, a spiral of heat inside, a hot
+      // white heart, spikes of light while it gathers and a comet tail of flame once it flies
       const core = new THREE.Mesh(this.ballGeo, this.fireCore);
       const outer = this.sprite(FIRE.flame, 0.85, THREE.NormalBlending);
-      const inner = this.sprite(FIRE.yellow, 0.9);
-      g.add(outer, core, inner);
+      const swirl = this.sprite(0xffffff, 1, THREE.NormalBlending, this.swirl.fire);
+      const inner = this.sprite(FIRE.yellow, 0.75);
+      const rays = this.sprite(0xffe7a0, 0.9, THREE.AdditiveBlending, this.rays);
+      g.add(outer, swirl, core, inner, rays);
       return {
         object: g,
-        place: (p, _d, t, grow) => {
+        place: (p, d, t, grow, flying) => {
           g.position.set(...p);
           const f = 1 + Math.sin(t * 37) * 0.08 + Math.sin(t * 23) * 0.06;
-          core.scale.setScalar(0.2 * grow);
-          inner.scale.setScalar(0.8 * f * grow);
-          outer.scale.setScalar(1.35 * (2 - f) * grow);
+          core.scale.setScalar(0.12 * grow);
+          inner.scale.setScalar(0.5 * f * grow);
+          outer.scale.setScalar(1.3 * (2 - f) * grow);
+          swirl.scale.setScalar(0.95 * grow);
+          swirl.material.rotation = -t * 9;
+          rays.visible = !flying;
+          if (!flying) {
+            rays.scale.setScalar(1.7 * grow * f);
+            rays.material.rotation = t * 1.6;
+            rays.material.opacity = 0.9 * Math.min(1, grow * 1.5);
+          }
+          // the tail stretches out over the first moment of flight
+          this.aimTail(tail, p, d, flying ? 2.3 * Math.min(1, t / 0.15) : 0, 0.85);
         },
       };
     }
+    // a clear ball of water with a spiral turning inside it, and a thin tail of water once it flies
     const skin = new THREE.Mesh(this.ballGeo, this.waterSkin);
     const shine = new THREE.Mesh(this.ballGeo, this.shine);
+    const swirl = this.sprite(0xffffff, 0.95, THREE.NormalBlending, this.swirl.water);
     const halo = this.sprite(WATER.light, 0.35);
-    const body = new THREE.Group();
-    body.add(skin, shine);
-    g.add(body, halo);
+    // while gathering, a wide whirl of water turns round the hand
+    const whirl = this.sprite(0xffffff, 0.8, THREE.NormalBlending, this.swirl.water);
+    g.add(skin, swirl, shine, halo, whirl);
     return {
       object: g,
       place: (p, d, t, grow, flying) => {
         g.position.set(...p);
-        halo.scale.setScalar(1.1 * grow);
-        if (flying) {
-          // a short spear of water: long and thin along the way it flies
-          body.quaternion.setFromUnitVectors(Z_AXIS, tmp.set(...d));
-          const w = Math.sin(t * 40) * 0.05;
-          skin.scale.set(0.12 * (1 + w), 0.12 * (1 - w), 0.55);
-          skin.rotation.set(0, 0, 0);
-          shine.scale.setScalar(0.03);
-          shine.position.set(-0.04, 0.05, 0.25);
-          return;
-        }
-        // gathering: a spinning ball of water that swells as drops join it
-        body.quaternion.identity();
-        const w = Math.sin(t * 18) * 0.08;
-        const r = 0.24 * grow;
+        const w = Math.sin(t * (flying ? 40 : 18)) * 0.06;
+        const r = 0.27 * grow;
         skin.scale.set(r * (1 + w), r * (1 - w), r * (1 + w * 0.5));
         skin.rotation.y = t * 9;
-        shine.scale.setScalar(0.05 * grow);
-        shine.position.set(-0.08 * grow, 0.09 * grow, 0.08 * grow);
+        swirl.scale.setScalar(2.1 * r);
+        swirl.material.rotation = t * 12;
+        shine.scale.setScalar(0.045 * grow);
+        shine.position.set(-0.07 * grow, 0.08 * grow, 0.07 * grow);
+        halo.scale.setScalar(1.1 * grow);
+        whirl.visible = !flying;
+        if (!flying) {
+          whirl.scale.setScalar(1.5 * (1 - grow * 0.45));
+          whirl.material.rotation = t * 14;
+          whirl.material.opacity = 0.85 * (1 - grow * 0.6);
+        }
+        this.aimTail(tail, p, d, flying ? 2.8 * Math.min(1, t / 0.08) : 0, 0.42);
       },
     };
   }
@@ -604,8 +879,8 @@ export class Fx {
     const back: Vec3 = [-dir[0], -dir[1], -dir[2]];
     const along = (): Vec3 => add(p, back, rand(0, moved));
     if (element === 'fire') {
-      // the line of fire: dense small glows along the path, fading where the ball has been
-      for (let i = this.count(orb, 160, dt); i > 0; i--)
+      // the comet tail carries the shape; glows along the path keep a fast shot unbroken
+      for (let i = this.count(orb, 70, dt); i > 0; i--)
         this.bright.emit({
           pos: add(along(), anyway(), 0.05),
           vel: [rand(-0.2, 0.2), rand(0.2, 0.6), rand(-0.2, 0.2)],
@@ -614,7 +889,7 @@ export class Fx {
           color: [FIRE.yellow, FIRE.red],
           alpha: [0.75, 0],
         });
-      this.flames(orb.object, p, 0.3, add([0, 0, 0], back, 2), 110, dt);
+      this.flames(orb.object, p, 0.3, add([0, -0.6, 0], back, 3), 70, dt);
       for (let i = this.count(this.solid, 30, dt); i > 0; i--)
         this.solid.emit({
           pos: add(along(), anyway(), 0.15),
@@ -638,7 +913,7 @@ export class Fx {
       return;
     }
     // water: a thin wake of spray along the path, rings of air pushed aside, drops falling off
-    for (let i = this.count(orb, 140, dt); i > 0; i--)
+    for (let i = this.count(orb, 60, dt); i > 0; i--)
       this.bright.emit({
         pos: add(along(), anyway(), 0.04),
         life: rand(0.3, 0.45),
@@ -685,16 +960,16 @@ export class Fx {
         color: [FIRE.white, FIRE.yellow],
         alpha: [0.85, 0],
       });
-      // the fireball swells outwards, then rolls up as smoke
-      for (let i = 0; i < 34 * k; i++) {
+      // the fireball swells outwards into a wide dome of flame, then rolls up as smoke
+      for (let i = 0; i < 40 * k; i++) {
         const d = anyway(),
           s = rand(2.5, 6.5);
         this.solid.emit({
           pos: add(p, d, 0.2),
           vel: [d[0] * s, Math.abs(d[1]) * s * 0.7 + 0.8, d[2] * s],
-          life: rand(0.45, 0.8),
-          size: [rand(0.7, 1), rand(1.6, 2.2)],
-          color: [FIRE.orange, FIRE.ember],
+          life: rand(0.5, 0.85),
+          size: [rand(0.8, 1.1), rand(1.7, 2.3)],
+          color: i % 3 === 0 ? [FIRE.yellow, FIRE.red] : [FIRE.orange, FIRE.red],
           alpha: [0.95, 0],
           drag: 4.5,
         });
@@ -735,9 +1010,47 @@ export class Fx {
           alpha: [0.4, 0],
           drag: 1.2,
         });
+      // on impact the flames shoot straight up out of the ground ...
+      for (let i = 0; i < 26 * k; i++)
+        this.solid.emit({
+          pos: at(rand(0.05, 0.4)),
+          vel: [rand(-0.6, 0.6), rand(4, 8.5), rand(-0.6, 0.6)],
+          life: rand(0.35, 0.6),
+          size: [rand(0.45, 0.7), 0.12],
+          color: [FIRE.orange, FIRE.red],
+          alpha: [0.95, 0],
+          drag: 2.5,
+        });
+      for (let i = 0; i < 14 * k; i++)
+        this.bright.emit({
+          pos: at(rand(0.1, 0.5)),
+          vel: [rand(-0.4, 0.4), rand(5, 9), rand(-0.4, 0.4)],
+          life: rand(0.25, 0.4),
+          size: [0.5, 0.15],
+          color: [FIRE.white, FIRE.orange],
+          alpha: [0.9, 0],
+          drag: 2.5,
+        });
       if (small) return;
-      this.ring(at(0.09), 0xffb347, 0.3, 4.6, 0.42, 0, 0.9, THREE.AdditiveBlending);
-      this.ring(at(0.1), 0xff6a1a, 0.2, 3.2, 0.34, 0.06, 0.75, THREE.AdditiveBlending);
+      // ... and the blast throws bits of broken paving out across the ground
+      for (let i = 0; i < 18; i++) {
+        const a = rand(0, Math.PI * 2),
+          s = rand(2.5, 6.5);
+        this.solid.emit({
+          pos: at(0.15),
+          vel: [Math.cos(a) * s, rand(3, 6.5), Math.sin(a) * s],
+          life: rand(0.9, 1.4),
+          size: [rand(0.09, 0.17), rand(0.07, 0.12)],
+          color: [0x6a5e55, 0x3b332e],
+          alpha: [1, 0.9],
+          gravity: -15,
+          drag: 0.4,
+          shape: 1,
+        });
+      }
+      this.stain(at(0.057), 3.4, 0x1a120d, 0.85, 4.5, this.cracks);
+      this.ring(at(0.09), 0xffb347, 0.3, 4.6, 0.42, 0, 0.6, THREE.AdditiveBlending);
+      this.ring(at(0.1), 0xff6a1a, 0.2, 3.2, 0.34, 0.06, 0.6, THREE.AdditiveBlending);
       this.stain(at(0.055), 3.6, 0x2a1a12, 0.55, 4);
       // little fires keep burning on the ground around it for a moment
       for (let i = 0; i < 6; i++) {
@@ -754,15 +1067,15 @@ export class Fx {
     // water: bursts apart under pressure, most of it sprayed on in the way it was going
     this.bright.emit({
       pos: p,
-      life: 0.14,
-      size: [0.9, 2.8 * k],
+      life: 0.12,
+      size: [0.7, 1.8 * k],
       color: [WATER.white, WATER.light],
-      alpha: [0.85, 0],
+      alpha: [0.7, 0],
     });
-    for (let i = 0; i < 100 * k; i++) {
+    for (let i = 0; i < 55 * k; i++) {
       const d = anyway(),
-        s = rand(3, 9);
-      const v = add([d[0] * s, Math.abs(d[1]) * s * 0.8 + 1.5, d[2] * s], dir, rand(2, 7));
+        s = rand(3, 8);
+      const v = add([d[0] * s, Math.abs(d[1]) * s * 0.8 + 1.5, d[2] * s], dir, rand(1.5, 5));
       this.solid.emit({
         pos: add(p, d, 0.1),
         vel: v,
@@ -775,20 +1088,65 @@ export class Fx {
         shape: 1,
       });
     }
-    for (let i = 0; i < 16 * k; i++) {
+    for (let i = 0; i < 10 * k; i++) {
       const d = anyway();
       this.bright.emit({
         pos: add(p, d, 0.2),
         vel: add(add([0, 0.5, 0], d, rand(1.5, 3.5)), dir, 1.5),
-        life: rand(0.45, 0.8),
-        size: [0.6, 2.2],
+        life: rand(0.4, 0.7),
+        size: [0.4, 1.3],
         color: [WATER.light, WATER.deep],
-        alpha: [0.35, 0],
+        alpha: [0.25, 0],
         drag: 3,
       });
     }
-    this.airRing(p, dir, 0xeaf9ff, 0.2, 1.5 * k, 0.26, 0.5, THREE.NormalBlending);
+    this.airRing(p, dir, 0xeaf9ff, 0.2, 0.9 * k, 0.22, 0.35, THREE.NormalBlending);
     if (small) return;
+    // water shoots straight up in a spiky column where it hits ...
+    for (let i = 0; i < 45; i++) {
+      const a = rand(0, Math.PI * 2),
+        r = rand(0, 0.25);
+      this.solid.emit({
+        pos: [p[0] + Math.cos(a) * r, ground + rand(0.1, 0.6), p[2] + Math.sin(a) * r],
+        vel: [Math.cos(a) * rand(0.2, 1), rand(5, 10), Math.sin(a) * rand(0.2, 1)],
+        life: rand(0.6, 1),
+        size: [rand(0.09, 0.15), 0.05],
+        color: [WATER.white, WATER.light],
+        alpha: [0.95, 0.7],
+        gravity: -16,
+        drag: 0.6,
+        shape: 1,
+      });
+    }
+    for (let i = 0; i < 10; i++)
+      this.bright.emit({
+        pos: at(rand(0.2, 0.8)),
+        vel: [rand(-0.3, 0.3), rand(4, 7), rand(-0.3, 0.3)],
+        life: rand(0.25, 0.4),
+        size: [0.45, 0.2],
+        color: [WATER.white, WATER.light],
+        alpha: [0.6, 0],
+        drag: 3,
+      });
+    // ... then falls back into a wide crown of splash all round
+    for (let i = 0; i < 48; i++) {
+      const a = (i / 48) * Math.PI * 2 + rand(-0.05, 0.05),
+        r = rand(0.35, 0.55),
+        out = rand(2.2, 4);
+      this.solid.emit({
+        pos: [p[0] + Math.cos(a) * r, ground + 0.12, p[2] + Math.sin(a) * r],
+        vel: [Math.cos(a) * out, rand(3, 5.5), Math.sin(a) * out],
+        life: rand(0.55, 0.85),
+        size: [rand(0.08, 0.13), 0.05],
+        color: [WATER.light, WATER.blue],
+        alpha: [0.95, 0.6],
+        gravity: -14,
+        drag: 0.5,
+        shape: 1,
+      });
+    }
+    // a ring of pressure runs out along the ground
+    this.ring(at(0.085), 0x3fc2d8, 0.25, 3, 0.5, 0, 0.8, THREE.NormalBlending);
     for (let i = 0; i < 3; i++)
       this.ring(
         at(0.08),
@@ -919,8 +1277,15 @@ export class Fx {
     r.mesh.quaternion.setFromUnitVectors(Z_AXIS, tmp.set(...dir));
   }
 
-  private stain(p: Vec3, size: number, color: number, alpha: number, life: number): void {
-    const s = this.stains.reduce((a, b) => (b.age / b.life > a.age / a.life ? b : a));
+  private stain(
+    p: Vec3,
+    size: number,
+    color: number,
+    alpha: number,
+    life: number,
+    pool = this.stains,
+  ): void {
+    const s = pool.reduce((a, b) => (b.age / b.life > a.age / a.life ? b : a));
     s.mesh.position.set(...p);
     s.mesh.scale.set(size, 1, size);
     s.mesh.rotation.y = rand(0, Math.PI);
@@ -931,9 +1296,13 @@ export class Fx {
   /** Advance everything; `scale` is the city scale (the effects are drawn inside the city). */
   update(dt: number, camera: THREE.PerspectiveCamera, viewHeight: number, scale: number): number {
     this.uniforms.uPx.value = (viewHeight / (2 * Math.tan((camera.fov * Math.PI) / 360))) * scale;
+    camera.getWorldPosition(this.eye);
+    this.object.worldToLocal(this.eye);
+    // streaks rush back along every tail
+    this.streaks.offset.y = (this.streaks.offset.y + dt * 2.6) % 1;
     for (const r of this.rings) this.grow(r, dt, false);
     for (const r of this.airRings) this.grow(r, dt, true);
-    for (const s of this.stains) {
+    for (const s of [...this.stains, ...this.cracks]) {
       s.age += dt;
       const t = s.age / s.life;
       s.mesh.visible = t < 1;
