@@ -1,5 +1,5 @@
 {
-  "about": "Fighting with the strike and dash buttons (jobs.md section 1, systems_design.md section 5). Times in seconds, distances in metres. strike.hits: the three hits of the chain, each with its damage, how far it pushes the monster (knock), how long the swing lasts (time) and when in the swing the blow lands (impact). The next hit follows if strike is pressed within chainWindow after a swing ends (a press during a swing waits for it). reach: a monster this close is hit by the weapon; further away, up to wave.range, a wave flies at it instead. Every hit that lands gives energyOnHit. dash: pressed while moving, a quick dash of `distance` in `time`, not hurt for `safe`, then `cooldown`. guard: pressed while standing, held: blows lose `reduce` of their damage, costs energyPerSecond. perfect: a blow that arrives within `window` of starting a dash (assistWindow with combo help on) is dodged perfectly: time runs at slowRate for `slow` and the next strike is a counter, `multiplier` times as hard. dashStrike: a strike within `window` of a dash hits `multiplier` times as hard. combo: hits that land in a row; it ends when the player is hurt or nothing lands for resetAfter. Every `step` hits adds bonusPerStep, at most maxBonus; auto play counts to autoCap at most; ultimateAt fills the ultimate gauge. assist (combo help): chainWindow is this many times longer. crit: chance plus perDex for each DEX point above base, multiplier times as hard.",
+  "about": "Fighting with the strike and dash buttons (jobs.md section 1, systems_design.md section 5). Times in seconds, distances in metres. strike.hits: the three hits of the chain, each with its damage, how far it pushes the monster (knock), how long the swing lasts (time) and when in the swing the blow lands (impact). The next hit follows if strike is pressed within chainWindow after a swing ends (a press during a swing waits for it). Every hit that lands gives energyOnHit. weapons: what each weapon can do with the strike button (gdd.md section on roadside weapons); weapon is the one held now (equipment comes later). reach: a monster this close (to its edge) is hit; lunge: a target further away but this close is closed in on at lungeSpeed (metres a second) before the swing lands, stopping at stopAt of the reach; beyond that the swing hits only air. No weapon throws anything: shots at range come from skills. dash: pressed while moving, a quick dash of `distance` in `time`, not hurt for `safe`, then `cooldown`. guard: pressed while standing, held: blows lose `reduce` of their damage, costs energyPerSecond. perfect: a blow that arrives within `window` of starting a dash (assistWindow with combo help on) is dodged perfectly: time runs at slowRate for `slow` and the next strike is a counter, `multiplier` times as hard. dashStrike: a strike within `window` of a dash hits `multiplier` times as hard. combo: hits that land in a row; it ends when the player is hurt or nothing lands for resetAfter. Every `step` hits adds bonusPerStep, at most maxBonus; auto play counts to autoCap at most; ultimateAt fills the ultimate gauge. assist (combo help): chainWindow is this many times longer. crit: chance plus perDex for each DEX point above base, multiplier times as hard.",
   "strike": {
     "hits": [
       { "damage": 18, "knock": 0.35, "time": 0.3, "impact": 0.12 },
@@ -7,10 +7,12 @@
       { "damage": 30, "knock": 1.4, "time": 0.48, "impact": 0.2 }
     ],
     "chainWindow": 0.6,
-    "reach": 2.5,
-    "energyOnHit": 2,
-    "wave": { "range": 12, "damage": 12, "speed": 24, "knock": 0.3 }
+    "energyOnHit": 2
   },
+  "weapons": {
+    "pipe": { "reach": 1.8, "lunge": 6, "lungeSpeed": 16, "stopAt": 0.6 }
+  },
+  "weapon": "pipe",
   "dash": { "distance": 4, "time": 0.25, "safe": 0.2, "cooldown": 1.2 },
   "guard": { "reduce": 0.6, "energyPerSecond": 5 },
   "perfect": { "window": 0.25, "assistWindow": 0.5, "slow": 0.4, "slowRate": 0.3, "multiplier": 2 },

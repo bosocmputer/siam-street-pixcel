@@ -62,9 +62,6 @@ interface Flying {
   roar: { stop(): void; at(x: number, z: number): void };
 }
 
-/** a strike's wave in flight: how it flies, and how hard it hits */
-type Wave = typeof MELEE.strike.wave & { side: number; lift: number };
-
 /** what a swing needs from the player: where they are, how hard they hit */
 export interface Striker {
   x: number;
@@ -81,7 +78,7 @@ export interface Striker {
 }
 
 export interface HitEvent {
-  /** a skill id, or 'strike' and 'wave' for the strike button */
+  /** a skill id, or 'strike' for the strike button */
   skill: string;
   /** null for a strike, which has no element */
   element: Element | null;
@@ -102,13 +99,6 @@ export interface HitEvent {
   combo?: ComboName | null;
 }
 
-interface FlyingWave {
-  shot: Shot<Wave>;
-  aim: Vec3 | null;
-  hit: Omit<Striker, 'x' | 'z' | 'heading'>;
-  multiplier: number;
-}
-
 /** Targets, cooldowns and the shots in the air. */
 /** the target marker shows this long after the last strike, skill or choice of target */
 const MARK_FOR = 4;
@@ -127,7 +117,6 @@ export class Combat {
     this.chosen = i;
   }
   private flying: Flying[] = [];
-  private waves: FlyingWave[] = [];
   private charging: Charging | null = null;
   /** the ring and arrow over the chosen slime (drawn with the pixel effects) */
   readonly marker = new THREE.Group();
@@ -222,13 +211,12 @@ export class Combat {
   }
 
   /**
-   * A swing's blow lands. Every slime within reach in front of the player is hit; with none in
-   * reach, a wave flies at the target (or straight ahead) instead. Returns the hits made now
-   * (a wave's come from update when it lands) and whether a wave was sent.
+   * A swing's blow lands: every slime within the weapon's reach in front of the player is hit.
+   * With none in reach it hits only air (shots at range come from skills).
    */
-  strike(swing: Swing, p: Striker): { hits: HitEvent[]; wave: boolean } {
+  strike(swing: Swing, p: Striker): HitEvent[] {
     this.idle = 0;
-    const reach = MELEE.strike.reach;
+    const reach = MELEE.weapon.reach;
     const fx = Math.sin(p.heading),
       fz = Math.cos(p.heading);
     const hits: HitEvent[] = [];
@@ -251,51 +239,20 @@ export class Combat {
       const e = this.hitEvent(null, 'strike', i, amount, result, aim);
       hits.push({ ...e, crit, combo: swing.combo });
     });
-    if (hits.length > 0) return { hits, wave: false };
-    // nothing in reach: a wave at the target if it is close enough, or ahead
-    this.ensureTarget(p);
-    const aim = this.target !== null ? this.herd.aimPoint(this.target) : null;
-    const far = aim ? Math.hypot(aim[0] - p.x, aim[2] - p.z) : 0;
-    if (aim && far > MELEE.strike.wave.range) return { hits, wave: false };
-    const spec: Wave = { ...MELEE.strike.wave, side: 0, lift: 0 };
-    const from: Vec3 = [p.x + fx * 0.6, 1, p.z + fz * 0.6];
-    const shot = launch(spec, from, p.heading, aim, aim ? this.target : null);
-    const hit = { level: p.level, power: p.power, combo: p.combo, roll: p.roll, crit: p.crit };
-    this.waves.push({ shot, aim, hit, multiplier: swing.multiplier });
-    return { hits, wave: true };
+    return hits;
   }
 
-  /** Waves from the strike button in the air. */
-  private flyWaves(dt: number, hits: HitEvent[]): void {
-    this.waves = this.waves.filter((w) => {
-      const s = w.shot;
-      if (s.target !== null) w.aim = this.herd.aimPoint(s.target) ?? w.aim;
-      const steps = Math.max(1, Math.ceil((s.skill.speed * dt) / 0.25));
-      for (let n = 0; n < steps; n++) {
-        stepShot(s, dt / steps, w.aim);
-        const i = this.touching(s.pos);
-        if (i !== null) {
-          const crit = w.hit.roll() < w.hit.crit;
-          const amount = strikeDamage(s.skill.damage, { ...w.hit, multiplier: w.multiplier, crit });
-          const result = this.herd.hit(
-            i,
-            amount,
-            s.pos[0] - s.dir[0],
-            s.pos[2] - s.dir[2],
-            s.skill.knock,
-            0xffffff,
-          );
-          this.fx.strikeHit(s.pos, s.dir, crit);
-          this.say('melee.hit', { at: { x: s.pos[0], z: s.pos[2] } });
-          if (result !== 'ignored')
-            hits.push({ ...this.hitEvent(null, 'wave', i, amount, result, s.pos), crit });
-          return false;
-        }
-        if (spent(s) || this.collider.solid(s.pos[0], s.pos[2])) return false;
-      }
-      this.fx.waveTrail(s.pos, s.dir);
-      return true;
-    });
+  /**
+   * How far the chosen slime is from the player, metres to its edge; null with no target. Asked
+   * as a swing starts, so it counts as fighting (the target's marker shows).
+   */
+  targetGap(p: { x: number; z: number; heading: number }): number | null {
+    this.idle = 0;
+    this.ensureTarget(p);
+    if (this.target === null) return null;
+    const s = this.herd.state()[this.target];
+    if (!s?.alive) return null;
+    return Math.hypot(s.x - p.x, s.z - p.z) - this.herd.hitRadius(this.target, HIT_RADIUS);
   }
 
   /** Where the walker should face to throw at the target, or null with no target. */
@@ -314,7 +271,6 @@ export class Combat {
     tickCooldowns(this.cooldowns, dt);
     this.gather(dt);
     const hits: HitEvent[] = [];
-    this.flyWaves(dt, hits);
     this.flying = this.flying.filter((f) => {
       f.time += dt;
       const s = f.shot;
@@ -488,10 +444,5 @@ export class Combat {
   /** Shots being gathered or in the air, for tests. */
   get inFlight(): number {
     return this.flying.length + (this.charging ? 1 : 0);
-  }
-
-  /** Strike waves in the air, for tests. */
-  get wavesInFlight(): number {
-    return this.waves.length;
   }
 }

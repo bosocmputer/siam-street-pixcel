@@ -17,14 +17,28 @@ export interface HitSpec {
   impact: number;
 }
 
+/** What a weapon does with the strike button. */
+export interface WeaponSpec {
+  id: string;
+  /** metres to a monster's edge that a swing reaches */
+  reach: number;
+  /** a target further than the reach but within this is closed in on before the swing lands */
+  lunge: number;
+  /** metres a second while closing in */
+  lungeSpeed: number;
+  /** how far into the reach to stop, as a share of it (0..1) */
+  stopAt: number;
+}
+
 export interface MeleeSpec {
   strike: {
     hits: HitSpec[];
     chainWindow: number;
-    reach: number;
     energyOnHit: number;
-    wave: { range: number; damage: number; speed: number; knock: number };
   };
+  weapons: Record<string, WeaponSpec>;
+  /** the weapon held now */
+  weapon: WeaponSpec;
   dash: { distance: number; time: number; safe: number; cooldown: number };
   guard: { reduce: number; energyPerSecond: number };
   perfect: {
@@ -87,14 +101,31 @@ export function readMelee(raw: unknown): MeleeSpec {
   ]);
   if (combo.step < 1 || combo.ultimateAt < 1)
     throw new ConfigError('combat.combo: step and ultimateAt must be at least 1');
+  const weaponsRaw = part('weapons');
+  const weapons: Record<string, WeaponSpec> = {};
+  for (const id of Object.keys(weaponsRaw)) {
+    const w = `combat.weapons.${id}`;
+    const p = obj(weaponsRaw[id], w);
+    const weapon = {
+      id,
+      reach: num(p, 'reach', w, 0.1),
+      lunge: num(p, 'lunge', w),
+      lungeSpeed: num(p, 'lungeSpeed', w, 0.1),
+      stopAt: num(p, 'stopAt', w),
+    };
+    if (weapon.stopAt > 1) throw new ConfigError(`${w}.stopAt: a share of the reach, 0..1`);
+    weapons[id] = weapon;
+  }
+  const held = weapons[String(o.weapon)];
+  if (!held) throw new ConfigError(`combat.weapon: "${String(o.weapon)}" is not in weapons`);
   return {
     strike: {
       hits,
       chainWindow: num(strike, 'chainWindow', 'combat.strike'),
-      reach: num(strike, 'reach', 'combat.strike', 0.1),
       energyOnHit: num(strike, 'energyOnHit', 'combat.strike'),
-      wave: nums('wave', ['range', 'damage', 'speed', 'knock'], strike, 'combat.strike'),
     },
+    weapons,
+    weapon: held,
     dash,
     guard,
     perfect: nums('perfect', ['window', 'assistWindow', 'slow', 'slowRate', 'multiplier']),
@@ -345,7 +376,16 @@ export function critChance(dex: number, spec = MELEE, base = ATTR.base): number 
 }
 
 /**
- * Damage of a strike or wave: its base, a little more for each level above 1, the attributes'
+ * How far to close in on a target `gap` metres away (to its edge) before a swing lands: nothing
+ * when it is already in reach or too far to lunge at, else up to `stopAt` of the reach from it.
+ */
+export function lungeDistance(gap: number, w: WeaponSpec): number {
+  if (gap <= w.reach || gap > w.lunge) return 0;
+  return gap - w.reach * w.stopAt;
+}
+
+/**
+ * Damage of a strike: its base, a little more for each level above 1, the attributes'
  * power, the swing's multiplier, the combo bonus, how much the monster takes, and a critical hit.
  * Rounded to whole points, at least 1.
  */

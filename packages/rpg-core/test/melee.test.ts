@@ -7,6 +7,7 @@ import {
   critChance,
   dashSpeed,
   landHit,
+  lungeDistance,
   newFighter,
   pressDash,
   pressStrike,
@@ -46,7 +47,11 @@ describe('combat config', () => {
     expect(MELEE.strike.hits).toHaveLength(3);
     expect(h3.damage).toBeGreaterThan(h1.damage);
     expect(h3.knock).toBeGreaterThan(h1.knock);
-    expect(MELEE.strike.reach).toBe(2.5);
+    // the iron pipe from the roadside (gdd.md): 1.8 m, closing in on targets up to 6 m off
+    expect(MELEE.weapon.id).toBe('pipe');
+    expect(MELEE.weapon.reach).toBe(1.8);
+    expect(MELEE.weapon.lunge).toBe(6);
+    expect(MELEE.weapons.pipe).toBe(MELEE.weapon);
     expect(MELEE.strike.energyOnHit).toBe(2);
     expect(MELEE.dash.distance).toBe(4);
     expect(MELEE.guard.reduce).toBe(0.6);
@@ -70,7 +75,29 @@ describe('combat config', () => {
     expect(() => bad((c) => ({ ...c, combo: { ...c.combo, step: 0 } }))).toThrow(/at least 1/);
     expect(() => bad((c) => ({ ...c, crit: { ...c.crit, chance: -1 } }))).toThrow(ConfigError);
     expect(() => bad((c) => ({ ...c, perfect: 3 }))).toThrow(/object/);
+    expect(() => bad((c) => ({ ...c, weapon: 'umbrella' }))).toThrow(/umbrella/);
+    expect(() =>
+      bad((c) => ({ ...c, weapons: { pipe: { ...c.weapons.pipe, stopAt: 2 } } })),
+    ).toThrow(/stopAt/);
+    expect(() =>
+      bad((c) => ({ ...c, weapons: { pipe: { ...c.weapons.pipe, reach: 0 } } })),
+    ).toThrow(ConfigError);
     expect(() => readMelee(null)).toThrow(ConfigError);
+  });
+});
+
+describe('closing in on a target', () => {
+  const pipe = MELEE.weapon;
+  it('does not move when the target is in reach, or too far to lunge at', () => {
+    expect(lungeDistance(1, pipe)).toBe(0);
+    expect(lungeDistance(pipe.reach, pipe)).toBe(0);
+    expect(lungeDistance(pipe.lunge + 0.1, pipe)).toBe(0);
+  });
+  it('stops a little inside the reach, so the blow lands', () => {
+    const go = lungeDistance(4, pipe);
+    expect(go).toBeCloseTo(4 - pipe.reach * pipe.stopAt);
+    expect(4 - go).toBeLessThan(pipe.reach);
+    expect(lungeDistance(pipe.lunge, pipe)).toBeGreaterThan(0);
   });
 });
 

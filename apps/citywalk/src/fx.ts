@@ -1292,22 +1292,6 @@ export class Fx {
       });
   }
 
-  /** A strike's wave as it flies: a pale crescent across its path. */
-  waveTrail(p: Vec3, dir: Vec3): void {
-    const sx = -dir[2],
-      sz = dir[0];
-    for (let i = -3; i <= 3; i++) {
-      const back = (i * i) / 18;
-      this.bright.emit({
-        pos: [p[0] + sx * i * 0.16 - dir[0] * back, p[1], p[2] + sz * i * 0.16 - dir[2] * back],
-        life: 0.1,
-        size: [0.2, 0.08],
-        color: [0xffffff, 0x9fe0ff],
-        alpha: [0.9, 0],
-      });
-    }
-  }
-
   /** A blow meets the guard: a ring of light in front of the player and a few sparks. */
   guardBlock(p: Vec3, ground: number): void {
     this.ring([p[0], ground + 0.1, p[2]], 0x9fe0ff, 0.4, 1.3, 0.25, 0, 0.9, THREE.AdditiveBlending);

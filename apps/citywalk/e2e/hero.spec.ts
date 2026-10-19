@@ -22,11 +22,11 @@ async function open(page: Page) {
 async function checkPoses(page: Page, shot: string) {
   const head = (await joint(page, 'Head'))!;
   expect(head).not.toBeNull();
-  // standing 1.7 m tall on the square, arms hanging down
+  // standing 1.7 m tall on the square, the free arm hanging down, the pipe held low at the hip
   expect(head[1]).toBeGreaterThan(1.45);
   expect(head[1]).toBeLessThan(1.65);
   expect((await joint(page, 'Hand_L'))![1]).toBeLessThan(1.05);
-  expect((await joint(page, 'Hand_R'))![1]).toBeLessThan(1.05);
+  expect((await joint(page, 'Hand_R'))![1]).toBeLessThan(1.15);
   await page.screenshot({ path: `${SHOTS}/${shot}-stand.png` });
 
   // gathering a ball raises the left hand; the right keeps the pipe low
@@ -35,7 +35,7 @@ async function checkPoses(page: Page, shot: string) {
   await js(page, 'window.__walk.simulateFight(0.3)');
   await page.waitForTimeout(500);
   expect((await joint(page, 'Hand_L'))![1]).toBeGreaterThan(1.2);
-  expect((await joint(page, 'Hand_R'))![1]).toBeLessThan(1.05);
+  expect((await joint(page, 'Hand_R'))![1]).toBeLessThan(1.15);
   await page.screenshot({ path: `${SHOTS}/${shot}-cast.png` });
   await js(page, 'window.__walk.simulateFight(2)');
   await js(page, 'window.__walk.pause(false)');

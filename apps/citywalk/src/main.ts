@@ -26,6 +26,7 @@ import {
   gait,
   hurt,
   landHit,
+  lungeDistance,
   followYaw,
   lockYaw,
   maxEnergy,
@@ -370,9 +371,9 @@ async function start(): Promise<void> {
       return null;
     }
   };
-  /** A person built from a look as a 3D model: in pixel 3D, chibi and shaded in flat bands. */
-  const modelOf = (l: Look): Walker =>
-    makeHero(heroFromLook(l), px ? { proportions: SPRITES.hero.proportions, toon: true } : {});
+  /** A person built from a look as a 3D model: in pixel 3D, shaded in flat bands (life-size
+   * proportions, as the creator chose on 19 Oct 2569; only flat sprites are drawn chibi). */
+  const modelOf = (l: Look): Walker => makeHero(heroFromLook(l), { toon: px > 0 });
   const bodyFor = (l: Look, drawn: SpriteSheet | null): Walker => {
     if (sheets.hero) return makeSpriteHero(sheets.hero);
     if (heroTemplate) return makeHero(heroTemplate, { toon: px > 0 });
@@ -819,7 +820,7 @@ async function start(): Promise<void> {
     if (!aim) return;
     const dx = aim[0] - state.x,
       dz = aim[2] - state.z;
-    if (Math.hypot(dx, dz) > MELEE.strike.wave.range) return;
+    if (Math.hypot(dx, dz) > MELEE.weapon.lunge + 1) return;
     state.heading = Math.atan2(-dx, -dz);
     walker.body.rotation.y = state.heading;
   };
@@ -834,19 +835,42 @@ async function start(): Promise<void> {
       sound.play('player.levelup');
     }
   };
-  /** a swing starts: face the target and swish */
+  /** metres still to close in on the target before the swing lands (the weapon's lunge) */
+  let lunge = 0;
+  /** a swing starts: close in on the target if it is a few steps off, face it, swish */
   const swingStarted = (sw: Swing) => {
     faceTarget();
+    const gap = combat?.targetGap({ x: state.x, z: state.z, heading: lookHeading() }) ?? null;
+    lunge = gap === null || state.riding ? 0 : lungeDistance(gap, MELEE.weapon);
     sound.play(sw.step === MELEE.strike.hits.length ? 'melee.heavy' : 'melee.swing');
   };
-  /** a swing's blow lands: hit what is in reach, or send a wave */
+  /** one step of closing in: straight at the target until there, or until something is in the way */
+  const closeIn = (dt: number) => {
+    const aim = combat?.facing();
+    if (!aim || stats.down > 0) {
+      lunge = 0;
+      return;
+    }
+    const dx = aim[0] - state.x,
+      dz = aim[2] - state.z;
+    const len = Math.hypot(dx, dz) || 1;
+    const d = Math.min(lunge, MELEE.weapon.lungeSpeed * dt);
+    const [x, z] = collider.move(state.x, state.z, (dx / len) * d, (dz / len) * d, RADIUS);
+    const moved = Math.hypot(x - state.x, z - state.z);
+    [state.x, state.z] = [x, z];
+    state.heading = Math.atan2(-dx, -dz);
+    walker.body.rotation.y = state.heading;
+    lunge = moved < d * 0.5 ? 0 : Math.max(0, lunge - moved);
+    fx.dashDust([state.x, 0, state.z], GROUND, [dx / len, 0, dz / len]);
+  };
+  /** a swing's blow lands: hit what is in the weapon's reach */
   const swingLanded = (sw: Swing) => {
     if (!combat) return;
     faceTarget();
     const heading = facingHeading();
     const strong = sw.combo !== null;
     fx.slash([state.x, 0, state.z], heading, sw.step, strong);
-    const res = combat.strike(sw, {
+    const hits = combat.strike(sw, {
       x: state.x,
       z: state.z,
       heading,
@@ -856,10 +880,10 @@ async function start(): Promise<void> {
       roll: critDice,
       crit: critChance(stats.attrs.dex),
     });
-    if (res.hits.length > 0 && sw.combo) announceCombo(sw.combo);
-    landed(res.hits);
+    if (hits.length > 0 && sw.combo) announceCombo(sw.combo);
+    landed(hits);
   };
-  /** hits by the strike, its waves or a skill: numbers, combo, energy, a heavy feel, drops */
+  /** hits by the strike or a skill: numbers, combo, energy, a heavy feel, drops */
   const landed = (hits: HitEvent[]) => {
     for (const h of hits) {
       // the first strike that lands is what the hint was waiting for
@@ -1113,6 +1137,8 @@ async function start(): Promise<void> {
   };
   /** what the body shows: a swing, a dash or a guard */
   const actNow = () => {
+    // closing in on the target shows as running; the swing follows on arrival
+    if (lunge > 0) return null;
     if (fighter.swing)
       return {
         kind: `strike${fighter.swing.step}` as ActKind,
@@ -1136,7 +1162,8 @@ async function start(): Promise<void> {
     if (fighter.guarding && (moving || !input.isDown('dash') || stats.down > 0))
       releaseGuard(fighter);
     const s = state.scale;
-    if (fighter.dash > 0 && !held) {
+    if (lunge > 0 && !held) closeIn(dt);
+    else if (fighter.dash > 0 && !held) {
       // a dash goes straight, faster than running
       const d = (dashSpeed() * dt) / s;
       [state.x, state.z] = collider.move(state.x, state.z, dashDir[0] * d, dashDir[1] * d, RADIUS);
@@ -1147,8 +1174,9 @@ async function start(): Promise<void> {
       for (let n = advanceSteps(stepClock, dt, moving, state.mode); n > 0; n--)
         sound.play(`step.${state.mode}`);
     }
-    // the strike's clocks wait while a test holds the world still (it steps them itself)
-    const f = held ? null : stepFighter(fighter, dt);
+    // the strike's clocks wait while a test holds the world still (it steps them itself), and
+    // while closing in on the target
+    const f = held || lunge > 0 ? null : stepFighter(fighter, dt);
     if (f && f.drain > 0 && !spend(stats, f.drain)) releaseGuard(fighter);
     if (f?.started) swingStarted(f.started);
     if (f?.landed) swingLanded(f.landed);
@@ -1302,7 +1330,7 @@ async function start(): Promise<void> {
     },
     defaultLook('m'),
     () => sound.play('ui.click'),
-    art !== '3d',
+    art === 'pixel',
   );
   document.body.append(creator.root);
   // a new game starts with the three opening pictures, then the character screen
@@ -1406,9 +1434,12 @@ async function start(): Promise<void> {
       /** run the strike's clocks and the fight for a number of seconds, in 1/60 s steps */
       simulateStrike: (seconds: number) => {
         for (let t = 0; t < seconds; t += 1 / 60) {
-          const f = stepFighter(fighter, 1 / 60);
-          if (f.started) swingStarted(f.started);
-          if (f.landed) swingLanded(f.landed);
+          if (lunge > 0) closeIn(1 / 60);
+          else {
+            const f = stepFighter(fighter, 1 / 60);
+            if (f.started) swingStarted(f.started);
+            if (f.landed) swingLanded(f.landed);
+          }
           fight(1 / 60);
           effects(1 / 60);
         }
@@ -1520,7 +1551,7 @@ async function start(): Promise<void> {
               target: combat.target,
               cooldowns: { ...combat.cooldowns },
               inFlight: combat.inFlight,
-              waves: combat.wavesInFlight,
+              lunge,
               marked: combat.marker.visible,
             }
           : null,

@@ -1,8 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
 import { newGame } from './start';
 
-// The strike button and what goes with it (jobs.md section 1): three hits in a chain, a wave at
-// a slime out of reach, dash and guard, the perfect dodge, and the combo count.
+// The strike button and what goes with it (jobs.md section 1): three hits in a chain with the
+// iron pipe, closing in on a slime a few steps off (no shots at range: those come from skills),
+// dash and guard, the perfect dodge, and the combo count.
 
 const SHOTS = process.env.SHOTS_DIR ?? 'test-results/shots';
 
@@ -70,15 +71,32 @@ test('three strikes in a row hit the slime, the third hard, and the combo is fou
   await page.screenshot({ path: `${SHOTS}/strike-chain.png` });
 });
 
-test('a slime out of reach gets a wave instead', async ({ page }) => {
+test('a slime a few steps off: the player closes in and the pipe lands; too far, it hits air', async ({
+  page,
+}) => {
   await open(page);
-  await standNear(page, 1, 8);
+  await standNear(page, 1, 4);
+  const start = await js<{ x: number; z: number }>(page, 'window.__walk.state()');
   const before = (await slimes(page))[1]!.hp;
   await js(page, 'window.__walk.strike()');
-  await js(page, 'window.__walk.simulateStrike(0.15)');
-  expect((await js<{ waves: number }>(page, 'window.__walk.combat()')).waves).toBe(1);
-  await js(page, 'window.__walk.simulateStrike(1)');
+  await js(page, 'window.__walk.simulateStrike(0.05)');
+  expect((await js<{ lunge: number }>(page, 'window.__walk.combat()')).lunge).toBeGreaterThan(0);
+  await js(page, 'window.__walk.simulateStrike(0.8)');
+  const end = await js<{ x: number; z: number }>(page, 'window.__walk.state()');
+  expect(Math.hypot(end.x - start.x, end.z - start.z)).toBeGreaterThan(1.5);
   expect((await slimes(page))[1]!.hp).toBeLessThan(before);
+  await page.screenshot({ path: `${SHOTS}/strike-lunge.png` });
+
+  // beyond the lunge the swing stays where it is and nothing flies
+  await js(page, 'window.__walk.simulateStrike(1)');
+  await standNear(page, 1, 10);
+  const far = await js<{ x: number; z: number }>(page, 'window.__walk.state()');
+  const hp = (await slimes(page))[1]!.hp;
+  await js(page, 'window.__walk.strike()');
+  await js(page, 'window.__walk.simulateStrike(0.8)');
+  const still = await js<{ x: number; z: number }>(page, 'window.__walk.state()');
+  expect(Math.hypot(still.x - far.x, still.z - far.z)).toBeLessThan(0.2);
+  expect((await slimes(page))[1]!.hp).toBe(hp);
 });
 
 test('dash, guard, the perfect dodge and its counter', async ({ page }) => {
