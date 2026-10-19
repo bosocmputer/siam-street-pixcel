@@ -12,7 +12,7 @@ export interface SpriteSheet {
   pages: THREE.Texture[];
 }
 
-function pixelTexture(t: THREE.Texture): THREE.Texture {
+export function pixelTexture(t: THREE.Texture): THREE.Texture {
   t.magFilter = THREE.NearestFilter;
   t.minFilter = THREE.NearestFilter;
   t.generateMipmaps = false;

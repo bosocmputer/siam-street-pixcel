@@ -81,7 +81,8 @@ import { buildWorld, gateTowers } from './world';
 import { artMode, breathe } from './sprites/art';
 import { bakeHero } from './sprites/heroSprites';
 import { bakeMonster } from './sprites/monsterSprites';
-import { loadSheet, sheetFromBaked, type SpriteSheet } from './sprites/sheet';
+import { loadSheet, type SpriteSheet } from './sprites/sheet';
+import { cachedSheet, fromCache, signature } from './sprites/cache';
 import { makeSpriteHero } from './sprites/spriteHero';
 import { PixelPass } from './sprites/pixelPass';
 import './style.css';
@@ -185,7 +186,15 @@ async function start(): Promise<void> {
       if (sheets[id] || !t) continue;
       await breathe();
       try {
-        sheets[id] = sheetFromBaked(bakeMonster(t, spec));
+        // kept in the browser: drawn again only when the species, the model or the game changes
+        const sig = signature(
+          id,
+          JSON.stringify(spec),
+          JSON.stringify(SPRITES),
+          assets.models.get(spec.model),
+          import.meta.url,
+        );
+        sheets[id] = await cachedSheet(id, sig, () => bakeMonster(t, spec));
       } catch (err) {
         console.error(`${id} could not be drawn as a sprite:`, err);
       }
@@ -279,15 +288,25 @@ async function start(): Promise<void> {
   const saved = readSave();
   // the character as made on the character screen (an older save without one gets the default)
   let look: Look = saved?.look ?? defaultLook('m');
-  const bodyFor = (l: Look): Walker => {
+  /** the player's sprite sheet for a look, drawn or kept from last time (null: use the 3D body) */
+  const heroSheet = async (l: Look): Promise<SpriteSheet | null> => {
+    if (art !== 'pixel' || sheets.hero || heroTemplate) return null;
+    try {
+      const sig = signature(
+        JSON.stringify({ ...l, name: '' }),
+        JSON.stringify(SPRITES),
+        import.meta.url,
+      );
+      return await cachedSheet('hero', sig, () => bakeHero(l));
+    } catch (err) {
+      console.error('the character could not be drawn as a sprite:', err);
+      return null;
+    }
+  };
+  const bodyFor = (l: Look, drawn: SpriteSheet | null): Walker => {
     if (sheets.hero) return makeSpriteHero(sheets.hero);
     if (heroTemplate) return makeHero(heroTemplate);
-    if (art === 'pixel')
-      try {
-        return makeSpriteHero(sheetFromBaked(bakeHero(l)));
-      } catch (err) {
-        console.error('the character could not be drawn as a sprite:', err);
-      }
+    if (drawn) return makeSpriteHero(drawn);
     try {
       return makeHero(heroFromLook(l));
     } catch (err) {
@@ -295,14 +314,14 @@ async function start(): Promise<void> {
       return makeWalker();
     }
   };
-  let walker = bodyFor(look);
+  let walker = bodyFor(look, await heroSheet(look));
   scene.add(walker.body);
   /** put on a new look: the body is rebuilt where the old one stood */
-  const setLook = (l: Look) => {
+  const setLook = async (l: Look) => {
     look = l;
     // a body from a file does not change with the look
     if (heroTemplate || sheets.hero) return;
-    const next = bodyFor(l);
+    const next = bodyFor(l, await heroSheet(l));
     next.body.position.copy(walker.body.position);
     next.body.rotation.copy(walker.body.rotation);
     next.bike.visible = walker.bike.visible;
@@ -864,8 +883,9 @@ async function start(): Promise<void> {
   newButton.hidden = !saved;
   // a new game makes the character first; the system then speaks, and the walk begins
   const creator = new Creator(
-    (l) => {
-      setLook(l);
+    async (l) => {
+      // the new body (drawn now, or kept from before) is ready before the walk starts
+      await setLook(l);
       go('start');
       hud.say(lapText());
       save();
@@ -991,6 +1011,7 @@ async function start(): Promise<void> {
         heroSprite: !!walker.draw,
         anim: walker.showing?.() ?? null,
         sheets: Object.keys(sheets),
+        cached: [...fromCache],
       }),
       /** pixel sheets drawn from the models, as pictures (to look at while tuning them) */
       bakePreview: async () => {

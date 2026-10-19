@@ -163,7 +163,8 @@ export function readSheetMeta(
         `${where}: picture ${page} is ${im.width}x${im.height} but the frames need ${a.frames * frame[0]}x${(row + dirs) * frame[1]}`,
       );
   }
-  if (!anims.idle) throw new ConfigError(`${w}.anims: idle is missing`);
+  // a character's standing pose is 'idle'; a monster's keeps its model's clip name, 'Idle'
+  if (!anims.idle && !anims.Idle) throw new ConfigError(`${w}.anims: idle is missing`);
   return { frame, anchor, ppm: num(o, 'ppm', w, 1), dirs, anims };
 }
 

@@ -6,7 +6,13 @@ import { newGame } from './start';
 // read from packed sheet files (tools/sprites/pack.py).
 
 const SHOTS = process.env.SHOTS_DIR ?? 'test-results/shots';
-type Art = { mode: string; heroSprite: boolean; anim: string | null; sheets: string[] };
+type Art = {
+  mode: string;
+  heroSprite: boolean;
+  anim: string | null;
+  sheets: string[];
+  cached: string[];
+};
 const js = <T>(page: Page, code: string) => page.evaluate(code) as Promise<T>;
 const art = (page: Page) => js<Art>(page, 'window.__walk.art()');
 
@@ -140,4 +146,36 @@ test('?art=3d brings back the 3D bodies and is remembered', async ({ page }) => 
   await page.waitForTimeout(400);
   await page.screenshot({ path: `${SHOTS}/3d-start.png` });
   expect(await page.evaluate(() => localStorage.getItem('citywalk.art'))).toBe('3d');
+});
+
+test('sprites drawn once are kept, so the next start does not draw them again', async ({
+  page,
+}) => {
+  await open(page);
+  expect((await art(page)).cached).toEqual([]);
+  // the pictures are kept in the background after drawing
+  await expect
+    .poll(
+      () =>
+        page.evaluate(
+          () =>
+            new Promise<number>((ok) => {
+              const req = indexedDB.open('citywalk-sprites');
+              req.onsuccess = () => {
+                const all = req.result.transaction('sheets').objectStore('sheets').getAllKeys();
+                all.onsuccess = () => ok(all.result.length);
+              };
+            }),
+        ),
+      { timeout: 30_000 },
+    )
+    .toBe(6);
+  await page.reload();
+  await page.getByRole('button', { name: 'เดินต่อจากเดิม' }).click({ timeout: 120_000 });
+  await page.waitForFunction(() => '__walk' in window);
+  const kept = (await art(page)).cached.sort();
+  expect(kept).toEqual(
+    ['boss_tide_regent', 'hero', 'slime_fire', 'slime_giant', 'slime_mini', 'slime_water'].sort(),
+  );
+  expect((await art(page)).heroSprite).toBe(true);
 });

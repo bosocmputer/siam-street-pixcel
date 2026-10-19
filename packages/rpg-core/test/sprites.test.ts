@@ -74,6 +74,8 @@ describe('sheet layout', () => {
     ).toBe(1);
     expect(() => readSheetMeta(split, [{ width: 256, height: 512 }])).toThrow(/no picture 1/);
     expect(() => readSheetMeta({ ...meta, anims: { walk: meta.anims.walk } })).toThrow(/idle/);
+    // a monster's sheet uses its model's clip names
+    expect(readSheetMeta({ ...meta, anims: { Idle: meta.anims.walk } }).anims.Idle).toBeDefined();
     expect(() => readSheetMeta({ ...meta, dirs: 6 })).toThrow(/5 or 8/);
   });
 });
