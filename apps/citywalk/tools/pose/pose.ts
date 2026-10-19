@@ -1,6 +1,7 @@
 // A page for working on the hero's moves (not part of the game): ?anims=walk,run draws the pixel
 // sheet rows for those animations; add &mode=3d for smooth renders from five sides instead
-// (&n= frames). The screenshot tool in this folder captures it.
+// (&n= frames, &views=0,90 degrees round the body, &elev= radians down, &size= pixels, &grid=0,
+// &bg=0xrrggbb). The screenshot tool in this folder captures it.
 
 import * as THREE from 'three';
 import { SPRITES, defaultLook } from '@newgame/rpg-core';
@@ -21,16 +22,17 @@ const label = (text: string) => {
 
 if (q.get('mode') === '3d') {
   const n = Number(q.get('n') ?? 6);
-  const size = 200;
-  const views = [0, 45, 90, 135, 180];
+  const size = Number(q.get('size') ?? 200);
+  const views = (q.get('views') ?? '0,45,90,135,180').split(',').map(Number);
+  const elevation = Number(q.get('elev') ?? SPRITES.elevation);
   const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
   renderer.setSize(size * n, size * views.length);
   renderer.setClearColor(0x39404f);
   renderer.setScissorTest(true);
   const scene = new THREE.Scene();
   scene.add(new THREE.AmbientLight(0xffffff, 1.2), new THREE.DirectionalLight(0xffffff, 2));
-  const grid = new THREE.GridHelper(4, 8, 0x667, 0x556);
-  scene.add(grid);
+  if (q.get('grid') !== '0') scene.add(new THREE.GridHelper(4, 8, 0x667, 0x556));
+  if (q.get('bg')) renderer.setClearColor(Number(q.get('bg')));
   const w = makeHero(
     { scene: buildLook(look).root, entry: { id: 'hero', file: '' } },
     { outline: true, shadow: true, proportions: SPRITES.hero.proportions },
@@ -46,9 +48,20 @@ if (q.get('mode') === '3d') {
     for (let i = 0; i < n; i++) {
       const loops = SPRITES.hero.anims[anim]?.loop ?? false;
       w.posed(anim, loops ? i / n : n === 1 ? 0 : (i + 0.5) / n);
+      if (q.get('dbg')) {
+        const pipe = w.body.getObjectByName('Weapon_Pipe')!;
+        console.log(
+          anim,
+          i,
+          pipe.quaternion
+            .toArray()
+            .map((v) => v.toFixed(2))
+            .join(','),
+        );
+      }
       views.forEach((deg, r) => {
         const a = (deg * Math.PI) / 180;
-        cam.position.set(Math.sin(a) * 5, 0.95 + 5 * Math.tan(SPRITES.elevation), Math.cos(a) * 5);
+        cam.position.set(Math.sin(a) * 5, 0.95 + 5 * Math.tan(elevation), Math.cos(a) * 5);
         cam.lookAt(0, 0.95, 0);
         const y = (views.length - 1 - r) * size;
         renderer.setViewport(i * size, y, size, size);

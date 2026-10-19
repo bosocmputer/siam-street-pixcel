@@ -287,9 +287,11 @@ export function makeHero(t: HeroTemplate, opts: HeroOptions = {}): Hero {
   const holdPipe = (turn: Turn | undefined, seat: number) => {
     if (!grip || !pipe.parent) return;
     pipe.visible = seat < 0.5;
-    holder.updateMatrixWorld(true);
+    // the fist's place brings its parents (the holder and the body) up to date first, so both
+    // are read from the same frame even when the body has just moved or turned
+    grip.getWorldPosition(fist);
     holdInv.copy(holder.matrixWorld).invert();
-    pipe.position.copy(grip.getWorldPosition(fist).applyMatrix4(holdInv));
+    pipe.position.copy(fist.applyMatrix4(holdInv));
     const [x, y, z] = turn ?? [0, 0, 0];
     aim.setFromEuler(tmpE.set(x, y, z, 'YXZ'));
     pipe.quaternion.copy(model.quaternion).multiply(aim);

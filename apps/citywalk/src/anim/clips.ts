@@ -165,26 +165,27 @@ export const IDLE: Clip = {
   ],
 };
 
-/** a walk's legs and body over one step; the arms swing over the whole cycle */
+/** a walk's legs and body over one step (upright, as in the reference); the arms swing over the
+ * whole cycle */
 const WALK_LEGS = gait([
   {
     t: 0,
     pose: {
       Hips: [0, -8, 0],
-      Spine: [6, 10, 0],
-      Neck: [-4, -4, 0],
+      Spine: [2, 7, 0],
+      Neck: [-1, -4, 0],
       UpperLeg_L: [-26, 0, 2],
       LowerLeg_L: [6, 0, 0],
-      UpperLeg_R: [20, 0, -2],
-      LowerLeg_R: [20, 0, 0],
+      UpperLeg_R: [18, 0, -2],
+      LowerLeg_R: [14, 0, 0],
     },
   },
   {
     t: 0.125,
     pose: {
       Hips: [0, -5, 0],
-      Spine: [7, 6, 0],
-      Neck: [-4, -2, 0],
+      Spine: [2, 4, 0],
+      Neck: [-1, -2, 0],
       UpperLeg_L: [-16, 0, 2],
       LowerLeg_L: [22, 0, 0],
       UpperLeg_R: [26, 0, -2],
@@ -195,20 +196,20 @@ const WALK_LEGS = gait([
     t: 0.25,
     pose: {
       Hips: [0, 0, 0],
-      Spine: [6, 0, 0],
-      Neck: [-4, 0, 0],
+      Spine: [2, 0, 0],
+      Neck: [-1, 0, 0],
       UpperLeg_L: [0, 0, 2],
       LowerLeg_L: [8, 0, 0],
       UpperLeg_R: [-14, 0, -2],
-      LowerLeg_R: [62, 0, 0],
+      LowerLeg_R: [48, 0, 0],
     },
   },
   {
     t: 0.375,
     pose: {
       Hips: [0, 5, 0],
-      Spine: [5, -6, 0],
-      Neck: [-4, 2, 0],
+      Spine: [2, -4, 0],
+      Neck: [-1, 2, 0],
       UpperLeg_L: [14, 0, 2],
       LowerLeg_L: [4, 0, 0],
       UpperLeg_R: [-28, 0, -2],
@@ -217,29 +218,31 @@ const WALK_LEGS = gait([
   },
 ]);
 
+// from the Flow reference walk (newgame/prompts/motion_reference.md ref_01): the pipe hand stays
+// by the hip, elbow soft; the pipe points ahead, tipping down as the hand swings forward
 const WALK_ARMS: Clip = {
   loop: true,
   keys: [
     {
       t: 0,
       pose: {
-        UpperArm_L: [22, 0, 7],
-        LowerArm_L: [-14, 0, 0],
-        UpperArm_R: [-24, 0, -10],
-        LowerArm_R: [-56, 0, 0],
+        UpperArm_L: [18, 0, 6],
+        LowerArm_L: [-12, 0, 0],
+        UpperArm_R: [-12, 0, -7],
+        LowerArm_R: [-26, 0, 0],
         Hand_R: [10, 0, 0],
-        Pipe: [26, -10, 0],
+        Pipe: [34, -6, 0],
       },
     },
     {
       t: 0.5,
       pose: {
-        UpperArm_L: [-22, 0, 7],
+        UpperArm_L: [-20, 0, 6],
         LowerArm_L: [-30, 0, 0],
-        UpperArm_R: [4, 0, -10],
-        LowerArm_R: [-40, 0, 0],
+        UpperArm_R: [12, 0, -7],
+        LowerArm_R: [-18, 0, 0],
         Hand_R: [10, 0, 0],
-        Pipe: [50, -16, 0],
+        Pipe: [4, -6, 0],
       },
     },
   ],
