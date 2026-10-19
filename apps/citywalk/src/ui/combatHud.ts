@@ -29,8 +29,8 @@ interface Floating {
 
 export class CombatHud {
   private buttons = new Map<string, HTMLButtonElement>();
-  private strikeButton: HTMLButtonElement;
-  private dashButton: HTMLButtonElement;
+  readonly strikeButton: HTMLButtonElement;
+  readonly dashButton: HTMLButtonElement;
   private chain = el('div', 'chain');
   private combo = el('div', 'combo');
   private comboCount = el('b', '');
@@ -108,6 +108,11 @@ export class CombatHud {
     this.box.append(this.name, this.bar);
     this.box.hidden = true;
     root.append(this.box);
+  }
+
+  /** The skill buttons show once there are skills to use (they come with a job). */
+  setSkills(open: boolean): void {
+    for (const b of this.buttons.values()) b.hidden = !open;
   }
 
   /** Numbers pop out above the slime, a little to one side so they do not stack up. */

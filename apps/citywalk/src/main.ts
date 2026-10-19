@@ -7,6 +7,7 @@ import {
   ITEMS,
   MELEE,
   PLAYER,
+  QUESTS,
   PRESS_ACTIONS,
   SAVE_VERSION,
   SOUNDS,
@@ -33,6 +34,7 @@ import {
   newClock,
   newCombo,
   newFighter,
+  newProgress,
   newStepClock,
   newStats,
   nextCombo,
@@ -61,6 +63,7 @@ import {
   type ScreenEvent,
   type Swing,
   type Vec3,
+  type Warning,
 } from '@newgame/rpg-core';
 import { loadAssets, missingClips } from './assets';
 import { Sound } from './audio/engine';
@@ -70,6 +73,10 @@ import { stats as soundStats } from './audio/analyze';
 import { Collider } from './collide';
 import { Combat, type HitEvent } from './combat';
 import { Warnings } from './warnings';
+import { Npc, makeStall } from './npc';
+import { Story } from './story';
+import { Tips } from './ui/tips';
+import { Opening } from './ui/opening';
 import type { ActKind } from './hero';
 import { heroFromLook } from './lookModel';
 import { Creator } from './ui/creator';
@@ -131,6 +138,18 @@ const GROUND = 0.04;
 /** seconds between automatic saves while playing */
 const AUTOSAVE = 5;
 const DEBUG = new URLSearchParams(location.search).has('debug');
+/** ?test=skills: the skill buttons from the start, to try them without reaching a job */
+const TEST_SKILLS = new URLSearchParams(location.search).get('test') === 'skills';
+
+/** Is the player standing where a warning will land? (a ring round its middle, or a lane) */
+function inside(w: Warning, x: number, z: number): boolean {
+  const dx = x - w.x,
+    dz = z - w.z;
+  if (w.length === 0) return Math.hypot(dx, dz) <= w.radius;
+  const along = dx * Math.sin(w.heading) + dz * Math.cos(w.heading);
+  const side = dx * Math.cos(w.heading) - dz * Math.sin(w.heading);
+  return along >= -w.radius && along <= w.length && Math.abs(side) <= w.radius;
+}
 
 function moatLapMetres(marks: Landmark[]): number {
   const corners = marks.filter((m) => m.kind === 'corner');
@@ -298,6 +317,10 @@ async function start(): Promise<void> {
   city.add(warnings.object);
   /** the slimes warning now, so a new warning sounds once */
   let warning = new Set<number>();
+  /** whether the player stood inside each warning when it appeared */
+  const warnedInside = new Map<number, boolean>();
+  /** the slime whose warning the ring hint is showing (time runs slow until it lands) */
+  let ringTip: number | null = null;
   // what monsters leave behind: shown as the item's model if there is one, else a glowing gem.
   // The dice use a seed (?seed=N in the address for repeatable runs, else the clock).
   const itemModels = await loadItemModels(assets.models);
@@ -493,6 +516,73 @@ async function start(): Promise<void> {
   // what monsters say, and the marks over their heads
   const chatter = herd ? new Chatter(hud.root, seeded((seedParam || 1) + 11)) : null;
   const playerHud = new PlayerHud(hud.top);
+
+  // the story: quests, people to talk to, the guide line (approved first-minute mockup)
+  const toMap = (at: [number, number]): [number, number] =>
+    gateAt
+      ? frameToMap(gateAt, at[0], at[1])
+      : [(thaPhaeGate?.x ?? 0) + at[1], (thaPhaeGate?.z ?? 0) + at[0]];
+  const story = new Story(
+    {
+      root: hud.root,
+      top: hud.top,
+      toMap,
+      screenOf: (p) => screenOf(p),
+      player: () => state,
+      slimes: () => herd?.state() ?? [],
+      pause: (on) => go(on ? 'menu' : 'close'),
+      reward: (exp) => {
+        if (gainExp(stats, exp) > 0) levelledUp();
+      },
+      announce: (t) => combatHud?.announce(t),
+      sound: (id) => sound.play(id),
+      save: () => save(),
+    },
+    saved?.progress ?? newProgress(),
+  );
+  city.add(story.guide.object);
+  /** skills come with a job (or ?test=skills) */
+  const skillsOpen = () => TEST_SKILLS || story.progress.job !== null;
+  combatHud?.setSkills(skillsOpen());
+  // the picture hints of the first minute
+  const tips = new Tips();
+  document.body.append(tips.root);
+  const tipDone = (name: string) => {
+    if (!story.progress.tips.includes(name)) story.progress.tips.push(name);
+    if (tips.showing === name) tips.hide();
+  };
+  const seen = (name: string) => story.progress.tips.includes(name);
+  // Pa Saeng and her stall, made the same way as the player's body
+  const paSaengNpc = QUESTS.npcs.pa_saeng;
+  if (paSaengNpc) {
+    const [nx, nz] = toMap(QUESTS.places[paSaengNpc.place]!);
+    // she faces where the player starts; the stall stands behind her
+    const rest = Math.atan2(startX - nx, startZ - nz);
+    const stall = makeStall();
+    stall.position.set(nx - Math.sin(rest) * 1.3, 0, nz - Math.cos(rest) * 1.3);
+    stall.rotation.y = rest;
+    city.add(stall);
+    void (async () => {
+      let body: Walker;
+      const l = { ...paSaengNpc.look, name: '' };
+      try {
+        const sheet =
+          art === 'pixel'
+            ? await cachedSheet(
+                'npc_pa_saeng',
+                signature(JSON.stringify(l), JSON.stringify(SPRITES), import.meta.url),
+                () => bakeHero(l, SPRITES, [['idle', SPRITES.hero.anims.idle!]]),
+              )
+            : null;
+        body = sheet ? makeSpriteHero(sheet) : makeHero(heroFromLook(l));
+      } catch (err) {
+        console.error('Pa Saeng could not be drawn:', err);
+        body = makeWalker();
+      }
+      scene.add(body.body);
+      story.addNpc(new Npc('pa_saeng', body, nx, nz, rest));
+    })();
+  }
   // the status window: tap the player panel; the world waits while it is open
   const status = new StatsPanel(
     () => ({ name: look.name, level: stats.level, exp: stats.exp, attrs: stats.attrs }),
@@ -537,6 +627,7 @@ async function start(): Promise<void> {
     items: { ...bag },
     look,
     attrs: { ...stats.attrs },
+    progress: story.progress,
   });
   const save = () =>
     screen === 'play' || screen === 'menu' || screen === 'paused' ? writeSave(snapshot()) : false;
@@ -558,6 +649,8 @@ async function start(): Promise<void> {
     stats.exp = d.stats.exp;
     stats.hp = Math.min(maxHp(stats.level, undefined, stats.attrs), Math.max(1, d.stats.hp));
     stats.energy = Math.min(maxEnergy(stats.level, undefined, stats.attrs), d.stats.energy);
+    story.setProgress(d.progress);
+    combatHud?.setSkills(skillsOpen());
     for (const id of Object.keys(bag)) delete bag[id];
     Object.assign(bag, d.items);
     applyScale();
@@ -761,6 +854,8 @@ async function start(): Promise<void> {
   /** hits by the strike, its waves or a skill: numbers, combo, energy, a heavy feel, drops */
   const landed = (hits: HitEvent[]) => {
     for (const h of hits) {
+      // the first strike that lands is what the hint was waiting for
+      if (h.element === null && !seen('strike')) tipDone('strike');
       const gain = landHit(fighter);
       if (h.element === null)
         stats.energy = Math.min(
@@ -782,17 +877,20 @@ async function start(): Promise<void> {
         collider.move(x, z, dx, dz, 0.2),
       );
       if (dropped.length > 0) sound.play('item.drop', { at: { x: h.at[0], z: h.at[2] } });
-      if (gainExp(stats, kind.exp) > 0) {
-        sound.play('player.levelup');
-        // at a few levels the system hints which way the player is leaning
-        const hint = ATTR.hintLevels.includes(stats.level)
-          ? ` · ${TH.hint(TH.attrs[leaning(stats.attrs)]!)}`
-          : '';
-        hud.say(TH.levelUp(stats.level) + hint, true);
-        fx.levelUp([state.x, 0, state.z], GROUND);
-        save();
-      }
+      if (gainExp(stats, kind.exp) > 0) levelledUp();
+      story.event({ kind: 'defeat', species: h.species });
     }
+  };
+  /** a new level: a sound, the system's words (with a hint at some levels), golden rings */
+  const levelledUp = () => {
+    sound.play('player.levelup');
+    // at a few levels the system hints which way the player is leaning
+    const hint = ATTR.hintLevels.includes(stats.level)
+      ? ` · ${TH.hint(TH.attrs[leaning(stats.attrs)]!)}`
+      : '';
+    hud.say(TH.levelUp(stats.level) + hint, true);
+    fx.levelUp([state.x, 0, state.z], GROUND);
+    save();
   };
   /** the strike button */
   const strike = () => {
@@ -824,10 +922,16 @@ async function start(): Promise<void> {
   const fight = (dt: number) => {
     const s = state.scale;
     const blows = herd?.update(dt, { x: state.x, z: state.z, down: stats.down > 0 }) ?? [];
+    /** slimes whose blow hurt the player this step (their warning was not dodged) */
+    const hitBy = new Set<number>();
     for (const b of blows) {
-      if (stats.safe > 0 || stats.down > 0) continue;
+      if (stats.safe > 0 || stats.down > 0) {
+        hitBy.add(b.slime);
+        continue;
+      }
       // a dash just in time dodges perfectly; guarding takes some of it
       const blow = takeBlow(fighter, b.damage);
+      if (blow.result === 'hit') hitBy.add(b.slime);
       if (blow.result === 'perfect') {
         fx.perfectDodge([state.x, 0, state.z], GROUND);
         sound.play('melee.perfect');
@@ -870,8 +974,29 @@ async function start(): Promise<void> {
     const marks = herd?.warnings() ?? [];
     warnings.update(marks, GROUND);
     const now = new Set(marks.map((m) => m.slime));
-    for (const m of marks)
-      if (!warning.has(m.slime)) sound.play('telegraph.warn', { at: { x: m.x, z: m.z } });
+    for (const m of marks) {
+      if (warning.has(m.slime)) continue;
+      sound.play('telegraph.warn', { at: { x: m.x, z: m.z } });
+      const caught = inside(m, state.x, state.z);
+      warnedInside.set(m.slime, caught);
+      // the first two rings the player stands in: time slows and the dash button is shown
+      const tip = !seen('ring1') ? 'ring1' : !seen('ring2') ? 'ring2' : null;
+      if (caught && tip && combatHud && ringTip === null) {
+        ringTip = m.slime;
+        tips.button(tip, combatHud.dashButton, TH.tips.ring as string[], TH.tips.slow as string);
+      }
+    }
+    // a warning that ends with the player unhurt, after it caught them inside, is a dodge
+    for (const id of warning) {
+      if (now.has(id)) continue;
+      const alive = herd?.state()[id]?.alive ?? false;
+      if (warnedInside.get(id) && !hitBy.has(id) && alive) story.event({ kind: 'dodge' });
+      warnedInside.delete(id);
+      if (ringTip === id) {
+        tipDone(tips.showing ?? 'ring1');
+        ringTip = null;
+      }
+    }
     warning = now;
     const hits = combat?.update(dt) ?? [];
     if (herd) chatter?.update(dt, herd, state);
@@ -917,13 +1042,17 @@ async function start(): Promise<void> {
       dash(forward, right);
     }
     if (input.pressed('strike')) strike();
-    if (input.pressed('skill1')) castSkill(SLOTS[0]!);
-    if (input.pressed('skill2')) castSkill(SLOTS[1]!);
+    // the skill keys do nothing until there are skills (they come with a job)
+    if (input.pressed('skill1') && skillsOpen()) castSkill(SLOTS[0]!);
+    if (input.pressed('skill2') && skillsOpen()) castSkill(SLOTS[1]!);
     if (input.pressed('target'))
       combat?.cycleTarget({ x: state.x, z: state.z, heading: lookHeading() });
     for (const [sx, sy] of input.takeTaps()) tapSlime(sx, sy);
     const [tx, ty] = input.takeTurn();
-    if (tx !== 0 || ty !== 0) lastTurn = performance.now();
+    if (tx !== 0 || ty !== 0) {
+      lastTurn = performance.now();
+      turnedOnce = true;
+    }
     state.yaw -= tx * 0.006;
     state.pitch = Math.min(CAMERA.pitch.max, Math.max(CAMERA.pitch.min, state.pitch + ty * 0.004));
     // in shoulder view the camera eases round to the chosen slime while the player stands still or
@@ -944,6 +1073,36 @@ async function start(): Promise<void> {
     }
   };
 
+  /** the stick hint waits for a few steps and one turn of the camera */
+  let turnedOnce = false;
+  let walkedFrom: [number, number] | null = null;
+  const touchScreen = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  /** Which picture hint the first minute needs now (each shows until it is done, once). */
+  const firstMinuteTips = () => {
+    if (ringTip !== null) return;
+    // nothing over the dialogue: the hint comes back after
+    if (story.talking) {
+      if (tips.showing === 'stick') tips.hide();
+      return;
+    }
+    if (!seen('stick')) {
+      if (tips.showing !== 'stick') {
+        tips.stick(touchScreen, TH.tips);
+        walkedFrom = [state.x, state.z];
+        turnedOnce = false;
+      }
+      const moved = walkedFrom ? Math.hypot(state.x - walkedFrom[0], state.z - walkedFrom[1]) : 0;
+      if (moved >= 3 && turnedOnce) tipDone('stick');
+      return;
+    }
+    // the first fight: a spotlight on the strike button until a strike lands
+    const c = story.progress.quest;
+    const fighting = c.id === 'pa_saeng' && c.step === 1;
+    if (fighting && !seen('strike') && combatHud) {
+      if (tips.showing !== 'strike')
+        tips.button('strike', combatHud.strikeButton, TH.tips.strike as string[]);
+    } else if (tips.showing === 'strike') tips.hide();
+  };
   /** what the body shows: a swing, a dash or a guard */
   const actNow = () => {
     if (fighter.swing)
@@ -991,7 +1150,7 @@ async function start(): Promise<void> {
       state.heading = Math.atan2(-fx, -fz);
     }
     // a perfect dodge slows the world for a moment
-    const slow = fighter.slow > 0 ? MELEE.perfect.slowRate : 1;
+    const slow = fighter.slow > 0 || ringTip !== null ? MELEE.perfect.slowRate : 1;
     const worldDt = held ? 0 : freeze > 0 ? dt * 0.08 : dt * slow;
     freeze = Math.max(0, freeze - dt);
     fight(worldDt);
@@ -1057,19 +1216,20 @@ async function start(): Promise<void> {
       }
       walker.draw?.(camera);
       herd?.draw(camera);
+      story.draw(camera);
       if (pixelFx)
         pixelFx.render(
           scene,
           camera,
           combat
-            ? [fx.object, pickups.object, warnings.object, combat.marker]
-            : [fx.object, pickups.object, warnings.object],
+            ? [fx.object, pickups.object, warnings.object, story.guide.object, combat.marker]
+            : [fx.object, pickups.object, warnings.object, story.guide.object],
           herd ? [walker.body, herd.object] : [walker.body],
         );
       else renderer.render(scene, camera);
       // name tags never cover the panel and buttons at the top or the minimap
       const covered = [
-        ...Array.from(hud.top.querySelectorAll('.title, .player, .near, .chip')),
+        ...Array.from(hud.top.querySelectorAll('.title, .player, .near, .chip, .quest')),
         hud.gear,
         minimap.canvas,
       ].map((e) => e.getBoundingClientRect());
@@ -1079,6 +1239,11 @@ async function start(): Promise<void> {
       if (combat && herd) combatHud?.draw(combat, herd, screenOf, stats.energy, fighter);
       if (herd) chatter?.draw(herd, screenOf);
       playerHud.draw(stats);
+      if (screen === 'play') {
+        story.update(dt, GROUND, state.scale);
+        firstMinuteTips();
+      }
+      tips.place();
     } catch (err) {
       // one bad frame should not freeze the game
       console.error(err);
@@ -1132,7 +1297,12 @@ async function start(): Promise<void> {
     art === 'pixel',
   );
   document.body.append(creator.root);
-  const create = () => {
+  // a new game starts with the three opening pictures, then the character screen
+  const opening = new Opening(TH.opening, TH.openingSkip, assets.manifest.opening ?? []);
+  document.body.append(opening.root);
+  const create = async () => {
+    intro.hidden = true;
+    await opening.play();
     go('create');
     creator.open();
   };
@@ -1141,7 +1311,7 @@ async function start(): Promise<void> {
     if (saved) {
       go('start');
       hud.say(lapText());
-    } else create();
+    } else void create();
   });
   newButton.addEventListener('click', () => {
     sound.unlock();
@@ -1150,7 +1320,11 @@ async function start(): Promise<void> {
     for (const id of Object.keys(bag)) delete bag[id];
     Object.assign(state, { x: startX, z: startZ, yaw: startYaw, heading: startYaw });
     walker.body.rotation.y = startYaw;
-    create();
+    // the story starts again, hints and all
+    story.setProgress(newProgress());
+    combatHud?.setSkills(skillsOpen());
+    tips.hide();
+    void create();
   });
   // the listening page, over the intro card
   const labButton = $('#intro-lab');
@@ -1239,6 +1413,31 @@ async function start(): Promise<void> {
       warnings: () => ({ shown: warnings.showing, list: herd?.warnings() ?? [] }),
       found: () => [...found],
       setRiding: (on: boolean) => setRiding(on),
+      /** the story: quest under way, hints seen, and the dialogue on screen */
+      story: () => ({
+        quest: { ...story.progress.quest },
+        tips: [...story.progress.tips],
+        job: story.progress.job,
+        talking: story.talk.text,
+        bar: (document.querySelector('.quest') as HTMLElement | null)?.innerText ?? '',
+        card: story.bar.shown,
+        guide: story.guide.shown,
+        tip: tips.showing,
+        skills: skillsOpen(),
+        npcs: QUESTS.npcs.pa_saeng ? toMap(QUESTS.places.pa_saeng!) : null,
+      }),
+      /** move the story to a quest step (for tests), hints marked as seen or not */
+      setStory: (id: string | null, step = 0, seenTips?: string[]) => {
+        Object.assign(story.progress.quest, { id, step, count: 0 });
+        if (seenTips) story.progress.tips = [...seenTips];
+        story.setProgress(story.progress);
+      },
+      talkNext: () => story.talk.turn(),
+      opening: () => opening.at,
+      setJob: (job: string | null) => {
+        story.progress.job = job;
+        combatHud?.setSkills(skillsOpen());
+      },
       inventory: () => ({ ...bag }),
       grant: (id: string, n: number) => addItem(bag, id, n),
       sound: {

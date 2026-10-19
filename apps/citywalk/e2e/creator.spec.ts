@@ -1,3 +1,4 @@
+import { skipOpening } from './start';
 import { expect, test, type Page } from '@playwright/test';
 
 const SHOTS = process.env.SHOTS_DIR ?? 'test-results/shots';
@@ -19,6 +20,7 @@ test('a new game makes the character: body, hair, colours, name, then the system
 }) => {
   await page.goto('./?debug=1');
   await page.getByRole('button', { name: 'เริ่มเดิน' }).click();
+  await skipOpening(page);
   await page.waitForFunction(() => '__walk' in window);
   expect(await js(page, 'window.__walk.screen()')).toBe('create');
   // pictures of each hair shape, drawn on the character
@@ -68,6 +70,7 @@ test('a new game makes the character: body, hair, colours, name, then the system
 test('the status window: points from levels, the job wheel, confirm', async ({ page }) => {
   await page.goto('./?debug=1');
   await page.getByRole('button', { name: 'เริ่มเดิน' }).click();
+  await skipOpening(page);
   await page.getByRole('button', { name: 'ถัดไป' }).click();
   await page.getByLabel('ตั้งชื่อ').fill('ภาม');
   await page.getByRole('button', { name: 'ตื่นขึ้น' }).click();

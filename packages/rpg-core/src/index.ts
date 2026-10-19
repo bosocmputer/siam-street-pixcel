@@ -10,6 +10,7 @@ export * from './items';
 export * from './look';
 export * from './melee';
 export * from './monsters';
+export * from './quests';
 export * from './rig';
 export * from './rng';
 export * from './save';

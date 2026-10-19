@@ -15,7 +15,7 @@ test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
 test.describe.configure({ timeout: 120_000 });
 
 async function open(page: Page) {
-  await page.goto('./?debug=1');
+  await page.goto('./?debug=1&test=skills');
   await newGame(page);
   await page.waitForFunction(() => '__walk' in window);
   await js(page, 'window.__walk.pause(true)');

@@ -51,6 +51,54 @@ export const TH = {
   down: 'ล้มแล้ว… กำลังฟื้นที่จุดพัก',
   up: 'ฟื้นแล้ว ที่จุดพักหน้าประตูท่าแพ',
   melted: 'ละลาย!',
+  /** the story quests: a short name and what to do in each step (config/quests.json) */
+  quests: {
+    wake: { name: 'ตื่น', steps: ['ไปหาเสียงร้อง'] },
+    pa_saeng: { name: 'ป้าแสง', steps: ['คุยกับป้าแสง', 'ล้มสไลม์น้ำ', 'กลับไปหาป้าแสง'] },
+    street: { name: 'ของข้างทาง', steps: ['ล้มสไลม์'] },
+    dodge: { name: 'หลบให้เป็น', steps: ['หลบวงแดง'] },
+  } as Record<string, { name: string; steps: string[] }>,
+  npcs: { pa_saeng: 'ป้าแสง' } as Record<string, string>,
+  /**
+   * What people say, page by page (at most three sentences a page). Pa Saeng speaks a light
+   * northern Thai that anyone can follow; a Chiang Mai local checks every line before release.
+   */
+  story: {
+    pa_saeng: {
+      help: ['ช่วยแหน่เจ้า! น้ำในกะละมังลุกขึ้นมาเป็นตัว! หนูหยิบท่อเหล็กนั่น แล้วตีมันเลยเน้อ'],
+      thanks: [
+        'ขอบใจหลายเน้อหนู! ป้าขายข้าวซอยอยู่ตรงนี้ เหนื่อยเมื่อไหร่ก็แวะมาเน้อ',
+        'เอ... สไลม์ยังมีอีกหลายตัวทั่วข่วง ช่วยป้าไล่ไปหน่อยได้ก่อ',
+      ],
+    },
+  } as Record<string, Record<string, string[]>>,
+  /** what a finished quest taught */
+  learned: { strike: 'ตีพลัง', dash: 'พุ่ง/ป้องกัน' } as Record<string, string>,
+  questDone: (name: string) => `สำเร็จ · ${name}`,
+  expGain: (n: number) => `+${n} EXP`,
+  newQuest: 'ภารกิจใหม่',
+  metres: (m: number) => `${m} ม.`,
+  talkSkip: 'ข้าม',
+  talkNext: 'แตะเพื่อไปต่อ ▼',
+  shout: 'ช่วยแหน่!',
+  /** the words under the three opening pictures (gdd.md section 2) */
+  opening: [
+    'ทุกอย่างเริ่มในคืนวันอาทิตย์ธรรมดา',
+    'จนฝนมานาเริ่มตก',
+    'และเชียงใหม่ทั้งเมืองก็หลับไป',
+  ],
+  openingSkip: 'ข้าม ›',
+  /** the picture hints of the first minute */
+  tips: {
+    walk: ['ลากเพื่อ', 'เดิน'],
+    run: ['ดันสุดวง = ', 'วิ่ง'],
+    look: ['ลากเพื่อ', 'หมุนกล้อง'],
+    keys: ['W A S D ', 'เดิน', ' · Shift ', 'วิ่ง'],
+    mouse: ['ลากเมาส์เพื่อ', 'หมุนกล้อง'],
+    strike: ['กด ', 'ตี'],
+    ring: ['วงแดง → กด ', 'พุ่ง'],
+    slow: 'ภาพช้าลง',
+  } as Record<string, string | string[]>,
   /** what monsters say (short: they show in a bubble over the head) */
   chatter: {
     slime_water: {

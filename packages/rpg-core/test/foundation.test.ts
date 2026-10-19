@@ -3,7 +3,14 @@ import { BINDINGS, gait, moveFrom, readBindings, type HoldAction } from '../src/
 import { advance, newClock } from '../src/clock';
 import { ConfigError } from '../src/config';
 import { RIG, checkRig, readRig, type ModelFacts } from '../src/rig';
-import { DEFAULT_CAMERA, SAVE_VERSION, decodeSave, encodeSave, type SaveData } from '../src/save';
+import {
+  DEFAULT_CAMERA,
+  SAVE_VERSION,
+  decodeSave,
+  encodeSave,
+  newProgress,
+  type SaveData,
+} from '../src/save';
 import { MAX_STACK } from '../src/items';
 import { baseAttrs } from '../src/attributes';
 import { defaultLook } from '../src/look';
@@ -102,6 +109,11 @@ describe('save', () => {
     items: { gel_water: 5, gel_core: 1 },
     look: { ...defaultLook('f'), hair: 'ponytail', name: 'ต้นข้าว' },
     attrs: { ...baseAttrs(), int: 9, dex: 7 },
+    progress: {
+      quest: { id: 'street', step: 0, count: 2, done: ['wake', 'pa_saeng'] },
+      tips: ['stick', 'strike'],
+      job: null,
+    },
   };
 
   it('reads back exactly what was saved', () => {
@@ -122,6 +134,7 @@ describe('save', () => {
       settings: { ...good.settings, camera: DEFAULT_CAMERA },
       look: null,
       attrs: baseAttrs(),
+      progress: newProgress(),
     });
     expect(decodeSave(JSON.stringify(old))!.stats.level).toBe(1);
   });
@@ -143,6 +156,23 @@ describe('save', () => {
     const got = decodeSave(JSON.stringify(v3))!;
     expect(got.look).toBeNull();
     expect(got.attrs).toEqual(baseAttrs());
+  });
+
+  it('a version 4 save starts the story from the first quest, with no hints seen and no job', () => {
+    const v4: Record<string, unknown> = { ...good, version: 4 };
+    delete v4.progress;
+    expect(decodeSave(JSON.stringify(v4))!.progress).toEqual(newProgress());
+  });
+
+  it('a story that no longer fits starts again rather than losing the save', () => {
+    const with_ = (progress: unknown) => decodeSave(JSON.stringify({ ...good, progress }))!;
+    expect(
+      with_({ ...good.progress, quest: { id: 'gone', step: 0, count: 0, done: [] } }).progress,
+    ).toEqual(newProgress());
+    expect(with_({ ...good.progress, tips: [1] }).progress).toEqual(newProgress());
+    expect(with_({ ...good.progress, job: 7 }).progress).toEqual(newProgress());
+    expect(with_('lots').progress).toEqual(newProgress());
+    expect(with_({ ...good.progress, job: 'elementalist' }).progress.job).toBe('elementalist');
   });
 
   it('a look or attributes that no longer fit fall back instead of losing the save', () => {

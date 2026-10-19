@@ -318,11 +318,11 @@ export class SlimeHerd {
 
   /**
    * Move every slime on by dt. Returns the blows angry slimes landed on the player this step,
-   * with where each came from (map metres).
+   * with where each came from (map metres) and which slime struck it.
    */
-  update(dt: number, player: Prey): { damage: number; from: [number, number] }[] {
-    const blows: { damage: number; from: [number, number] }[] = [];
-    for (const s of this.slimes) {
+  update(dt: number, player: Prey): { damage: number; from: [number, number]; slime: number }[] {
+    const blows: { damage: number; from: [number, number]; slime: number }[] = [];
+    for (const [i, s] of this.slimes.entries()) {
       const v = s.vitals;
       const changed = stepVitals(v, dt);
       if (changed === 'growing') {
@@ -337,7 +337,8 @@ export class SlimeHerd {
       if (changed === 'gone') s.root.visible = false;
       if (v.life === 'alive') {
         stepBrain(s.brain, dt, player, this.world);
-        if (s.brain.struck) blows.push({ damage: s.brain.blow, from: [s.brain.x, s.brain.z] });
+        if (s.brain.struck)
+          blows.push({ damage: s.brain.blow, from: [s.brain.x, s.brain.z], slime: i });
       } else if (v.life === 'hurt' && (s.knock[0] || s.knock[1])) {
         const [nx, nz] = this.world.move(
           s.brain.x,

@@ -5,8 +5,9 @@ import { CAMERA_MODES, type CameraMode } from './camera';
 import { ITEMS, MAX_STACK, type Inventory } from './items';
 import { baseAttrs, validAttrs, type Attrs } from './attributes';
 import { validLook, type Look } from './look';
+import { newQuestLog, validQuestLog, type QuestLog } from './quests';
 
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 /** the view a save from before the camera setting comes back with */
 export const DEFAULT_CAMERA: CameraMode = 'shoulder';
 
@@ -26,6 +27,28 @@ export interface SaveData {
   look: Look | null;
   /** the five attributes (version 4 on) */
   attrs: Attrs;
+  /** the story so far (version 5 on) */
+  progress: Progress;
+}
+
+export interface Progress {
+  quest: QuestLog;
+  /** the hints already shown, by name, so none comes back */
+  tips: string[];
+  /** the job awakened at level 10, or null before then; skill buttons come with it */
+  job: string | null;
+}
+
+export const newProgress = (): Progress => ({ quest: newQuestLog(), tips: [], job: null });
+
+function readProgress(raw: unknown): Progress | null {
+  if (!isObj(raw)) return null;
+  const quest = validQuestLog(raw.quest);
+  if (!quest) return null;
+  const tips = raw.tips;
+  if (!Array.isArray(tips) || !tips.every((t) => typeof t === 'string')) return null;
+  if (raw.job !== null && typeof raw.job !== 'string') return null;
+  return { quest, tips: [...(tips as string[])], job: raw.job as string | null };
 }
 
 const MODES: MoveMode[] = ['walk', 'run', 'bike'];
@@ -44,7 +67,8 @@ const isObj = (v: unknown): v is Record<string, unknown> =>
  * null, and the game starts fresh instead of breaking. An older save still reads: version 1
  * (before levels) comes back at level 1 with full health and energy (`fresh`), and anything
  * before version 3 comes back with an empty bag and the default camera, and anything before
- * version 4 with no character look and the starting attributes. Items that are no longer
+ * version 4 with no character look and the starting attributes, and anything before version 5
+ * at the start of the story. Items that are no longer
  * in the game are dropped from the bag rather than spoiling the whole save.
  */
 export function decodeSave(
@@ -61,7 +85,7 @@ export function decodeSave(
   if (
     !isObj(raw) ||
     !isNum(raw.version) ||
-    ![1, 2, 3, 4].includes(raw.version) ||
+    ![1, 2, 3, 4, 5].includes(raw.version) ||
     !isNum(raw.savedAt)
   )
     return null;
@@ -100,6 +124,8 @@ export function decodeSave(
   // none and the starting attributes, with the points free to spend again
   const look = version >= 4 ? validLook(raw.look) : null;
   const attrs = (version >= 4 && validAttrs(raw.attrs, stats.level)) || baseAttrs();
+  // a story that no longer fits the quests starts again from the first (nothing else is lost)
+  const progress = (version >= 5 && readProgress(raw.progress)) || newProgress();
   return {
     version: SAVE_VERSION,
     savedAt: raw.savedAt,
@@ -109,5 +135,6 @@ export function decodeSave(
     items,
     look,
     attrs,
+    progress,
   };
 }

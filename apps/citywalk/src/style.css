@@ -26,6 +26,8 @@
   --px-cyan: #2ce8f5;
   --px-navy: #124e89;
   --px-green: #63c74d;
+  /* the system window's amber (gdd.md section 3): quests, the guide line, system words */
+  --px-sys: #ff9500;
   --px-font: 'PixelTH', monospace;
   /* text size: 16 (sharp on every screen) or, for those who need it, 24 (sharp on most phones) */
   --fs: 16px;
@@ -1876,5 +1878,376 @@ canvas.px,
 @media (prefers-reduced-motion: reduce) {
   .banner.show {
     animation-duration: 0.01s;
+  }
+}
+
+/* ---------- the story: quest bar, goal mark, quest card, dialogue (first-minute mockup) ---------- */
+.quest {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px;
+  align-items: center;
+  max-width: min(260px, 100%);
+  padding: 6px 10px 6px 8px;
+  border: 0;
+  border-radius: 0;
+  text-align: left;
+  font: inherit;
+  color: var(--px-text);
+  background: var(--panel);
+  box-shadow: var(--px-frame);
+  cursor: pointer;
+  pointer-events: auto;
+}
+.q-ico,
+.g-ico {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  background: var(--px-sys);
+  color: var(--px-ink);
+  box-shadow: var(--px-frame-thin);
+}
+.q-ico .px-ico,
+.g-ico .px-ico {
+  width: 12px;
+  height: 12px;
+}
+.q-text {
+  display: grid;
+  min-width: 0;
+}
+.q-name {
+  color: var(--px-sys);
+}
+.q-more {
+  color: var(--px-dim);
+}
+.goal {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  pointer-events: none;
+}
+.g-m {
+  padding: 0 6px;
+  background: var(--px-ink);
+  color: var(--px-cream);
+}
+.shout {
+  position: absolute;
+  left: 0;
+  top: 0;
+  padding: 2px 8px;
+  background: var(--px-text);
+  color: var(--px-ink);
+  box-shadow: var(--px-frame-thin);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.sysbox {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--t) + 230px);
+  transform: translateX(-50%);
+  width: min(340px, calc(100% - 32px));
+  padding: 14px 16px;
+  background: rgba(24, 20, 37, 0.95);
+  box-shadow:
+    0 0 0 2px var(--px-sys),
+    0 0 0 4px var(--px-ink);
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  text-align: center;
+  pointer-events: none;
+}
+.sysbox .t {
+  color: var(--px-sys);
+}
+.sysbox .r {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+.sysbox .r span {
+  padding: 2px 8px;
+  background: var(--px-panel-2);
+  box-shadow: var(--px-frame-thin);
+}
+/* someone talks: a box at the bottom, the fighting buttons step aside */
+.talk {
+  position: fixed;
+  z-index: 20;
+  left: max(8px, env(safe-area-inset-left, 0px));
+  right: max(8px, env(safe-area-inset-right, 0px));
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+  max-width: 640px;
+  margin: 0 auto;
+  min-height: 180px;
+  padding: 14px 14px 12px;
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  grid-template-rows: auto 1fr auto;
+  gap: 8px 12px;
+  background: rgba(24, 20, 37, 0.96);
+  color: var(--px-text);
+  box-shadow:
+    0 0 0 2px var(--px-cream),
+    0 0 0 4px var(--px-ink);
+  cursor: pointer;
+}
+.talk-face {
+  grid-row: span 2;
+  width: 72px;
+  height: 72px;
+  image-rendering: pixelated;
+  box-shadow: var(--px-frame-thin);
+}
+.talk-who {
+  color: var(--px-gold);
+}
+.talk-say {
+  line-height: calc(var(--lh) + 4px);
+}
+.talk-foot {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.talk-skip {
+  min-height: 36px;
+  padding: 4px 12px;
+  border: 0;
+  border-radius: 0;
+  font: inherit;
+  color: var(--px-dim);
+  background: var(--px-panel-2);
+  box-shadow: var(--px-frame-thin);
+  cursor: pointer;
+}
+.talk-next {
+  color: var(--px-yellow);
+}
+body.talking .fight,
+body.talking .skill,
+body.talking .chain,
+body.talking .combo,
+body.talking .stick {
+  visibility: hidden;
+}
+
+/* ---------- the picture hints ---------- */
+.tips {
+  position: fixed;
+  inset: 0;
+  z-index: 15;
+  pointer-events: none;
+}
+.tip-dim {
+  position: absolute;
+  inset: 0;
+  background: rgba(18, 19, 31, 0.5);
+}
+.tips .hint {
+  position: absolute;
+  padding: 6px 10px;
+  background: var(--panel);
+  box-shadow: var(--px-frame);
+  color: var(--px-text);
+  text-align: center;
+}
+.tips .hint b {
+  font-weight: normal;
+  color: var(--px-yellow);
+}
+.tip-walk {
+  left: calc(env(safe-area-inset-left, 0px) + 16px);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 230px);
+}
+.tip-look {
+  right: calc(env(safe-area-inset-right, 0px) + 16px);
+  top: 42%;
+}
+.tip-keys {
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 300px);
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+.tip-mouse {
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 252px);
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+.finger {
+  position: absolute;
+  width: 36px;
+  height: 39px;
+  filter: drop-shadow(2px 2px 0 var(--px-ink));
+}
+.finger .px-ico {
+  width: 100%;
+  height: 100%;
+}
+.tip-drag {
+  left: calc(env(safe-area-inset-left, 0px) + 70px);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 110px);
+  animation: tip-drag 1.6s steps(8) infinite;
+}
+.tip-swipe {
+  right: calc(env(safe-area-inset-right, 0px) + 80px);
+  top: calc(42% + 60px);
+  animation: tip-swipe 1.6s steps(8) infinite;
+}
+.tip-press {
+  animation: tip-tap 1s steps(2) infinite;
+}
+@keyframes tip-drag {
+  60%,
+  100% {
+    transform: translateY(-44px);
+  }
+}
+@keyframes tip-swipe {
+  0% {
+    transform: translateX(28px);
+  }
+  60%,
+  100% {
+    transform: translateX(-36px);
+  }
+}
+@keyframes tip-tap {
+  50% {
+    transform: translateY(6px);
+  }
+}
+.tip-hole {
+  position: absolute;
+  border-radius: 50%;
+  box-shadow: 0 0 0 4000px rgba(18, 19, 31, 0.6);
+}
+.tip-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 4px solid var(--px-yellow);
+  animation: tip-pulse 1s steps(2) infinite;
+}
+@keyframes tip-pulse {
+  50% {
+    border-color: var(--px-orange);
+  }
+}
+.tips .tip-label {
+  white-space: nowrap;
+}
+.tip-slow {
+  position: absolute;
+  left: 50%;
+  top: calc(env(safe-area-inset-top, 0px) + 220px);
+  transform: translateX(-50%);
+  padding: 2px 8px;
+  background: var(--px-ink);
+  color: var(--px-cyan);
+}
+/* a phone on its side: the walking hint goes beside the stick, clear of the quest bar */
+@media (orientation: landscape) and (max-height: 500px) {
+  .tip-walk {
+    left: calc(env(safe-area-inset-left, 0px) + 160px);
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 110px);
+  }
+  .tip-drag {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 70px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tip-drag,
+  .tip-swipe,
+  .tip-press,
+  .tip-ring {
+    animation: none;
+  }
+}
+
+/* ---------- the opening: three still pictures ---------- */
+.opening {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto auto;
+  justify-items: center;
+  padding: calc(env(safe-area-inset-top, 0px) + 56px) 16px
+    calc(env(safe-area-inset-bottom, 0px) + 24px);
+  background: var(--px-ink);
+  cursor: pointer;
+}
+.op-pic {
+  width: 100%;
+  max-width: 640px;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+}
+.op-pic canvas,
+.op-pic img {
+  width: auto;
+  height: 100%;
+  max-width: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+.op-line {
+  padding: 16px 8px 6px;
+  font-size: 32px;
+  line-height: 40px;
+  text-align: center;
+  text-wrap: balance;
+  color: var(--px-text);
+  text-shadow: 2px 2px 0 var(--px-ink);
+}
+.op-dots {
+  display: flex;
+  gap: 8px;
+  padding: 10px 0;
+}
+.op-dots i {
+  width: 10px;
+  height: 10px;
+  background: var(--px-panel-2);
+}
+.op-dots i.on {
+  background: var(--px-yellow);
+}
+.op-skip {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  right: calc(env(safe-area-inset-right, 0px) + 12px);
+  min-height: 40px;
+  padding: 6px 14px;
+  border: 0;
+  border-radius: 0;
+  font: inherit;
+  color: var(--px-text);
+  background: var(--panel);
+  box-shadow: var(--px-frame);
+  cursor: pointer;
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  .opening {
+    padding-top: calc(env(safe-area-inset-top, 0px) + 12px);
+  }
+  .op-line {
+    font-size: 16px;
+    line-height: 24px;
+    padding-top: 8px;
   }
 }

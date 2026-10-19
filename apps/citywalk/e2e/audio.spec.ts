@@ -11,7 +11,7 @@ test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
 test.describe.configure({ timeout: 120_000 });
 
 async function open(page: Page) {
-  await page.goto('./?debug=1');
+  await page.goto('./?debug=1&test=skills');
   await newGame(page);
   await page.waitForFunction(() => '__walk' in window);
   await js(page, 'window.__walk.pause(true)');
@@ -127,7 +127,7 @@ test('levelling up rings out', async ({ page }) => {
 test('walking makes steps, and the sound chip turns everything off and stays off', async ({
   page,
 }) => {
-  await page.goto('./?debug=1');
+  await page.goto('./?debug=1&test=skills');
   await newGame(page);
   await page.waitForFunction(() => '__walk' in window);
   await js(page, 'window.__walk.sound.clear()');
@@ -159,7 +159,7 @@ test('walking makes steps, and the sound chip turns everything off and stays off
 });
 
 test('the listening room opens from the first page and plays every sound', async ({ page }) => {
-  await page.goto('./?debug=1');
+  await page.goto('./?debug=1&test=skills');
   await page.getByRole('button', { name: 'ฟังเสียงทั้งหมด' }).click();
   await page.waitForFunction(() => '__walk' in window);
   await expect(page.locator('.lab')).toBeVisible();

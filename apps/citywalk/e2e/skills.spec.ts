@@ -11,7 +11,7 @@ const slimes = (page: Page) => js<Slime[]>(page, 'window.__walk.slimes()');
 const combat = (page: Page) => js<CombatState>(page, 'window.__walk.combat()');
 
 async function open(page: Page) {
-  await page.goto('./?debug=1');
+  await page.goto('./?debug=1&test=skills');
   await newGame(page);
   await page.waitForFunction(() => '__walk' in window);
   // stop the world so every step below is ours, and screenshots catch the moment we want

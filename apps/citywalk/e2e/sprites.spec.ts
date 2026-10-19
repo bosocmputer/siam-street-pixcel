@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
-import { newGame } from './start';
+import { newGame, skipOpening } from './start';
 
 // Pixel art: the player and the monsters as sprites, drawn from their models while loading or
 // read from packed sheet files (tools/sprites/pack.py).
@@ -26,6 +26,7 @@ async function open(page: Page, query = '', shot = '') {
   if (shot) {
     // the character screen shows the character as its sprite
     await page.getByRole('button', { name: 'เริ่มเดิน' }).click();
+    await skipOpening(page);
     await expect(page.locator('.cr-thumb.wait')).toHaveCount(0, { timeout: 120_000 });
     await page.screenshot({ path: `${SHOTS}/${shot}.png` });
     await page.getByRole('button', { name: 'ถัดไป' }).click();

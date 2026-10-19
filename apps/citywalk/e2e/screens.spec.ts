@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { skipOpening } from './start';
 
 // Every window must fit the screen or scroll: on a small phone, a phone on its side and a desktop.
 // Nothing the player can press may sit off the screen where no scrolling reaches it, and a window
@@ -49,7 +50,7 @@ const cutOff = (page: Page) =>
 const overlaps = (page: Page) =>
   page.evaluate(() => {
     const parts = Array.from(
-      document.querySelectorAll('.fight, .skill, .gear, .player, .minimap, .chain'),
+      document.querySelectorAll('.fight, .skill, .gear, .player, .minimap, .chain, .quest'),
     ).filter((e) => (e as HTMLElement).offsetParent !== null);
     const name = (e: Element) => e.getAttribute('aria-label') || e.className;
     const bad: string[] = [];
@@ -117,6 +118,11 @@ for (const { size, large } of RUNS) {
 
     // the character screen, the name sheet and the system's announcement
     await start.click();
+    // the opening pictures fit too, then skip to the character screen
+    await expect(page.locator('.opening')).toBeVisible();
+    expect(await cutOff(page)).toEqual([]);
+    await page.screenshot({ path: `${SHOTS}/screens-${tag}-opening.png` });
+    await skipOpening(page);
     await expect(page.locator('.cr-thumb')).toHaveCount(6);
     expect(await cutOff(page)).toEqual([]);
     await page.screenshot({ path: `${SHOTS}/screens-${tag}-creator.png` });
@@ -153,6 +159,19 @@ for (const { size, large } of RUNS) {
     expect(await cutOff(page)).toEqual([]);
     await page.screenshot({ path: `${SHOTS}/screens-${tag}-settings.png` });
     await page.getByRole('button', { name: 'ตั้งค่า' }).click();
+
+    // Pa Saeng's dialogue box fits, and its skip button can be reached
+    await page.evaluate(`(() => {
+      const w = window.__walk;
+      w.setStory('pa_saeng', 0);
+      const [x, z] = w.story().npcs;
+      w.teleport(x + 2, z + 0.5);
+    })()`);
+    await expect(page.locator('.talk')).toBeVisible();
+    expect(await cutOff(page)).toEqual([]);
+    await page.screenshot({ path: `${SHOTS}/screens-${tag}-talk.png` });
+    await page.getByRole('button', { name: 'ข้าม', exact: true }).click();
+    await expect(page.locator('.talk')).toBeHidden();
     if (large)
       expect(await page.evaluate(() => document.documentElement.dataset.text)).toBe('large');
   });
@@ -162,6 +181,7 @@ test('the text chip makes every word bigger and is remembered', async ({ page })
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('./?debug=1');
   await page.getByRole('button', { name: 'เริ่มเดิน' }).click();
+  await skipOpening(page);
   await nameAndWake(page);
   await page.getByRole('button', { name: 'รับทราบ' }).click();
   const size = () => page.evaluate(() => getComputedStyle(document.body).fontSize);

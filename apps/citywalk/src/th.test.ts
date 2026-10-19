@@ -4,6 +4,7 @@ import {
   ATTRS,
   CAMERA_MODES,
   COMBOS,
+  QUESTS,
   ELEMENTS,
   ITEMS,
   JOB_IDS,
@@ -27,6 +28,24 @@ describe('Thai names cover the game data', () => {
   it('items', () => same(TH.items, Object.keys(ITEMS)));
   it('skills', () => same(TH.skills, Object.keys(SKILLS)));
   it('combos', () => same(TH.combos, [...COMBOS]));
+  it('quests: a name and words for every step, and the lines every talk needs', () => {
+    same(TH.quests, Object.keys(QUESTS.quests));
+    same(TH.npcs, Object.keys(QUESTS.npcs));
+    for (const q of Object.values(QUESTS.quests)) {
+      expect(TH.quests[q.id]!.steps).toHaveLength(q.steps.length);
+      if (q.reward.learn) expect(TH.learned[q.reward.learn]).toBeTruthy();
+      for (const s of q.steps) {
+        if (s.do !== 'talk') continue;
+        const pages = TH.story[s.npc]?.[s.line];
+        expect(pages, `${s.npc}.${s.line}`).toBeTruthy();
+        for (const p of pages!) {
+          expect(p.trim().length).toBeGreaterThan(0);
+          // short enough for the box on the smallest phone
+          expect([...p].length).toBeLessThanOrEqual(90);
+        }
+      }
+    }
+  });
   it('elements', () => same(TH.elements, ELEMENTS));
   it('camera views', () => same(TH.cameraModes, CAMERA_MODES));
   it('sounds', () => same(TH.sounds, Object.keys(SOUNDS)));

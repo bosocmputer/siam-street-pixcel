@@ -30,6 +30,8 @@ export interface Manifest {
    * listed is drawn from its model
    */
   sprites?: Record<string, string>;
+  /** the three opening pictures (newgame/prompts/opening_stills.md); without them they are drawn in code */
+  opening?: string[];
 }
 
 export interface Loaded {

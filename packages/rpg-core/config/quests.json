@@ -1,0 +1,46 @@
+{
+  "about": "Story quests (systems_design.md section 17), done one at a time in order: each quest's next is the one after it (null = the last for now). places: spots in the Tha Phae Gate frame ([x along the wall, z out onto the square], metres; the player starts at [0, 20]). npcs: who stands where, and how they look (the same choices as the character screen; the name stays empty, the Thai name is in th.ts). Steps: reach (walk to within radius metres of a place), talk (to an npc; the lines are in th.ts story under the step's line id), defeat (count monsters, of one species or any when species is null), dodge (come through count red warnings unhurt: out of the ring, a perfect dodge or a guard). reward: exp, and learn names what the step taught (shown on the card). Quest and line ids are kept in saves: never rename them.",
+  "places": {
+    "pa_saeng": [-12, 10]
+  },
+  "npcs": {
+    "pa_saeng": {
+      "place": "pa_saeng",
+      "look": {
+        "body": "f",
+        "hair": "bob",
+        "hairColor": "silver",
+        "face": "soft",
+        "eye": "brown",
+        "skin": "tone3"
+      }
+    }
+  },
+  "first": "wake",
+  "quests": {
+    "wake": {
+      "steps": [{ "do": "reach", "place": "pa_saeng", "radius": 6 }],
+      "reward": { "exp": 0, "learn": null },
+      "next": "pa_saeng"
+    },
+    "pa_saeng": {
+      "steps": [
+        { "do": "talk", "npc": "pa_saeng", "line": "help" },
+        { "do": "defeat", "species": "slime_water", "count": 1 },
+        { "do": "talk", "npc": "pa_saeng", "line": "thanks" }
+      ],
+      "reward": { "exp": 40, "learn": "strike" },
+      "next": "street"
+    },
+    "street": {
+      "steps": [{ "do": "defeat", "species": null, "count": 5 }],
+      "reward": { "exp": 80, "learn": null },
+      "next": "dodge"
+    },
+    "dodge": {
+      "steps": [{ "do": "dodge", "count": 3 }],
+      "reward": { "exp": 100, "learn": "dash" },
+      "next": null
+    }
+  }
+}
