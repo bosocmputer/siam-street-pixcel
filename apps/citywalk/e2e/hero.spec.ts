@@ -18,7 +18,7 @@ async function open(page: Page) {
   await page.waitForTimeout(300);
 }
 
-/** Stand, gather a ball in the right hand, ride: the body follows each one. */
+/** Stand, gather a ball in the free left hand, ride: the body follows each one. */
 async function checkPoses(page: Page, shot: string) {
   const head = (await joint(page, 'Head'))!;
   expect(head).not.toBeNull();
@@ -29,13 +29,13 @@ async function checkPoses(page: Page, shot: string) {
   expect((await joint(page, 'Hand_R'))![1]).toBeLessThan(1.05);
   await page.screenshot({ path: `${SHOTS}/${shot}-stand.png` });
 
-  // gathering a ball raises the right hand
+  // gathering a ball raises the left hand; the right keeps the pipe low
   await js(page, 'window.__walk.pause(true)');
   await js(page, "window.__walk.setTarget(0); window.__walk.cast('fireball')");
   await js(page, 'window.__walk.simulateFight(0.3)');
   await page.waitForTimeout(500);
-  expect((await joint(page, 'Hand_R'))![1]).toBeGreaterThan(1.2);
-  expect((await joint(page, 'Hand_L'))![1]).toBeLessThan(1.05);
+  expect((await joint(page, 'Hand_L'))![1]).toBeGreaterThan(1.2);
+  expect((await joint(page, 'Hand_R'))![1]).toBeLessThan(1.05);
   await page.screenshot({ path: `${SHOTS}/${shot}-cast.png` });
   await js(page, 'window.__walk.simulateFight(2)');
   await js(page, 'window.__walk.pause(false)');
