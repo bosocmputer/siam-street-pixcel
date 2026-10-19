@@ -4,6 +4,9 @@ import { clone as cloneModel } from 'three/addons/utils/SkeletonUtils.js';
 import { RIG } from '@newgame/rpg-core';
 import type { ModelEntry } from './assets';
 import { makeBike, type Walker } from './walker';
+import { makePipe } from './weapon';
+import * as C from './anim/clips';
+import { GAIT, blend, sample, upperBody, type Clip, type Frame, type Turn } from './anim/clips';
 
 // The player character. Any .glb can be the body, as long as the game can find its joints:
 //
@@ -105,91 +108,6 @@ export interface Act {
   t: number;
 }
 
-type Turn = [number, number, number];
-const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
-/** 0 until `from`, then up to 1 over `span`, easing out */
-const swingK = (t: number, from: number, span: number) => {
-  const k = Math.min(1, Math.max(0, (t - from) / span));
-  return 1 - (1 - k) * (1 - k);
-};
-
-/**
- * Where the arms and body go for a strike, dash or guard, and how much of it to show (`w`, easing
- * in at the start and out at the end). Joints not named keep their walking pose.
- */
-export function actPose(a: Act): { w: number; joints: Partial<Record<JointName, Turn>> } {
-  const t = Math.min(1, Math.max(0, a.t));
-  const fade = Math.max(0, Math.min(1, t / 0.12, (1 - t) / 0.22));
-  switch (a.kind) {
-    case 'strike1': {
-      // a flat slash from the right across the body
-      const k = swingK(t, 0.3, 0.25);
-      return {
-        w: fade,
-        joints: {
-          UpperArm_R: [-1.45, 0, lerp(-1.25, 0.7, k)],
-          LowerArm_R: [-0.25, 0, 0],
-          UpperArm_L: [-0.5, 0, 0.35],
-          Spine: [0.08, lerp(0.5, -0.65, k), 0],
-        },
-      };
-    }
-    case 'strike2': {
-      // and back again, backhand
-      const k = swingK(t, 0.3, 0.25);
-      return {
-        w: fade,
-        joints: {
-          UpperArm_R: [-1.3, 0, lerp(0.75, -1.2, k)],
-          LowerArm_R: [-0.45, 0, 0],
-          UpperArm_L: [-0.4, 0, 0.3],
-          Spine: [0.08, lerp(-0.6, 0.55, k), 0],
-        },
-      };
-    }
-    case 'strike3': {
-      // both hands high over the head, then down hard
-      const k = swingK(t, 0.32, 0.18);
-      return {
-        w: fade,
-        joints: {
-          UpperArm_R: [lerp(-2.85, -0.45, k), 0, -0.2],
-          UpperArm_L: [lerp(-2.85, -0.45, k), 0, 0.2],
-          LowerArm_R: [lerp(-0.5, -0.1, k), 0, 0],
-          LowerArm_L: [lerp(-0.5, -0.1, k), 0, 0],
-          Spine: [lerp(-0.25, 0.5, k), 0, 0],
-          Neck: [lerp(-0.1, -0.25, k), 0, 0],
-        },
-      };
-    }
-    case 'dash':
-      // low and forward, arms swept back
-      return {
-        w: Math.sin(Math.PI * t),
-        joints: {
-          Spine: [0.55, 0, 0],
-          Neck: [-0.35, 0, 0],
-          UpperArm_R: [0.95, 0, -0.25],
-          UpperArm_L: [0.95, 0, 0.25],
-          LowerArm_R: [-0.45, 0, 0],
-          LowerArm_L: [-0.45, 0, 0],
-        },
-      };
-    case 'guard':
-      // forearms crossed in front of the face
-      return {
-        w: 1,
-        joints: {
-          UpperArm_R: [-1.25, 0, 0.55],
-          UpperArm_L: [-1.25, 0, -0.55],
-          LowerArm_R: [-1.75, 0, 0],
-          LowerArm_L: [-1.75, 0, 0],
-          Spine: [0.18, 0, 0],
-        },
-      };
-  }
-}
-
 /**
  * Thin dark edges round the body (drawn from the back faces, pushed out along the normals).
  * `width` is in world metres; each piece is pushed by that much whatever its own scale, so a
@@ -245,10 +163,33 @@ export interface HeroOptions {
   proportions?: Record<string, [number, number, number]>;
   /** the round shadow under the feet (default on) */
   shadow?: boolean;
+  /** the pipe in the right hand (default on) */
+  weapon?: boolean;
+}
+
+/** each animation's clip (the sprite sheet's names) */
+const CLIPS = {
+  idle: C.IDLE,
+  walk: C.WALK,
+  run: C.RUN,
+  strike1: C.STRIKE1,
+  strike2: C.STRIKE2,
+  strike3: C.STRIKE3,
+  dash: C.DASH,
+  guard: C.GUARD,
+  hurt: C.HURT,
+  cast: C.CAST,
+  ride: C.RIDE,
+} satisfies Record<string, Clip>;
+
+/** The posed character, which can also hold any frame of a move still (for drawing sprites). */
+export interface Hero extends Walker {
+  /** hold animation `anim` at `u` (0..1) of the way through it */
+  posed(anim: string, u: number): void;
 }
 
 /** The player's body: the model, posed in code, plus the motorbike shown when riding. */
-export function makeHero(t: HeroTemplate, opts: HeroOptions = {}): Walker {
+export function makeHero(t: HeroTemplate, opts: HeroOptions = {}): Hero {
   const e = t.entry;
   const body = new THREE.Group();
   const holder = new THREE.Group();
@@ -300,7 +241,6 @@ export function makeHero(t: HeroTemplate, opts: HeroOptions = {}): Walker {
       parentInv: node.parent ? inFrame(node.parent).invert() : new THREE.Quaternion(),
     });
   }
-  const hand = nodeOf('Socket_Hand_R') ?? joints.get('Hand_R')?.node ?? model;
   if (opts.proportions) {
     for (const [name, [x, y, z]] of Object.entries(opts.proportions))
       for (const j of [name, `${name}_L`, `${name}_R`])
@@ -329,6 +269,59 @@ export function makeHero(t: HeroTemplate, opts: HeroOptions = {}): Walker {
   shadow.position.y = 0.02;
   if (opts.shadow !== false) body.add(shadow);
 
+  // the pipe follows the right fist. It hangs from the body rather than the hand, so the arm's
+  // chibi scaling does not stretch it.
+  const grip = nodeOf('Socket_Hand_R') ?? joints.get('Hand_R')?.node;
+  const pipe = makePipe();
+  if (grip && opts.weapon !== false) holder.add(pipe);
+  // The pipe sits in the fist and points where the move says (the `Pipe` turn in a clip, from
+  // straight ahead): a swing is an arc of directions, which reads better than a turning wrist.
+  const holdInv = new THREE.Matrix4();
+  const fist = new THREE.Vector3();
+  const aim = new THREE.Quaternion();
+  const holdPipe = (turn: Turn | undefined, seat: number) => {
+    if (!grip || !pipe.parent) return;
+    pipe.visible = seat < 0.5;
+    holder.updateMatrixWorld(true);
+    holdInv.copy(holder.matrixWorld).invert();
+    pipe.position.copy(grip.getWorldPosition(fist).applyMatrix4(holdInv));
+    const [x, y, z] = turn ?? [0, 0, 0];
+    aim.setFromEuler(tmpE.set(x, y, z, 'YXZ'));
+    pipe.quaternion.copy(model.quaternion).multiply(aim);
+  };
+
+  // leg lengths as built (after any chibi scaling), to keep the standing foot on the ground
+  holder.updateMatrixWorld(true);
+  const gap = (a: JointName, b: JointName) => {
+    const p = joints.get(a)?.node.getWorldPosition(new THREE.Vector3());
+    const q = joints.get(b)?.node.getWorldPosition(new THREE.Vector3());
+    return p && q ? p.distanceTo(q) : 0;
+  };
+  const thigh = gap('UpperLeg_L', 'LowerLeg_L');
+  const shin = gap('LowerLeg_L', 'Foot_L');
+  const baseY = model.position.y;
+
+  /** Put the body in a pose: the feet kept flat unless the pose turns them, the lower foot on
+   * the ground, the whole body raised by the pose's lift (and lowered onto the bike seat). */
+  const apply = (f: Frame, seat = 0) => {
+    const j = f.joints;
+    const x = (n: string) => j[n]?.[0] ?? 0;
+    for (const side of ['L', 'R'] as const) {
+      const foot = `Foot_${side}`;
+      if (!j[foot]) j[foot] = [-(x(`UpperLeg_${side}`) + x(`LowerLeg_${side}`)), 0, 0];
+    }
+    for (const jt of RIG.joints) {
+      const t = j[jt.name];
+      pose(jt.name, t?.[0], t?.[1], t?.[2]);
+    }
+    const height = (s: 'L' | 'R') =>
+      thigh * Math.cos(x(`UpperLeg_${s}`)) +
+      shin * Math.cos(x(`UpperLeg_${s}`) + x(`LowerLeg_${s}`));
+    const drop = thigh + shin - Math.max(height('L'), height('R'));
+    model.position.y = baseY + (1 - seat) * (f.lift - drop) - 0.13 * seat;
+    holdPipe(j.Pipe, seat);
+  };
+
   let time = 0,
     cast = 0,
     ride = 0,
@@ -336,19 +329,17 @@ export function makeHero(t: HeroTemplate, opts: HeroOptions = {}): Walker {
     guard = 0,
     stride = 0,
     running = 0,
-    phase = 0;
-  const baseY = model.position.y;
-  // leg lengths from the rig, to keep the standing foot on the ground
-  const at = Object.fromEntries(RIG.joints.map((j) => [j.name, j.at]));
-  const thigh = at.UpperLeg_L![1] - at.LowerLeg_L![1];
-  const shin = at.LowerLeg_L![1] - at.Foot_L![1];
+    phase = 0,
+    lastAct: ActKind | null = null,
+    actFade = 0;
 
   return {
     body,
     bike,
     lift: 0.04,
     bob: () => undefined,
-    hand: (out) => hand.getWorldPosition(out),
+    // a ball of fire or water gathers in the free (left) hand
+    hand: (out) => (nodeOf('Socket_Hand_L') ?? model).getWorldPosition(out),
     joint: (name, out) => {
       const n = joints.get(name as JointName)?.node;
       return n ? n.getWorldPosition(out) : null;
@@ -356,98 +347,46 @@ export function makeHero(t: HeroTemplate, opts: HeroOptions = {}): Walker {
     hurt: () => {
       flinch = 1;
     },
+    posed: (anim, u) => {
+      const clip = CLIPS[anim as keyof typeof CLIPS] ?? CLIPS.idle;
+      apply(sample(clip, u), anim === 'ride' ? 1 : 0);
+    },
     animate: (dt, m) => {
       time += dt;
-      // a guard eases up and down; strikes and dashes carry their own easing
-      guard = Math.min(1, Math.max(0, guard + (m.act?.kind === 'guard' ? dt : -dt) * 10));
-      const act =
-        m.act && !m.down ? actPose(m.act) : guard > 0 ? actPose({ kind: 'guard', t: 0 }) : null;
-      const w = m.act && m.act.kind !== 'guard' ? (act?.w ?? 0) : guard;
-      /** a joint's walking pose, moved towards the strike's or guard's */
-      const put = (name: JointName, x = 0, y = 0, z = 0) => {
-        const o = act?.joints[name];
-        if (o) [x, y, z] = [lerp(x, o[0], w), lerp(y, o[1], w), lerp(z, o[2], w)];
-        pose(name, x, y, z);
-      };
       const ease = (v: number, to: number, rate: number) => v + (to - v) * Math.min(1, dt * rate);
       const onFoot = m.mode !== 'bike' && !m.down;
       cast = ease(cast, m.casting && !m.down ? 1 : 0, 12);
       ride = ease(ride, m.mode === 'bike' ? 1 : 0, 10);
+      flinch = Math.max(0, flinch - dt * 3);
       // how much of a stride to take follows the real speed, so a stop eases out and a start
       // eases in; running blends in above walking pace
       const speed = onFoot ? m.speed : 0;
-      stride = ease(stride, Math.min(1, speed / 3.5), 10);
+      stride = ease(stride, Math.min(1, speed / 2.5), 10);
       running = ease(running, Math.min(1, Math.max(0, (speed - 4.5) / 3)), 6);
-      flinch = Math.max(0, flinch - dt * 4);
       // the stride clock runs on distance, so each step covers the ground the body moved over:
       // the feet never slide
-      const stepLen = 1.25 + 0.85 * running;
-      phase += ((speed * dt) / stepLen) * Math.PI;
-      const p = phase;
-      const r = running;
-      const mix = (a: number, b: number) => a + (b - a) * ride;
+      const cycle = GAIT.walk.cycle + (GAIT.run.cycle - GAIT.walk.cycle) * running;
+      phase = (phase + (speed * dt) / cycle) % 1;
 
-      // legs: the thigh swings from the hip; the knee folds as the leg comes through, more when
-      // running; the foot stays level with the ground
-      const swingA = (0.5 + 0.28 * r) * stride;
-      const kneeA = (0.85 + 1.0 * r) * stride;
-      const leg = (side: 1 | -1) => {
-        const f = p + (side > 0 ? 0 : Math.PI);
-        // a runner lifts the knee high as the leg comes forward
-        const thighX = -swingA * Math.sin(f) - 0.4 * r * stride * Math.max(0, Math.sin(f + 0.9));
-        // the knee folds through the whole swing, most as the leg passes under the body
-        const kneeX = kneeA * ((1 + Math.cos(f - 0.25)) / 2) ** 2 + 0.08 * stride;
-        return { thighX, kneeX, footX: -(thighX + kneeX) * 0.8 };
-      };
-      const L = leg(1),
-        R = leg(-1);
-      put('UpperLeg_L', mix(L.thighX, -1.4), 0, mix(0, 0.12));
-      put('UpperLeg_R', mix(R.thighX, -1.4), 0, mix(0, -0.12));
-      put('LowerLeg_L', mix(L.kneeX, 1.45));
-      put('LowerLeg_R', mix(R.kneeX, 1.45));
-      put('Foot_L', mix(L.footX, 0.1));
-      put('Foot_R', mix(R.footX, 0.1));
-
-      // arms swing against the legs, elbows bent more when running; the right one comes up to
-      // gather a ball
-      const sw = Math.sin(p) * stride; // + : left leg forward, left arm back
-      const armA = 0.42 + 0.45 * r;
-      // a runner's elbows stay bent near a right angle, a walker's swing almost straight
-      const elbow = (s: number) => 0.18 + 0.2 * stride + 1.25 * r * stride + 0.2 * Math.max(0, -s);
-      const breathe = Math.sin(time * 2.2) * 0.02 * (1 - stride);
-      const upL = mix(sw * armA, -0.95);
-      const upR = mix(-sw * armA, -0.95);
-      put('UpperArm_L', upL, 0, mix(0.07 + breathe + 0.05 * r, 0.15));
-      put(
-        'UpperArm_R',
-        upR + (-1.35 - upR) * cast,
-        0,
-        mix(-0.07 - breathe - 0.05 * r, -0.15) - 0.2 * cast,
-      );
-      put('LowerArm_L', -mix(elbow(sw), 0.35));
-      put('LowerArm_R', -mix(elbow(-sw), 0.35) - 0.25 * cast);
-
-      // the body: hips turn with the stepping leg and dip towards it, the shoulders turn against
-      // them, the head keeps looking ahead; lean into a run or onto the bike; flinch when hit
-      const hipTurn = Math.sin(p) * stride * (0.14 + 0.06 * r);
-      put('Hips', 0, mix(hipTurn, 0), mix(Math.cos(p) * 0.045 * stride, 0));
-      put(
-        'Spine',
-        mix(-0.05 * stride - 0.32 * r * stride, -0.25) + 0.25 * flinch,
-        mix(-hipTurn * 1.6, 0) - 0.25 * cast,
-      );
-      put('Chest', breathe + 0.15 * flinch + 0.03 * Math.sin(2 * p) * stride, 0);
-      // the head comes back up so a leaning runner still looks ahead
-      put('Neck', mix(0.2 * r * stride, 0.1), hipTurn * 0.5 + 0.15 * cast);
-      put('Head', -0.1 * flinch);
-
-      // drop the body so the lower foot stands on the ground (a swinging leg otherwise lifts
-      // both feet and the body floats); a runner leaves the ground briefly between steps
-      const height = (l: { thighX: number; kneeX: number }) =>
-        thigh * Math.cos(l.thighX) + shin * Math.cos(l.thighX + l.kneeX);
-      const drop = thigh + shin - Math.max(height(L), height(R));
-      const flight = 0.035 * r * stride * Math.max(0, Math.cos(2 * p));
-      model.position.y = baseY + (1 - ride) * (flight - drop) - 0.13 * ride;
+      let f = sample(CLIPS.idle, time / 3);
+      f = blend(f, blend(sample(CLIPS.walk, phase), sample(CLIPS.run, phase), running), stride);
+      // a strike or dash plays its clip, faded in from the walk and back out at the end; a
+      // guard is held as long as the button is
+      const act = m.act && !m.down ? m.act : null;
+      guard = Math.min(1, Math.max(0, guard + (act?.kind === 'guard' ? dt : -dt) * 10));
+      if (act && act.kind !== 'guard') {
+        if (act.kind !== lastAct) actFade = 0;
+        actFade = Math.min(1, actFade + dt * 14);
+        const t = Math.min(1, Math.max(0, act.t));
+        const out = act.kind === 'dash' ? 1 : Math.min(1, (1 - t) / 0.25);
+        f = blend(f, sample(CLIPS[act.kind], t), Math.min(actFade, out));
+      }
+      lastAct = act?.kind ?? null;
+      if (guard > 0) f = blend(f, sample(CLIPS.guard, 0), guard);
+      if (cast > 0) f = blend(f, sample(CLIPS.cast, 0), cast, upperBody);
+      if (flinch > 0) f = blend(f, sample(CLIPS.hurt, 0.3), Math.sin(Math.PI * flinch), upperBody);
+      if (ride > 0) f = blend(f, sample(CLIPS.ride, 0), ride);
+      apply(f, ride);
     },
   };
 }

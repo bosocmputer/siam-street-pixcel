@@ -3,15 +3,13 @@
 
 import * as THREE from 'three';
 import { APPEARANCE, SPRITES, type AnimSpec, type Look } from '@newgame/rpg-core';
-import { ACTS, makeHero, type ActKind, type Motion } from '../hero';
+import { GAIT } from '../anim/clips';
+import { makeHero } from '../hero';
 import { buildLook, styleFor } from '../lookModel';
 import { bake, cartoon, type Baked, type Mark } from './bake';
 
 /** walking and running speeds the frames are drawn at (metres a second), and stride cycles */
-export const HERO_GAIT = {
-  walk: { speed: 4, cycle: 2.5 },
-  run: { speed: 8, cycle: 4.2 },
-};
+export const HERO_GAIT = GAIT;
 
 /** Draw the sheet for a look; `anims` picks fewer animations (a quick preview). */
 export function bakeHero(
@@ -29,11 +27,6 @@ export function bakeHero(
   // the eye spots are worked out on the model as built, then follow its posed copy
   const clone = w.body.getObjectByName('Face_Main');
   const eyes = clone ? eyePoints(built.root, look).map((e) => ({ ...e, mesh: clone })) : [];
-  const animate = w.animate!;
-  const still: Motion = { mode: 'walk', speed: 0, casting: false, down: false };
-  const run = (m: Partial<Motion>, dt: number, n = 1) => {
-    for (let k = 0; k < n; k++) animate(dt, { ...still, ...m });
-  };
   const sheet = bake(
     {
       root: w.body,
@@ -44,46 +37,13 @@ export function bakeHero(
       face: (a) => (w.body.rotation.y = a + Math.PI),
       pose: (anim, i, n) => {
         w.body.rotation.z = 0;
-        w.bike.visible = false;
-        switch (anim) {
-          case 'idle':
-            // one slow breath across the frames
-            run({}, i === 0 ? 0.1 : (2 * Math.PI) / 2.2 / n, i === 0 ? 40 : 1);
-            break;
-          case 'walk':
-          case 'run': {
-            const g = HERO_GAIT[anim];
-            if (i === 0) run({ speed: g.speed }, 0.05, 80);
-            else run({ speed: g.speed }, g.cycle / g.speed / n);
-            break;
-          }
-          case 'cast':
-            if (i === 0) run({}, 0.1, 30);
-            run({ casting: true }, 0.4 / n);
-            break;
-          case 'hurt':
-            if (i === 0) {
-              run({}, 0.1, 30);
-              w.hurt?.();
-            }
-            run({}, 0.07);
-            break;
-          case 'down':
-            run({}, 0.1, 30);
-            w.body.rotation.z = 1.45;
-            break;
-          case 'ride':
-            w.bike.visible = true;
-            run({ mode: 'bike', speed: 16 }, i === 0 ? 0.1 : 0.2, i === 0 ? 30 : 1);
-            break;
-          default:
-            if ((ACTS as readonly string[]).includes(anim)) {
-              // a strike, dash or guard: frame i shows the middle of its share of the move
-              if (i === 0) run({}, 0.1, 30);
-              const kind = anim as ActKind;
-              run({ act: { kind, t: kind === 'guard' ? 0 : (i + 0.5) / n } }, 0.02, 12);
-            }
-        }
+        w.bike.visible = anim === 'ride';
+        // frame i of n shows the middle of its share of the move; a loop starts on its first key
+        const loops = spec.hero.anims[anim]?.loop ?? false;
+        if (anim === 'down') {
+          w.posed('hurt', 0.3);
+          w.body.rotation.z = 1.45;
+        } else w.posed(anim, loops ? i / n : n === 1 ? 0 : (i + 0.5) / n);
       },
     },
     {

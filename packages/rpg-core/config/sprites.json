@@ -33,7 +33,7 @@
         "loop": false
       },
       "hurt": {
-        "frames": 2,
+        "frames": 3,
         "fps": 10,
         "loop": false
       },
@@ -48,23 +48,23 @@
         "loop": true
       },
       "strike1": {
-        "frames": 4,
-        "fps": 13,
+        "frames": 6,
+        "fps": 20,
         "loop": false
       },
       "strike2": {
-        "frames": 4,
-        "fps": 13,
+        "frames": 6,
+        "fps": 20,
         "loop": false
       },
       "strike3": {
-        "frames": 5,
-        "fps": 10,
+        "frames": 8,
+        "fps": 17,
         "loop": false
       },
       "dash": {
-        "frames": 2,
-        "fps": 8,
+        "frames": 3,
+        "fps": 12,
         "loop": false
       },
       "guard": {
