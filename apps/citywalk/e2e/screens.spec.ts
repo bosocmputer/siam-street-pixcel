@@ -145,6 +145,8 @@ for (const { size, large } of RUNS) {
 
     // the play screen: the fighting buttons, the gear and the panels never cover each other
     await page.getByRole('button', { name: 'กลับ' }).click();
+    await status.getByRole('button', { name: 'ปิด' }).click();
+    await expect(status).toBeHidden();
     expect(await overlaps(page)).toEqual([]);
     await page.screenshot({ path: `${SHOTS}/screens-${tag}-play.png` });
     await page.getByRole('button', { name: 'ตั้งค่า' }).click();

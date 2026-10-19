@@ -133,8 +133,9 @@ canvas.px,
   position: absolute;
   top: calc(env(safe-area-inset-top, 0px) + 208px);
   right: calc(env(safe-area-inset-right, 0px) + 12px);
-  max-height: calc(100% - 420px - env(safe-area-inset-top, 0px));
+  max-height: calc(100% - 444px - env(safe-area-inset-top, 0px));
   min-height: 88px;
+  z-index: 3;
   overflow-y: auto;
   touch-action: pan-y;
   display: grid;
@@ -1686,8 +1687,9 @@ canvas.px,
 .aim {
   width: 44px;
   height: 44px;
-  right: calc(var(--r) + 190px);
-  bottom: calc(var(--b) + 150px);
+  /* above the fire button, clear of the walking stick on a narrow phone */
+  right: calc(var(--r) + 128px);
+  bottom: calc(var(--b) + 190px);
 }
 .aim .px-ico {
   width: 24px;
