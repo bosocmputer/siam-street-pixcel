@@ -110,13 +110,27 @@ interface FlyingWave {
 }
 
 /** Targets, cooldowns and the shots in the air. */
+/** the target marker shows this long after the last strike, skill or choice of target */
+const MARK_FOR = 4;
+
 export class Combat {
   readonly cooldowns = readyCooldowns();
-  target: number | null = null;
+  private chosen: number | null = null;
+  /** seconds since the player last struck, cast or chose a target */
+  private idle = 999;
+  /** The slime the player aims at. Choosing one shows its marker for a while. */
+  get target(): number | null {
+    return this.chosen;
+  }
+  set target(i: number | null) {
+    if (i !== null && i !== this.chosen) this.idle = 0;
+    this.chosen = i;
+  }
   private flying: Flying[] = [];
   private waves: FlyingWave[] = [];
   private charging: Charging | null = null;
-  private marker = new THREE.Group();
+  /** the ring and arrow over the chosen slime (drawn with the pixel effects) */
+  readonly marker = new THREE.Group();
   private ring: THREE.Mesh;
   private arrow: THREE.Mesh;
   private time = 0;
@@ -197,6 +211,7 @@ export class Combat {
     if (this.charging) return false;
     this.ensureTarget(player);
     if (!useSkill(this.cooldowns, id)) return false;
+    this.idle = 0;
     const spec = skill(id);
     const orb = this.fx.orb(spec.element);
     this.fx.addOrb(orb);
@@ -212,6 +227,7 @@ export class Combat {
    * (a wave's come from update when it lands) and whether a wave was sent.
    */
   strike(swing: Swing, p: Striker): { hits: HitEvent[]; wave: boolean } {
+    this.idle = 0;
     const reach = MELEE.strike.reach;
     const fx = Math.sin(p.heading),
       fz = Math.cos(p.heading);
@@ -294,6 +310,7 @@ export class Combat {
 
   update(dt: number): HitEvent[] {
     this.time += dt;
+    this.idle += dt;
     tickCooldowns(this.cooldowns, dt);
     this.gather(dt);
     const hits: HitEvent[] = [];
@@ -447,9 +464,16 @@ export class Combat {
     return null;
   }
 
+  /**
+   * The marker shows while the player is fighting the chosen slime (a strike, skill or new
+   * choice in the last few seconds) or it is angry; otherwise a ring left under a slime looks like
+   * an effect that never ended.
+   */
   private updateMarker(): void {
     const a = this.target !== null ? this.herd.aimPoint(this.target) : null;
-    this.marker.visible = a !== null;
+    const fighting =
+      this.idle < MARK_FOR || (this.target !== null && this.herd.state()[this.target]?.angry);
+    this.marker.visible = a !== null && !!fighting;
     if (!a) return;
     this.marker.position.set(a[0], 0, a[2]);
     this.ring.position.y = 0.07;

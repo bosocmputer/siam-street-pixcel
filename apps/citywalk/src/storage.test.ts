@@ -2,9 +2,11 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   DEFAULT_PREFS,
   readAssist,
+  readFollow,
   readFound,
   readPrefs,
   writeAssist,
+  writeFollow,
   writeFound,
   writePrefs,
 } from './storage';
@@ -93,5 +95,20 @@ describe('combo help on this device', () => {
     install(fakeStorage({}, true));
     expect(readAssist()).toBe(false);
     expect(() => writeAssist(true)).not.toThrow();
+  });
+});
+
+describe('the camera that follows', () => {
+  it('is on until turned off, and stays as chosen', () => {
+    expect(readFollow()).toBe(true);
+    install(fakeStorage());
+    expect(readFollow()).toBe(true);
+    writeFollow(false);
+    expect(readFollow()).toBe(false);
+    writeFollow(true);
+    expect(readFollow()).toBe(true);
+    install(fakeStorage({}, true));
+    expect(readFollow()).toBe(true);
+    expect(() => writeFollow(false)).not.toThrow();
   });
 });

@@ -188,7 +188,8 @@ export class CombatHud {
     this.gauge.style.width = `${Math.round(comboGauge(fighter.combo) * 100)}%`;
 
     const t = combat.target;
-    const aim = t !== null ? herd.aimPoint(t) : null;
+    // the name and health show with the target marker, while fighting it
+    const aim = t !== null && combat.marker.visible ? herd.aimPoint(t) : null;
     const at = aim && t !== null ? toScreen([aim[0], herd.heightOf(t) + 1.0, aim[2]]) : null;
     this.box.hidden = !at;
     if (at && t !== null) {

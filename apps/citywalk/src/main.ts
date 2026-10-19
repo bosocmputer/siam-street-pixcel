@@ -25,6 +25,7 @@ import {
   gait,
   hurt,
   landHit,
+  followYaw,
   lockYaw,
   maxEnergy,
   maxHp,
@@ -86,11 +87,13 @@ import {
   applyTextSize,
   clearSave,
   readAssist,
+  readFollow,
   readFound,
   readPrefs,
   readSave,
   readTextSize,
   writeAssist,
+  writeFollow,
   writeFound,
   writePrefs,
   writeSave,
@@ -400,6 +403,8 @@ async function start(): Promise<void> {
 
   // the strike, dash and guard, and the combo count (combo help is a setting on this device)
   const fighter = newFighter(readAssist());
+  /** the camera swings round behind the way the player walks (a setting, on at first) */
+  let follow = readFollow();
   const hud = new Hud($('#hud'), world.landmarks, [
     {
       id: 'scale',
@@ -443,6 +448,15 @@ async function start(): Promise<void> {
       onClick: () => {
         state.camera =
           CAMERA_MODES[(CAMERA_MODES.indexOf(state.camera) + 1) % CAMERA_MODES.length]!;
+      },
+    },
+    {
+      id: 'follow',
+      label: TH.follow,
+      value: () => (follow ? TH.on : TH.off),
+      onClick: () => {
+        follow = !follow;
+        writeFollow(follow);
       },
     },
     {
@@ -922,6 +936,12 @@ async function start(): Promise<void> {
       if ((standing || combat?.gathering) && handsOff)
         state.yaw = lockYaw(state.yaw, state, { x: aim[0], z: aim[2] }, dt);
     }
+    // the camera that follows: while walking it swings round behind the way the player goes
+    if (follow && stats.down === 0 && !fighter.swing && fighter.dash === 0) {
+      const { forward, right } = input.read();
+      if ((performance.now() - lastTurn) / 1000 > CAMERA.follow.idle)
+        state.yaw = followYaw(state.yaw, forward, right, dt);
+    }
   };
 
   /** what the body shows: a swing, a dash or a guard */
@@ -1041,7 +1061,9 @@ async function start(): Promise<void> {
         pixelFx.render(
           scene,
           camera,
-          [fx.object, pickups.object, warnings.object],
+          combat
+            ? [fx.object, pickups.object, warnings.object, combat.marker]
+            : [fx.object, pickups.object, warnings.object],
           herd ? [walker.body, herd.object] : [walker.body],
         );
       else renderer.render(scene, camera);
@@ -1212,6 +1234,7 @@ async function start(): Promise<void> {
       /** a monster's blow reaching the player now, as the fight would take it */
       blow: (damage: number) => takeBlow(fighter, damage).result,
       announced: () => combatHud?.announced ?? '',
+      setFollow: (on: boolean) => (follow = on),
       /** red warnings on the ground now */
       warnings: () => ({ shown: warnings.showing, list: herd?.warnings() ?? [] }),
       found: () => [...found],
@@ -1287,6 +1310,7 @@ async function start(): Promise<void> {
               cooldowns: { ...combat.cooldowns },
               inFlight: combat.inFlight,
               waves: combat.wavesInFlight,
+              marked: combat.marker.visible,
             }
           : null,
       setTarget: (i: number | null) => combat && (combat.target = i),

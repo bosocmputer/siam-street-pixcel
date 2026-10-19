@@ -194,3 +194,19 @@ test('combo help in the settings gives a wider perfect dodge, and is remembered'
   await page.getByRole('button', { name: 'ตั้งค่า' }).click();
   await expect(page.locator('[data-chip="assist"]')).toContainText('เปิด');
 });
+
+test('the target ring shows while fighting and goes once the fight is over', async ({ page }) => {
+  await open(page);
+  await standNear(page, 1, 6);
+  const marked = async () => (await js<{ marked: boolean }>(page, 'window.__walk.combat()')).marked;
+  await js(page, 'window.__walk.simulateFight(1 / 30)');
+  expect(await marked()).toBe(true);
+  // a calm slime nobody is hitting: after a few seconds the ring is gone
+  await js(page, 'window.__walk.simulateFight(5)');
+  expect(await marked()).toBe(false);
+  await expect(page.locator('.hpbox')).toBeHidden();
+  // a strike brings it back
+  await js(page, 'window.__walk.strike()');
+  await js(page, 'window.__walk.simulateStrike(0.2)');
+  expect(await marked()).toBe(true);
+});

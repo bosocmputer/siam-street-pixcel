@@ -22,6 +22,7 @@ export const TH = {
   target: 'เปลี่ยนเป้า',
   settings: 'ตั้งค่า',
   assist: 'ช่วยคอมโบ',
+  follow: 'กล้องตามเอง',
   combo: 'คอมโบ',
   crit: 'คริ!',
   /** the basic combos' names, shown big when one is made */

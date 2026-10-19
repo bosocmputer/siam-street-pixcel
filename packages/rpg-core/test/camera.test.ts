@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import cameraJson from '../config/camera.json';
-import { CAMERA, lockYaw, readCamera, rigFor, sideMetres, wrapAngle } from '../src/camera';
+import {
+  CAMERA,
+  followYaw,
+  lockYaw,
+  readCamera,
+  rigFor,
+  sideMetres,
+  wrapAngle,
+} from '../src/camera';
 import { ConfigError } from '../src/config';
 
 describe('camera', () => {
@@ -63,6 +71,24 @@ describe('camera', () => {
   it('never overshoots, even on a long frame', () => {
     const y = lockYaw(0, { x: 0, z: 0 }, { x: 10, z: 0 }, 5);
     expect(y).toBeCloseTo(-Math.PI / 2);
+  });
+
+  it('follows by itself: walking right swings the view right, never round when walking back', () => {
+    // straight ahead or standing still: nothing to do
+    expect(followYaw(0.5, 1, 0, 0.1)).toBe(0.5);
+    expect(followYaw(0.5, 0, 0, 0.1)).toBe(0.5);
+    // to the right: the heading goes down (the view turns right), a little each step
+    const r = followYaw(0, 0, 1, 1 / 60);
+    expect(r).toBeLessThan(0);
+    expect(r).toBeGreaterThan(-0.1);
+    // to the left: the other way, the same amount
+    expect(followYaw(0, 0, -1, 1 / 60)).toBeCloseTo(-r);
+    // a gentle push turns more slowly than a full one
+    expect(Math.abs(followYaw(0, 0, 0.4, 1 / 60))).toBeLessThan(Math.abs(r));
+    // walking back towards the camera leaves it alone
+    expect(followYaw(0.2, -1, 0.2, 0.1)).toBe(0.2);
+    // never more than the whole way round on a long frame
+    expect(followYaw(0, 0.0001, 1, 10)).toBeGreaterThanOrEqual(-Math.PI / 2 - 1e-9);
   });
 
   it('refuses mistakes', () => {

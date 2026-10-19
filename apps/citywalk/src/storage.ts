@@ -132,3 +132,22 @@ export function writeAssist(on: boolean): void {
     // the setting just does not stick
   }
 }
+
+const FOLLOW_KEY = 'citywalk.follow';
+
+/** The camera follows the way the player walks; on unless turned off on this device. */
+export function readFollow(): boolean {
+  try {
+    return localStorage.getItem(FOLLOW_KEY) !== 'off';
+  } catch {
+    return true;
+  }
+}
+
+export function writeFollow(on: boolean): void {
+  try {
+    localStorage.setItem(FOLLOW_KEY, on ? 'on' : 'off');
+  } catch {
+    // the setting just does not stick
+  }
+}

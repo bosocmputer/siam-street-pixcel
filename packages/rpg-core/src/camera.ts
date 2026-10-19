@@ -19,6 +19,7 @@ export interface CameraSpec {
   targetHeight: number;
   pitch: { start: number; min: number; max: number };
   lock: { rate: number; range: number; idle: number };
+  follow: { rate: number; idle: number; back: number };
 }
 
 export function readCamera(raw: unknown): CameraSpec {
@@ -34,6 +35,7 @@ export function readCamera(raw: unknown): CameraSpec {
   };
   const pitch = obj(root.pitch, 'camera.pitch');
   const lock = obj(root.lock, 'camera.lock');
+  const follow = obj(root.follow, 'camera.follow');
   const spec: CameraSpec = {
     back: rig('back'),
     shoulder: rig('shoulder'),
@@ -47,6 +49,11 @@ export function readCamera(raw: unknown): CameraSpec {
       rate: num(lock, 'rate', 'camera.lock'),
       range: num(lock, 'range', 'camera.lock', 1),
       idle: num(lock, 'idle', 'camera.lock'),
+    },
+    follow: {
+      rate: num(follow, 'rate', 'camera.follow'),
+      idle: num(follow, 'idle', 'camera.follow'),
+      back: num(follow, 'back', 'camera.follow'),
     },
   };
   if (spec.back.side > 0.9 || spec.shoulder.side > 0.9)
@@ -107,4 +114,24 @@ export function lockYaw(
   const delta = wrapAngle(Math.atan2(-dx, -dz) - yaw);
   if (Math.abs(delta) < 0.02) return yaw;
   return yaw + delta * Math.min(1, dt * lock.rate);
+}
+
+/**
+ * The camera that follows by itself: while the player walks (forward and right are the stick, in
+ * -1..1, relative to the camera), the camera's heading swings a little towards the way they go,
+ * so it ends up behind them without being dragged. Pushing sideways turns gently round; walking
+ * back towards the camera (forward below -back) leaves it alone, so it never spins round.
+ */
+export function followYaw(
+  yaw: number,
+  forward: number,
+  right: number,
+  dt: number,
+  follow = CAMERA.follow,
+): number {
+  const push = Math.hypot(forward, right);
+  if (push < 0.05 || forward < -follow.back) return yaw;
+  // the way the player goes, as a camera heading: the stick's angle off straight ahead
+  const off = Math.atan2(right, Math.max(forward, 0));
+  return yaw - off * Math.min(1, dt * follow.rate * Math.min(1, push));
 }

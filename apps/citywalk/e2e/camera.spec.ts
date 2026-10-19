@@ -98,3 +98,27 @@ test('the camera chip switches views, and standing still the camera swings round
   await page.keyboard.up('KeyW');
   expect(Math.abs(yaw1 - yaw0)).toBeLessThan(0.05);
 });
+
+test('the camera follows by itself while walking sideways, and can be turned off', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await open(page);
+  const yaw = () => js<number>(page, 'window.__walk.state().yaw');
+  const walkRight = async () => {
+    await page.locator('#view').click({ position: { x: 5, y: 300 } });
+    // the click counts as turning by hand: wait for the camera to be free again
+    await page.waitForTimeout(2200);
+    const before = await yaw();
+    await page.keyboard.down('KeyD');
+    await page.waitForTimeout(1500);
+    await page.keyboard.up('KeyD');
+    return (await yaw()) - before;
+  };
+  // walking right swings the view round to the right (the heading goes down)
+  expect(await walkRight()).toBeLessThan(-0.1);
+  await (await chipOf(page, 'follow')).click();
+  await expect(page.locator('[data-chip="follow"]')).toContainText('ปิด');
+  await page.getByRole('button', { name: 'ตั้งค่า' }).click();
+  expect(Math.abs(await walkRight())).toBeLessThan(0.02);
+});

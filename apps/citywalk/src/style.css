@@ -1580,6 +1580,13 @@ canvas.px,
   grid-column: 1 / -1;
   grid-row: 2;
 }
+/* big text on a narrow phone: the map gets a little smaller so the player panel fits beside it */
+@media (max-width: 400px) {
+  :root[data-text='large'] .minimap {
+    width: 100px;
+    height: 100px;
+  }
+}
 
 /* ---------- the fighting buttons round the right thumb (layout A on the HUD mockup) ---------- */
 #hud {
