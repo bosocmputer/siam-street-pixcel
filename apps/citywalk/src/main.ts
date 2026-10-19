@@ -1434,6 +1434,7 @@ async function start(): Promise<void> {
       },
       talkNext: () => story.talk.turn(),
       opening: () => opening.at,
+      holdOpening: (on: boolean) => opening.hold(on),
       setJob: (job: string | null) => {
         story.progress.job = job;
         combatHud?.setSkills(skillsOpen());

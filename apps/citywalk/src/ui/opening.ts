@@ -84,6 +84,8 @@ export class Opening {
   private n = 0;
   private timer = 0;
   private done: (() => void) | null = null;
+  /** the pictures wait for a tap (tests on a slow machine) */
+  private held = false;
 
   /** `lines` are the words under each picture; `files` the pictures, if there are any */
   constructor(
@@ -102,6 +104,14 @@ export class Opening {
     this.root.addEventListener('click', (e) =>
       e.target === this.skip ? this.end() : this.show(this.n + 1),
     );
+  }
+
+  /** Stop (true) or restart (false) moving on by itself. */
+  hold(on: boolean): void {
+    this.held = on;
+    window.clearTimeout(this.timer);
+    if (!on && !this.root.hidden)
+      this.timer = window.setTimeout(() => this.show(this.n + 1), SHOW_FOR);
   }
 
   /** which picture is up (for tests), or -1 when the opening is not showing */
@@ -134,7 +144,7 @@ export class Opening {
       DRAWN[n]?.(c.getContext('2d')!, c.width, c.height);
       this.pic.replaceChildren(c);
     }
-    this.timer = window.setTimeout(() => this.show(n + 1), SHOW_FOR);
+    if (!this.held) this.timer = window.setTimeout(() => this.show(n + 1), SHOW_FOR);
   }
 
   private end(): void {
