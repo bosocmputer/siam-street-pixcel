@@ -131,9 +131,15 @@ export class Hud {
       // a tag is about 120 px wide and sits above its point; where that would cover a button or
       // the minimap it slides down to just under it instead of disappearing
       let ty = sy;
-      for (const r of covered)
-        if (sx > r.left - 60 && sx < r.right + 60 && ty > r.top && ty < r.bottom + 30)
-          ty = r.bottom + 30;
+      // sliding under one box can land it on another (the gear under the map): check again
+      for (let moved = true, n = 0; moved && n < 4; n++) {
+        moved = false;
+        for (const r of covered)
+          if (sx > r.left - 60 && sx < r.right + 60 && ty > r.top && ty < r.bottom + 30) {
+            ty = r.bottom + 30;
+            moved = true;
+          }
+      }
       const show = labels && this.v.z < 1 && d * scale < 450 && ty < window.innerHeight * 0.6;
       t.hidden = !show;
       if (show)
