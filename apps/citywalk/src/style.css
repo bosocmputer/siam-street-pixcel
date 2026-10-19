@@ -27,6 +27,9 @@
   --px-navy: #124e89;
   --px-green: #63c74d;
   --px-font: 'PixelTH', monospace;
+  /* text size: 16 (sharp on every screen) or, for those who need it, 24 (sharp on most phones) */
+  --fs: 16px;
+  --lh: 20px;
   /* a frame: a 2 px line round the box with its corners cut, a light top and a dark bottom */
   --px-frame: -2px 0 0 0 var(--px-ink), 2px 0 0 0 var(--px-ink), 0 -2px 0 0 var(--px-ink),
     0 2px 0 0 var(--px-ink), inset 0 2px 0 0 rgba(255, 255, 255, 0.14),
@@ -40,6 +43,10 @@
   --accent: var(--px-orange);
   --muted: var(--px-dim);
   color-scheme: dark;
+}
+:root[data-text='large'] {
+  --fs: 24px;
+  --lh: 28px;
 }
 * {
   box-sizing: border-box;
@@ -55,7 +62,7 @@ body {
   user-select: none;
   background: #bfd8ea;
   color: var(--px-text);
-  font: 16px/20px var(--px-font);
+  font: var(--fs) / var(--lh) var(--px-font);
   -webkit-tap-highlight-color: transparent;
   -webkit-font-smoothing: none;
 }
@@ -398,7 +405,7 @@ canvas.px,
   right: 0;
   bottom: 4px;
   text-align: center;
-  line-height: 16px;
+  line-height: var(--fs);
   z-index: 2;
   text-shadow:
     -1px 0 var(--px-ink),
@@ -468,8 +475,8 @@ canvas.px,
 }
 .dmg-melt {
   color: var(--px-text);
-  font-size: 16px;
-  line-height: 16px;
+  font-size: var(--fs);
+  line-height: var(--fs);
 }
 #intro-new,
 #intro-lab {
@@ -494,7 +501,7 @@ canvas.px,
   align-items: center;
   column-gap: 8px;
   row-gap: 4px;
-  width: min(240px, 100%);
+  width: min(calc(var(--fs) * 15), 100%);
   padding: 6px 8px 8px;
 }
 .player-lv {
@@ -518,10 +525,10 @@ canvas.px,
 }
 .pbar {
   display: grid;
-  grid-template-columns: 32px 1fr auto;
+  grid-template-columns: calc(var(--fs) * 2) 1fr auto;
   align-items: center;
   gap: 6px;
-  line-height: 16px;
+  line-height: var(--fs);
 }
 .pbar-label {
   color: var(--px-dim);
@@ -548,7 +555,7 @@ canvas.px,
   box-shadow: inset 0 -3px 0 0 var(--px-navy);
 }
 .pbar-text {
-  min-width: 56px;
+  min-width: calc(var(--fs) * 3.5);
   text-align: right;
 }
 .player[data-low-hp='true'] .pbar-hp .pbar-track {
@@ -586,7 +593,7 @@ canvas.px,
   top: 2px;
   right: 4px;
   z-index: 2;
-  line-height: 16px;
+  line-height: var(--fs);
   color: var(--px-cyan);
   text-shadow:
     -1px 0 var(--px-ink),
@@ -622,8 +629,8 @@ canvas.px,
   content: '';
 }
 .dmg-resist {
-  font-size: 16px;
-  line-height: 16px;
+  font-size: var(--fs);
+  line-height: var(--fs);
   color: var(--px-dim);
 }
 
@@ -639,7 +646,7 @@ canvas.px,
   box-shadow: var(--px-frame-thin);
   white-space: normal;
   text-align: center;
-  line-height: 18px;
+  line-height: var(--lh);
 }
 /* the bubble's tail: three stepped blocks */
 .say::after {
@@ -706,7 +713,7 @@ canvas.px,
 }
 .lab h3 {
   margin: 18px 0 6px;
-  font-size: 16px;
+  font-size: var(--fs);
   font-weight: normal;
   color: var(--px-gold);
 }
@@ -822,7 +829,7 @@ canvas.px,
   inset: 0;
   z-index: 20;
   color: var(--px-text);
-  font: 16px/20px var(--px-font);
+  font: var(--fs) / var(--lh) var(--px-font);
   -webkit-user-select: none;
   user-select: none;
 }
@@ -1113,7 +1120,7 @@ canvas.px,
 }
 .cr-sheet h2 {
   margin: 0;
-  font-size: 16px;
+  font-size: var(--fs);
   font-weight: normal;
   color: var(--px-gold);
 }
@@ -1125,7 +1132,7 @@ canvas.px,
   background: var(--px-ink);
   color: var(--px-text);
   padding: 0 14px;
-  font-size: 16px;
+  font-size: var(--fs);
   box-shadow: inset 0 0 0 2px var(--px-hi);
   -webkit-user-select: text;
   user-select: text;
@@ -1198,9 +1205,9 @@ canvas.px,
 }
 .sys-window h3 {
   margin: 0;
-  font-size: 16px;
+  font-size: var(--fs);
   font-weight: normal;
-  line-height: 22px;
+  line-height: var(--lh);
 }
 .sys-gains {
   display: flex;
@@ -1342,7 +1349,7 @@ canvas.px,
   letter-spacing: 0.1em;
 }
 .st-n {
-  font-size: 16px;
+  font-size: var(--fs);
   color: var(--px-gold);
 }
 .st-r {
@@ -1382,12 +1389,12 @@ canvas.px,
   background: var(--c);
 }
 .st-val {
-  font-size: 16px;
+  font-size: var(--fs);
   text-align: right;
   min-width: 56px;
 }
 .st-val small {
-  font-size: 16px;
+  font-size: var(--fs);
   color: var(--sys);
   margin-left: 4px;
 }
@@ -1471,7 +1478,7 @@ canvas.px,
   padding: 0 4px;
   background: var(--px-orange);
   color: var(--px-ink);
-  line-height: 20px;
+  line-height: var(--lh);
   text-align: center;
   box-shadow: var(--px-frame-thin);
   animation: px-bounce 0.8s steps(2) infinite;
@@ -1570,4 +1577,21 @@ canvas.px,
     grid-row: 4;
     align-self: start;
   }
+}
+
+/* the skill tiles and the map credit are too small for big text: they stay at 16 */
+.skill-name,
+.skill-cost,
+.credit {
+  font-size: 16px;
+  line-height: 16px;
+}
+/* big text: each bar gets a line of its own under its label and numbers */
+:root[data-text='large'] .pbar {
+  grid-template-columns: auto 1fr;
+  row-gap: 2px;
+}
+:root[data-text='large'] .pbar-track {
+  grid-column: 1 / -1;
+  grid-row: 2;
 }

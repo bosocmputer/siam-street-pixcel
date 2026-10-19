@@ -67,7 +67,16 @@ import { Minimap } from './minimap';
 import { buildPlaza } from './plaza';
 import { PickupField } from './pickups';
 import { SlimeHerd, loadSlime, type SlimeTemplate } from './slime';
-import { clearSave, readPrefs, readSave, writePrefs, writeSave } from './storage';
+import {
+  applyTextSize,
+  clearSave,
+  readPrefs,
+  readSave,
+  readTextSize,
+  writePrefs,
+  writeSave,
+  writeTextSize,
+} from './storage';
 import { TH } from './th';
 import type { Landmark, WorldData } from './types';
 import { CombatHud } from './ui/combatHud';
@@ -114,6 +123,9 @@ function moatLapMetres(marks: Landmark[]): number {
 }
 
 async function start(): Promise<void> {
+  // text size is set first, so even the loading screen uses it
+  let textSize = readTextSize();
+  applyTextSize(textSize);
   // screens: loading → intro → play (⇄ paused while the page is hidden)
   let screen: Screen = 'loading';
   const loading = $('#loading');
@@ -403,6 +415,16 @@ async function start(): Promise<void> {
       onClick: () => {
         state.camera =
           CAMERA_MODES[(CAMERA_MODES.indexOf(state.camera) + 1) % CAMERA_MODES.length]!;
+      },
+    },
+    {
+      id: 'text',
+      label: TH.textSize,
+      value: () => TH.textSizes[textSize] ?? textSize,
+      onClick: () => {
+        textSize = textSize === 'large' ? 'normal' : 'large';
+        writeTextSize(textSize);
+        applyTextSize(textSize);
       },
     },
   ]);

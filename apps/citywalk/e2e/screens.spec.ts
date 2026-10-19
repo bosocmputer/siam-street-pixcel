@@ -73,11 +73,17 @@ async function nameAndWake(page: Page) {
   await page.getByRole('button', { name: 'ตื่นขึ้น' }).click();
 }
 
-for (const size of SIZES) {
-  test(`every window fits or scrolls: ${size.name} ${size.width}x${size.height}`, async ({
-    page,
-  }) => {
+// every size with normal text, and the two phone sizes again with large text
+const RUNS = [
+  ...SIZES.map((size) => ({ size, large: false })),
+  ...SIZES.filter((s) => s.name !== 'desk').map((size) => ({ size, large: true })),
+];
+
+for (const { size, large } of RUNS) {
+  const tag = `${size.name}${large ? '-large' : ''}`;
+  test(`every window fits or scrolls: ${tag} ${size.width}x${size.height}`, async ({ page }) => {
     await page.setViewportSize(size);
+    if (large) await page.addInitScript(() => localStorage.setItem('citywalk.text', 'large'));
     await page.goto('./?debug=1');
     const start = page.getByRole('button', { name: 'เริ่มเดิน' });
     await expect(start).toBeVisible();
@@ -94,7 +100,7 @@ for (const size of SIZES) {
     await start.click();
     await expect(page.locator('.cr-thumb')).toHaveCount(6);
     expect(await cutOff(page)).toEqual([]);
-    await page.screenshot({ path: `${SHOTS}/screens-${size.name}-creator.png` });
+    await page.screenshot({ path: `${SHOTS}/screens-${tag}-creator.png` });
     await page.getByRole('button', { name: 'ถัดไป' }).click();
     expect(await cutOff(page)).toEqual([]);
     await page.getByRole('button', { name: 'ตื่นขึ้น' }).click(); // empty name: refused
@@ -110,12 +116,30 @@ for (const size of SIZES) {
     const status = page.getByRole('dialog', { name: 'ค่าสถานะ' });
     await expect(status).toBeVisible();
     expect(await cutOff(page)).toEqual([]);
-    await page.screenshot({ path: `${SHOTS}/screens-${size.name}-status.png` });
+    await page.screenshot({ path: `${SHOTS}/screens-${tag}-status.png` });
     await swipeScrolls(page, '.status');
     // the bottom buttons are reachable
     await status.getByRole('button', { name: '+ปัญญา' }).click();
     await status.getByRole('button', { name: 'ยืนยัน' }).click();
     await expect(page.getByRole('button', { name: 'กลับ' })).toBeVisible();
     expect(await cutOff(page)).toEqual([]);
+    if (large)
+      expect(await page.evaluate(() => document.documentElement.dataset.text)).toBe('large');
   });
 }
+
+test('the text chip makes every word bigger and is remembered', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('./?debug=1');
+  await page.getByRole('button', { name: 'เริ่มเดิน' }).click();
+  await nameAndWake(page);
+  await page.getByRole('button', { name: 'รับทราบ' }).click();
+  const size = () => page.evaluate(() => getComputedStyle(document.body).fontSize);
+  expect(await size()).toBe('16px');
+  await page.getByRole('button', { name: /ตัวอักษร/ }).click();
+  expect(await size()).toBe('24px');
+  await page.screenshot({ path: `${SHOTS}/screens-large-play.png` });
+  expect(await cutOff(page)).toEqual([]);
+  await page.reload();
+  expect(await size()).toBe('24px');
+});

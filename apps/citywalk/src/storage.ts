@@ -68,3 +68,28 @@ export function writePrefs(p: SoundPrefs): void {
     // the setting just does not stick
   }
 }
+
+const TEXT_KEY = 'citywalk.text';
+export type TextSize = 'normal' | 'large';
+
+/** The text size chosen on this device (like sound, not part of the game save). */
+export function readTextSize(): TextSize {
+  try {
+    return localStorage.getItem(TEXT_KEY) === 'large' ? 'large' : 'normal';
+  } catch {
+    return 'normal';
+  }
+}
+
+export function writeTextSize(t: TextSize): void {
+  try {
+    localStorage.setItem(TEXT_KEY, t);
+  } catch {
+    // the setting just does not stick
+  }
+}
+
+/** Show every screen in this text size. */
+export function applyTextSize(t: TextSize): void {
+  document.documentElement.dataset.text = t;
+}

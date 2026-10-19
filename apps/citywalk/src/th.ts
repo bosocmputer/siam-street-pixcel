@@ -242,6 +242,8 @@ export const TH = {
   },
   hint: (attr: string) => `พรสวรรค์ของคุณเอนไปทาง ${attr}`,
   camera: 'กล้อง',
+  textSize: 'ตัวอักษร',
+  textSizes: { normal: 'ปกติ', large: 'ใหญ่' } as Record<string, string>,
   cameraModes: { back: 'หลัง', shoulder: 'ไหล่' } as Record<string, string>,
 } as const;
 
