@@ -44,7 +44,12 @@ test('the walk is saved on this device and carries on after a reload', async ({ 
   const back = await state(page);
   expect(back.x).toBeCloseTo(moved.x, 3);
   expect(back.z).toBeCloseTo(moved.z, 3);
-  expect(back.mode).toBe('bike');
+  // a ride is not kept: back on foot, able to fight
+  expect(back.mode).toBe('walk');
+  await page.evaluate('window.__walk.strike()');
+  await expect
+    .poll(() => page.evaluate('window.__walk.fighter().chain'), { timeout: 15_000 })
+    .toBe(1);
   expect(back.haze).toBe(true);
   const kept = (await page.evaluate('window.__walk.stats()')) as { level: number; exp: number };
   expect([kept.level, kept.exp]).toEqual([3, 7]);

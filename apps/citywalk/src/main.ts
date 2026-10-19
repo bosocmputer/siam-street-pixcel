@@ -518,7 +518,9 @@ async function start(): Promise<void> {
       state.yaw = d.player.heading;
     }
     Object.assign(state, d.settings);
-    state.riding = d.settings.mode === 'bike';
+    // a ride is not kept: an old save made on the bike (before rentals) comes back on foot
+    state.riding = false;
+    state.mode = 'walk';
     // a save made while lying down comes back standing, with a little health
     stats.level = Math.min(d.stats.level, PLAYER.maxLevel);
     stats.attrs = { ...d.attrs };
