@@ -2,12 +2,15 @@ import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { newGame, skipOpening } from './start';
 
-// Pixel art: the player and the monsters as sprites, drawn from their models while loading or
-// read from packed sheet files (tools/sprites/pack.py).
+// How people and monsters are drawn: pixel 3D by default (the whole scene in big pixels); with
+// ?art=pixel as sprites, drawn from their models while loading or read from packed sheet files
+// (tools/sprites/pack.py); with ?art=3d as plain 3D models.
 
 const SHOTS = process.env.SHOTS_DIR ?? 'test-results/shots';
 type Art = {
   mode: string;
+  scenePixel: number;
+  view: [number, number];
   heroSprite: boolean;
   anim: string | null;
   sheets: string[];
@@ -147,6 +150,30 @@ test('?art=3d brings back the 3D bodies and is remembered', async ({ page }) => 
   await page.waitForTimeout(400);
   await page.screenshot({ path: `${SHOTS}/3d-start.png` });
   expect(await page.evaluate(() => localStorage.getItem('citywalk.art'))).toBe('3d');
+});
+
+test.describe('a new player', () => {
+  // nothing remembered: the game's own default
+  test.use({ storageState: { cookies: [], origins: [] } });
+  test('sees pixel 3D: the whole scene in big pixels, 3D bodies, no sprites drawn', async ({
+    page,
+  }) => {
+    await page.goto('./?debug=1');
+    await newGame(page);
+    await page.waitForFunction(() => '__walk' in window);
+    const a = await art(page);
+    expect(a.mode).toBe('pixel3d');
+    expect(a.heroSprite).toBe(false);
+    expect(a.sheets).toEqual([]);
+    // one scene pixel for every `scenePixel` screen pixels, shown with hard edges
+    expect(a.scenePixel).toBe(2);
+    const size = await page.evaluate(() => [innerWidth, innerHeight]);
+    expect(Math.abs(a.view[0] - size[0]! / 2)).toBeLessThanOrEqual(1);
+    expect(Math.abs(a.view[1] - size[1]! / 2)).toBeLessThanOrEqual(1);
+    await expect(page.locator('#view')).toHaveCSS('image-rendering', 'pixelated');
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: `${SHOTS}/pixel3d-start.png` });
+  });
 });
 
 test('sprites drawn once are kept, so the next start does not draw them again', async ({

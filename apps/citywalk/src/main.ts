@@ -268,8 +268,8 @@ async function start(): Promise<void> {
   const collider = new Collider(world, [...towers, ...(placed?.solids ?? [])]);
   const lap = moatLapMetres(world.landmarks);
 
-  // trial: ?art=3d&px=3 draws the whole 3D scene at one pixel for every `px` on screen
-  const px = art === '3d' ? Number(new URLSearchParams(location.search).get('px') ?? 0) : 0;
+  // pixel 3D: the whole scene drawn small and shown in big hard-edged pixels
+  const px = art === 'pixel3d' ? SPRITES.scenePixel : 0;
   const renderer = new THREE.WebGLRenderer({ antialias: !px && window.devicePixelRatio < 2 });
   renderer.setPixelRatio(px ? 1 / px : Math.min(window.devicePixelRatio, 1.75));
   if (px) renderer.domElement.style.imageRendering = 'pixelated';
@@ -370,17 +370,15 @@ async function start(): Promise<void> {
       return null;
     }
   };
+  /** A person built from a look as a 3D model: in pixel 3D, chibi and shaded in flat bands. */
+  const modelOf = (l: Look): Walker =>
+    makeHero(heroFromLook(l), px ? { proportions: SPRITES.hero.proportions, toon: true } : {});
   const bodyFor = (l: Look, drawn: SpriteSheet | null): Walker => {
     if (sheets.hero) return makeSpriteHero(sheets.hero);
-    if (heroTemplate) return makeHero(heroTemplate);
+    if (heroTemplate) return makeHero(heroTemplate, { toon: px > 0 });
     if (drawn) return makeSpriteHero(drawn);
     try {
-      if (px) {
-        const w = makeHero(heroFromLook(l), { proportions: SPRITES.hero.proportions });
-        cartoon(w.body);
-        return w;
-      }
-      return makeHero(heroFromLook(l));
+      return modelOf(l);
     } catch (err) {
       console.error('the character could not be built:', err);
       return makeWalker();
@@ -584,7 +582,7 @@ async function start(): Promise<void> {
                 () => bakeHero(l, SPRITES, [['idle', SPRITES.hero.anims.idle!]]),
               )
             : null;
-        body = sheet ? makeSpriteHero(sheet) : makeHero(heroFromLook(l));
+        body = sheet ? makeSpriteHero(sheet) : modelOf(l);
       } catch (err) {
         console.error('Pa Saeng could not be drawn:', err);
         body = makeWalker();
@@ -1304,7 +1302,7 @@ async function start(): Promise<void> {
     },
     defaultLook('m'),
     () => sound.play('ui.click'),
-    art === 'pixel',
+    art !== '3d',
   );
   document.body.append(creator.root);
   // a new game starts with the three opening pictures, then the character screen
@@ -1486,6 +1484,9 @@ async function start(): Promise<void> {
       /** how characters are drawn, and whether the player is a sprite now */
       art: () => ({
         mode: art,
+        /** screen pixels to one scene pixel (pixel 3D), 0 for a smooth scene */
+        scenePixel: px,
+        view: [canvas.width, canvas.height],
         heroSprite: !!walker.draw,
         anim: walker.showing?.() ?? null,
         sheets: Object.keys(sheets),

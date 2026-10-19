@@ -1,6 +1,6 @@
 /* Pixel art screens: one pixel font (GNU Unifont, Thai and Latin, sharp at 16 px and its
    multiples), flat colours from a small palette, frames with stepped corners drawn by
-   box-shadows, and icons drawn as pixels (ui/pixelIcons.ts). Only the city stays 3D. */
+   box-shadows, and icons drawn as pixels (ui/pixelIcons.ts). The city is 3D drawn in big pixels. */
 @font-face {
   font-family: 'PixelTH';
   src: url('./assets/unifont-th.woff2') format('woff2');

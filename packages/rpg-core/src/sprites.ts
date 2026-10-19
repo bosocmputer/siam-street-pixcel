@@ -47,6 +47,8 @@ export interface SpriteSpec {
   maxRender: number;
   /** skill effects are drawn in pixels this many screen pixels across */
   fxPixel: number;
+  /** in the pixel-3D look, the whole scene is drawn with one pixel this many screen pixels across */
+  scenePixel: number;
   hero: {
     frame: [number, number];
     anchor: [number, number];
@@ -109,6 +111,7 @@ export function readSprites(raw: unknown): SpriteSpec {
     supersample: num(o, 'supersample', w, 1),
     maxRender: num(o, 'maxRender', w, 16),
     fxPixel: num(o, 'fxPixel', w, 1),
+    scenePixel: num(o, 'scenePixel', w, 1),
     hero: {
       frame,
       anchor,

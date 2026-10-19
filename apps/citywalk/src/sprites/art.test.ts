@@ -18,9 +18,9 @@ function install(data: Record<string, string>, broken = false) {
 describe('artMode', () => {
   afterEach(() => install({}));
 
-  it('is pixel art unless asked otherwise', () => {
+  it('is pixel 3D unless asked otherwise', () => {
     install({});
-    expect(artMode('')).toBe('pixel');
+    expect(artMode('')).toBe('pixel3d');
   });
 
   it('follows ?art= and remembers it', () => {
@@ -30,16 +30,17 @@ describe('artMode', () => {
     expect(data['citywalk.art']).toBe('3d');
     expect(artMode('')).toBe('3d');
     expect(artMode('?art=pixel')).toBe('pixel');
+    expect(artMode('?art=pixel3d')).toBe('pixel3d');
   });
 
   it('ignores an unknown choice', () => {
     install({ 'citywalk.art': 'oil-paint' });
-    expect(artMode('?art=watercolour')).toBe('pixel');
+    expect(artMode('?art=watercolour')).toBe('pixel3d');
   });
 
   it('still follows the address without storage', () => {
     install({}, true);
     expect(artMode('?art=3d')).toBe('3d');
-    expect(artMode('')).toBe('pixel');
+    expect(artMode('')).toBe('pixel3d');
   });
 });

@@ -5,6 +5,7 @@ import { RIG } from '@newgame/rpg-core';
 import type { ModelEntry } from './assets';
 import { makeBike, type Walker } from './walker';
 import { makePipe } from './weapon';
+import { cartoon } from './sprites/bake';
 import * as C from './anim/clips';
 import { GAIT, blend, sample, upperBody, type Clip, type Frame, type Turn } from './anim/clips';
 
@@ -165,6 +166,8 @@ export interface HeroOptions {
   shadow?: boolean;
   /** the pipe in the right hand (default on) */
   weapon?: boolean;
+  /** flat bands of light instead of smooth shading (for the pixel-3D look) */
+  toon?: boolean;
 }
 
 /** each animation's clip (the sprite sheet's names) */
@@ -261,6 +264,7 @@ export function makeHero(t: HeroTemplate, opts: HeroOptions = {}): Hero {
 
   const bike = makeBike();
   body.add(bike);
+  if (opts.toon) cartoon(body);
   const shadow = new THREE.Mesh(
     new THREE.CircleGeometry(0.42, 20),
     new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.22 }),
@@ -274,6 +278,7 @@ export function makeHero(t: HeroTemplate, opts: HeroOptions = {}): Hero {
   const grip = nodeOf('Socket_Hand_R') ?? joints.get('Hand_R')?.node;
   const pipe = makePipe();
   if (grip && opts.weapon !== false) holder.add(pipe);
+  if (opts.toon) cartoon(pipe);
   // The pipe sits in the fist and points where the move says (the `Pipe` turn in a clip, from
   // straight ahead): a swing is an arc of directions, which reads better than a turning wrist.
   const holdInv = new THREE.Matrix4();

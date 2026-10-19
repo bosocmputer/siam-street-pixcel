@@ -1,20 +1,23 @@
-// Which way characters and monsters are drawn: as pixel sprites (the default) or as the 3D models
-// they are made from. `?art=3d` or `?art=pixel` in the address picks one and remembers it.
+// Which way the game is drawn: pixel 3D (the default, chosen by the creator 19 Oct 2569: the whole
+// scene, people and monsters as 3D models, drawn in big pixels), pixel sprites in a smooth city,
+// or plain 3D. `?art=pixel3d`, `?art=pixel` or `?art=3d` in the address picks one and remembers it.
 
-export type Art = 'pixel' | '3d';
+export type Art = 'pixel3d' | 'pixel' | '3d';
+const ARTS: readonly string[] = ['pixel3d', 'pixel', '3d'];
+const isArt = (a: string | null): a is Art => a !== null && ARTS.includes(a);
 const KEY = 'citywalk.art';
 
 export function artMode(search = location.search): Art {
   const asked = new URLSearchParams(search).get('art');
   try {
-    if (asked === 'pixel' || asked === '3d') localStorage.setItem(KEY, asked);
+    if (isArt(asked)) localStorage.setItem(KEY, asked);
     const kept = localStorage.getItem(KEY);
-    if (kept === 'pixel' || kept === '3d') return kept;
+    if (isArt(kept)) return kept;
   } catch {
     // no storage (a private window): only the address counts
-    if (asked === 'pixel' || asked === '3d') return asked;
+    if (isArt(asked)) return asked;
   }
-  return 'pixel';
+  return 'pixel3d';
 }
 
 /** Let the page show a message before a long piece of work blocks it. */
