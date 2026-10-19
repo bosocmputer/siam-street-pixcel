@@ -152,7 +152,9 @@ test('sprites drawn once are kept, so the next start does not draw them again', 
   page,
 }) => {
   await open(page);
-  expect((await art(page)).cached).toEqual([]);
+  // nothing came from the cache on the first start, except the player's own sheet: it was drawn
+  // while loading for the starting look, and the walk with that same look found it kept
+  expect((await art(page)).cached.filter((s) => s !== 'hero')).toEqual([]);
   // the pictures are kept in the background after drawing
   await expect
     .poll(

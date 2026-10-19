@@ -31,7 +31,7 @@ test('every sound comes out audible, whole and not clipped', async ({ page }) =>
   await open(page);
   expect(await js(page, 'window.__walk.sound.ready()')).toBe(true);
   const ids = await js<string[]>(page, 'window.__walk.sound.ids()');
-  expect(ids.length).toBe(28);
+  expect(ids.length).toBe(34);
   for (const id of ids) {
     const m = await js<{
       peak: number;
@@ -78,7 +78,7 @@ test('skills, hits and drops make their sounds', async ({ page }) => {
 test('a tap on a button clicks, and a refused skill denies', async ({ page }) => {
   await open(page);
   await clear(page);
-  await page.getByRole('button', { name: /กล้อง/ }).tap();
+  await page.getByRole('button', { name: 'ตั้งค่า' }).tap();
   expect(await heard(page)).toContain('ui.click');
   await js(page, 'window.__walk.setStats({ energy: 5 })');
   await page.getByRole('button', { name: /กระสุนไฟ/ }).tap();
@@ -163,7 +163,7 @@ test('the listening room opens from the first page and plays every sound', async
   await page.getByRole('button', { name: 'ฟังเสียงทั้งหมด' }).click();
   await page.waitForFunction(() => '__walk' in window);
   await expect(page.locator('.lab')).toBeVisible();
-  await expect(page.locator('.lab-play:not(.lab-seq)')).toHaveCount(28);
+  await expect(page.locator('.lab-play:not(.lab-seq)')).toHaveCount(34);
   // spectrograms are painted one by one; wait for the last
   await expect
     .poll(
@@ -179,7 +179,7 @@ test('the listening room opens from the first page and plays every sound', async
         }),
       { timeout: 30_000 },
     )
-    .toBe(28);
+    .toBe(34);
   await page.waitForTimeout(200);
   await page.screenshot({ path: `${SHOTS}/lab.png` });
 

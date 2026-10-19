@@ -45,6 +45,25 @@ const cutOff = (page: Page) =>
     return bad;
   });
 
+/** Pairs of on-screen controls and panels that cover each other. */
+const overlaps = (page: Page) =>
+  page.evaluate(() => {
+    const parts = Array.from(
+      document.querySelectorAll('.fight, .skill, .gear, .player, .minimap, .chain'),
+    ).filter((e) => (e as HTMLElement).offsetParent !== null);
+    const name = (e: Element) => e.getAttribute('aria-label') || e.className;
+    const bad: string[] = [];
+    parts.forEach((a, i) => {
+      const r = a.getBoundingClientRect();
+      for (const b of parts.slice(i + 1)) {
+        const q = b.getBoundingClientRect();
+        if (r.left < q.right && q.left < r.right && r.top < q.bottom && q.top < r.bottom)
+          bad.push(`${name(a)} / ${name(b)}`);
+      }
+    });
+    return bad;
+  });
+
 /** If the box is taller than it shows, a finger swipe moves it. */
 async function swipeScrolls(page: Page, selector: string): Promise<void> {
   const box = page.locator(selector).first();
@@ -123,6 +142,15 @@ for (const { size, large } of RUNS) {
     await status.getByRole('button', { name: 'ยืนยัน' }).click();
     await expect(page.getByRole('button', { name: 'กลับ' })).toBeVisible();
     expect(await cutOff(page)).toEqual([]);
+
+    // the play screen: the fighting buttons, the gear and the panels never cover each other
+    await page.getByRole('button', { name: 'กลับ' }).click();
+    expect(await overlaps(page)).toEqual([]);
+    await page.screenshot({ path: `${SHOTS}/screens-${tag}-play.png` });
+    await page.getByRole('button', { name: 'ตั้งค่า' }).click();
+    expect(await cutOff(page)).toEqual([]);
+    await page.screenshot({ path: `${SHOTS}/screens-${tag}-settings.png` });
+    await page.getByRole('button', { name: 'ตั้งค่า' }).click();
     if (large)
       expect(await page.evaluate(() => document.documentElement.dataset.text)).toBe('large');
   });

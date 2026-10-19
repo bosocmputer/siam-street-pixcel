@@ -1,4 +1,4 @@
-import type { Locator, Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 
 /**
  * Start a new game the way a player does: the start button, the character screen (keeping the
@@ -9,8 +9,13 @@ export async function newGame(page: Page, o: { tap?: boolean; name?: string } = 
   await press(page.getByRole('button', { name: 'เริ่มเดิน' }));
   await press(page.getByRole('button', { name: 'ถัดไป' }));
   await page.getByLabel('ตั้งชื่อ').fill(o.name ?? 'ทดสอบ');
-  await press(page.getByRole('button', { name: 'ตื่นขึ้น' }));
-  await press(page.getByRole('button', { name: 'รับทราบ' }));
+  // a tap on a slow software-drawn page is now and then lost; tap again until the system speaks
+  const ok = page.getByRole('button', { name: 'รับทราบ' });
+  await expect(async () => {
+    if (!(await ok.isVisible())) await press(page.getByRole('button', { name: 'ตื่นขึ้น' }));
+    await expect(ok).toBeVisible({ timeout: 5_000 });
+  }).toPass({ timeout: 60_000 });
+  await press(ok);
 }
 
 /** Press a settings chip: the gear opens the chips first if they are closed. */
