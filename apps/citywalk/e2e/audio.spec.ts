@@ -31,7 +31,7 @@ test('every sound comes out audible, whole and not clipped', async ({ page }) =>
   await open(page);
   expect(await js(page, 'window.__walk.sound.ready()')).toBe(true);
   const ids = await js<string[]>(page, 'window.__walk.sound.ids()');
-  expect(ids.length).toBe(34);
+  expect(ids.length).toBe(35);
   for (const id of ids) {
     const m = await js<{
       peak: number;
@@ -163,7 +163,7 @@ test('the listening room opens from the first page and plays every sound', async
   await page.getByRole('button', { name: 'ฟังเสียงทั้งหมด' }).click();
   await page.waitForFunction(() => '__walk' in window);
   await expect(page.locator('.lab')).toBeVisible();
-  await expect(page.locator('.lab-play:not(.lab-seq)')).toHaveCount(34);
+  await expect(page.locator('.lab-play:not(.lab-seq)')).toHaveCount(35);
   // spectrograms are painted one by one; wait for the last
   await expect
     .poll(
@@ -179,7 +179,7 @@ test('the listening room opens from the first page and plays every sound', async
         }),
       { timeout: 30_000 },
     )
-    .toBe(34);
+    .toBe(35);
   await page.waitForTimeout(200);
   await page.screenshot({ path: `${SHOTS}/lab.png` });
 

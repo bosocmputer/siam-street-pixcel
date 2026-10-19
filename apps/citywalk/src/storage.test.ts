@@ -1,5 +1,13 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { DEFAULT_PREFS, readFound, readPrefs, writeFound, writePrefs } from './storage';
+import {
+  DEFAULT_PREFS,
+  readAssist,
+  readFound,
+  readPrefs,
+  writeAssist,
+  writeFound,
+  writePrefs,
+} from './storage';
 
 /** A tiny stand-in for the browser's storage. */
 function fakeStorage(initial: Record<string, string> = {}, broken = false) {
@@ -71,5 +79,19 @@ describe('combos found on this device', () => {
     install(fakeStorage({}, true));
     expect(readFound().size).toBe(0);
     expect(() => writeFound(new Set(['x']))).not.toThrow();
+  });
+});
+
+describe('combo help on this device', () => {
+  it('is off until turned on, and stays as chosen', () => {
+    expect(readAssist()).toBe(false);
+    install(fakeStorage());
+    writeAssist(true);
+    expect(readAssist()).toBe(true);
+    writeAssist(false);
+    expect(readAssist()).toBe(false);
+    install(fakeStorage({}, true));
+    expect(readAssist()).toBe(false);
+    expect(() => writeAssist(true)).not.toThrow();
   });
 });

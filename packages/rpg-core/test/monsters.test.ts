@@ -125,6 +125,9 @@ describe('monsters', () => {
     expect(bad((c) => (boss(c).slam!.clip = 7))).toThrow(/slam.clip/);
     expect(bad((c) => (boss(c).slam!.strikeAt = 9))).toThrow(/strikeAt < length/);
     expect(bad((c) => (boss(c).slam = null))).not.toThrow();
+    // a big move is warned of for at least warnSpecial seconds
+    expect(bad((c) => (boss(c).slam!.strikeAt = 0.5))).toThrow(/slam.strikeAt: warned/);
+    expect(bad((c) => (boss(c).charge!.dashStart = 0.5))).toThrow(/dashStart: warned/);
     expect(() => readMonsters(null)).toThrow(ConfigError);
     expect(() => monster('dragon')).toThrow(/unknown monster/);
   });

@@ -43,6 +43,8 @@ export interface SlimeBrain {
   cool: { charge: number; slam: number };
   /** set on the step a ground slam lands, whether or not it hit the player */
   shock: boolean;
+  /** seconds the warning ring of the coming blow has shown */
+  warned: number;
 }
 
 export interface BrainWorld {
@@ -84,6 +86,7 @@ export function newBrain(
     // a boss does not start a special move the moment it is angry
     cool: { charge: 1.5, slam: 3 },
     shock: false,
+    warned: 0,
   };
 }
 
@@ -120,19 +123,95 @@ function hopTowards(b: SlimeBrain, dt: number, w: BrainWorld): void {
   if (left < 0.4) b.target = null;
 }
 
-/** One step of an attack: the blow lands once per cycle, at strikeAt, if the player is in reach. */
+/** Clip time left until the next blow of the attack cycle, in (0, cycle]. */
+function toStrike(b: SlimeBrain): number {
+  const a = b.spec.attack;
+  return b.attackT < a.strikeAt ? a.strikeAt - b.attackT : a.cycle - b.attackT + a.strikeAt;
+}
+
+/**
+ * One step of an attack: the blow lands once per cycle, at strikeAt, if the player is in reach.
+ * An angry slime's blow is warned of for at least attack.warn seconds: if the ring has not shown
+ * that long when the blow is due, it holds its wind-up until it has.
+ */
 function attack(b: SlimeBrain, dt: number, dPlayer: number, hurts: boolean): void {
   const a = b.spec.attack;
-  const before = b.attackT;
-  b.attackT = (b.attackT + dt * b.spec.pace) % a.cycle;
-  const crossed =
-    before < a.strikeAt
-      ? b.attackT >= a.strikeAt || b.attackT < before
-      : b.attackT < before && b.attackT >= a.strikeAt;
-  if (hurts && crossed && dPlayer <= a.reach) {
+  const step = dt * b.spec.pace;
+  const left = toStrike(b);
+  if (hurts && left <= a.warn * b.spec.pace + 1e-9) b.warned += dt;
+  if (left > step) {
+    b.attackT = (b.attackT + step) % a.cycle;
+    return;
+  }
+  if (hurts && b.warned < a.warn - 1e-9) {
+    b.attackT = Math.max(0, a.strikeAt - 1e-6);
+    return;
+  }
+  b.attackT = (b.attackT + step) % a.cycle;
+  b.warned = 0;
+  if (hurts && dPlayer <= a.reach) {
     b.struck = true;
     b.blow = a.damage;
   }
+}
+
+/** A red warning on the ground of where a blow is about to land. */
+export interface Warning {
+  kind: 'blow' | 'slam' | 'charge';
+  /** where it starts (the monster), map metres */
+  x: number;
+  z: number;
+  /** a ring's radius, or a lane's half width, metres */
+  radius: number;
+  /** a lane's length (0 for a ring) and the way it runs, radians, 0 = +z */
+  length: number;
+  heading: number;
+  /** 0 when it appears, 1 when the blow lands: the red fills in as it grows */
+  fill: number;
+}
+
+/**
+ * The warning a monster shows now, or null. Only an angry monster warns, since only an angry one
+ * hurts: a ring round it before its blow, a wide ring before a ground slam, a lane where a
+ * charge will run.
+ */
+export function warningOf(b: SlimeBrain): Warning | null {
+  const s = b.special;
+  const at = { x: b.x, z: b.z, heading: b.heading };
+  if (s?.kind === 'slam') {
+    const m = b.spec.specials.slam!;
+    if (s.done) return null;
+    return {
+      kind: 'slam',
+      ...at,
+      radius: m.radius,
+      length: 0,
+      fill: Math.min(1, s.t / m.strikeAt),
+    };
+  }
+  if (s?.kind === 'charge') {
+    const m = b.spec.specials.charge!;
+    if (s.t >= m.dashEnd || s.done) return null;
+    // the rest of the run, plus how far it reaches past its nose
+    const run = m.speed * (m.dashEnd - Math.max(s.t, m.dashStart)) + m.reach;
+    return {
+      kind: 'charge',
+      ...at,
+      heading: s.heading,
+      radius: m.reach,
+      length: run,
+      fill: Math.min(1, s.t / m.dashStart),
+    };
+  }
+  const a = b.spec.attack;
+  if (b.mode !== 'lunge' || b.anger <= 0 || toStrike(b) > a.warn * b.spec.pace + 1e-9) return null;
+  return {
+    kind: 'blow',
+    ...at,
+    radius: a.reach,
+    length: 0,
+    fill: a.warn > 0 ? Math.min(1, b.warned / a.warn) : 1,
+  };
 }
 
 /**
@@ -241,7 +320,10 @@ export function stepBrain(b: SlimeBrain, dt: number, player: Prey, w: BrainWorld
 
   // close enough to the player: attack (or, if not angry, only threaten); finish a hop first
   if (dPlayer < near.lunge && !flying) {
-    if (b.mode !== 'lunge') b.attackT = 0;
+    if (b.mode !== 'lunge') {
+      b.attackT = 0;
+      b.warned = 0;
+    }
     b.mode = 'lunge';
     b.heading = Math.atan2(px, pz);
     b.target = null;

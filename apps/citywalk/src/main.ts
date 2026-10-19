@@ -68,6 +68,7 @@ import { renderSound } from './audio/synth';
 import { stats as soundStats } from './audio/analyze';
 import { Collider } from './collide';
 import { Combat, type HitEvent } from './combat';
+import { Warnings } from './warnings';
 import type { ActKind } from './hero';
 import { heroFromLook } from './lookModel';
 import { Creator } from './ui/creator';
@@ -84,10 +85,12 @@ import { SlimeHerd, loadSlime, type SlimeTemplate } from './slime';
 import {
   applyTextSize,
   clearSave,
+  readAssist,
   readFound,
   readPrefs,
   readSave,
   readTextSize,
+  writeAssist,
   writeFound,
   writePrefs,
   writeSave,
@@ -287,6 +290,11 @@ async function start(): Promise<void> {
   // skill effects and shots live in the city too, so they shrink with it
   const fx = new Fx();
   city.add(fx.object);
+  // red rings and lanes on the ground before a monster's blow lands
+  const warnings = new Warnings();
+  city.add(warnings.object);
+  /** the slimes warning now, so a new warning sounds once */
+  let warning = new Set<number>();
   // what monsters leave behind: shown as the item's model if there is one, else a glowing gem.
   // The dice use a seed (?seed=N in the address for repeatable runs, else the clock).
   const itemModels = await loadItemModels(assets.models);
@@ -390,6 +398,8 @@ async function start(): Promise<void> {
   };
   const applyScale = () => city.scale.setScalar(state.scale);
 
+  // the strike, dash and guard, and the combo count (combo help is a setting on this device)
+  const fighter = newFighter(readAssist());
   const hud = new Hud($('#hud'), world.landmarks, [
     {
       id: 'scale',
@@ -436,6 +446,15 @@ async function start(): Promise<void> {
       },
     },
     {
+      id: 'assist',
+      label: TH.assist,
+      value: () => (fighter.assist ? TH.on : TH.off),
+      onClick: () => {
+        fighter.assist = !fighter.assist;
+        writeAssist(fighter.assist);
+      },
+    },
+    {
       id: 'text',
       label: TH.textSize,
       value: () => TH.textSizes[textSize] ?? textSize,
@@ -453,8 +472,6 @@ async function start(): Promise<void> {
         input.hold(a, down);
       })
     : null;
-  // the strike, dash and guard, and the combo count
-  const fighter = newFighter();
   /** dice for critical hits */
   const critDice = seeded((seedParam || 1) + 23);
   /** combos found on this device; the first time each is made says so */
@@ -836,6 +853,12 @@ async function start(): Promise<void> {
       hud.say(TH.up, true);
     }
     combatHud?.age(dt);
+    const marks = herd?.warnings() ?? [];
+    warnings.update(marks, GROUND);
+    const now = new Set(marks.map((m) => m.slime));
+    for (const m of marks)
+      if (!warning.has(m.slime)) sound.play('telegraph.warn', { at: { x: m.x, z: m.z } });
+    warning = now;
     const hits = combat?.update(dt) ?? [];
     if (herd) chatter?.update(dt, herd, state);
     landed(hits);
@@ -1018,13 +1041,14 @@ async function start(): Promise<void> {
         pixelFx.render(
           scene,
           camera,
-          [fx.object, pickups.object],
+          [fx.object, pickups.object, warnings.object],
           herd ? [walker.body, herd.object] : [walker.body],
         );
       else renderer.render(scene, camera);
       // name tags never cover the panel and buttons at the top or the minimap
       const covered = [
         ...Array.from(hud.top.querySelectorAll('.title, .player, .near, .chip')),
+        hud.gear,
         minimap.canvas,
       ].map((e) => e.getBoundingClientRect());
       hud.landmarks(state, state.scale, state.labels, camera, covered, screen === 'play');
@@ -1188,6 +1212,8 @@ async function start(): Promise<void> {
       /** a monster's blow reaching the player now, as the fight would take it */
       blow: (damage: number) => takeBlow(fighter, damage).result,
       announced: () => combatHud?.announced ?? '',
+      /** red warnings on the ground now */
+      warnings: () => ({ shown: warnings.showing, list: herd?.warnings() ?? [] }),
       found: () => [...found],
       setRiding: (on: boolean) => setRiding(on),
       inventory: () => ({ ...bag }),

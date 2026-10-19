@@ -136,3 +136,61 @@ test('the buttons and keys: strike, dash, Shift to run, no walk/run/bike buttons
   await page.keyboard.up('ShiftLeft');
   await page.keyboard.up('KeyW');
 });
+
+test('an angry slime warns with a red ring before its blow, and the ring sounds', async ({
+  page,
+}) => {
+  await open(page);
+  await standNear(page, 0, 1.4);
+  // hit it: now it fights back
+  await js(page, 'window.__walk.sound.clear()');
+  await js(page, 'window.__walk.strike()');
+  await js(page, 'window.__walk.simulateStrike(0.5)');
+  // step the fight until a ring shows
+  const shown = await page.evaluate(`(() => {
+    const w = window.__walk;
+    for (let n = 0; n < 120; n++) {
+      w.simulateFight(1 / 30);
+      const s = w.warnings();
+      if (s.shown > 0) return s;
+    }
+    return w.warnings();
+  })()`);
+  const s = shown as { shown: number; list: { kind: string; radius: number; fill: number }[] };
+  expect(s.shown).toBeGreaterThan(0);
+  expect(s.list[0]).toMatchObject({ kind: 'blow' });
+  expect(s.list[0]!.radius).toBeGreaterThan(1);
+  const log = await js<string[]>(page, 'window.__walk.sound.log()');
+  expect(log).toContain('telegraph.warn');
+  // half way to the blow, for the picture
+  await js(page, 'window.__walk.simulateFight(0.3)');
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: `${SHOTS}/warning-ring.png` });
+});
+
+test('combo help in the settings gives a wider perfect dodge, and is remembered', async ({
+  page,
+}) => {
+  await open(page);
+  const late = 0.4; // too late without help, in time with it
+  const dodge = () =>
+    page.evaluate(`(() => {
+      const w = window.__walk;
+      w.dash(1, 0);
+      w.simulateStrike(${late});
+      return w.blow(10);
+    })()`);
+  expect(await dodge()).toBe('hit');
+  await js(page, 'window.__walk.simulateStrike(1.5)');
+  await page.getByRole('button', { name: 'ตั้งค่า' }).click();
+  const chip = page.locator('[data-chip="assist"]');
+  await expect(chip).toContainText('ปิด');
+  await chip.click();
+  await expect(chip).toContainText('เปิด');
+  expect(await dodge()).toBe('perfect');
+  await page.reload();
+  await page.getByRole('button', { name: 'เดินต่อจากเดิม' }).click();
+  await page.waitForFunction(() => '__walk' in window);
+  await page.getByRole('button', { name: 'ตั้งค่า' }).click();
+  await expect(page.locator('[data-chip="assist"]')).toContainText('เปิด');
+});

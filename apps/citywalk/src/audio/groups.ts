@@ -10,6 +10,7 @@ export const SOUND_GROUPS: { key: string; ids: string[] }[] = [
     ids: ['melee.swing', 'melee.heavy', 'melee.hit', 'melee.dash', 'melee.block', 'melee.perfect'],
   },
   { key: 'boss', ids: ['boss.roar', 'boss.slam'] },
+  { key: 'telegraph', ids: ['telegraph.warn'] },
   {
     key: 'slime',
     ids: ['slime.hop', 'slime.watch', 'slime.attack', 'slime.hurt', 'slime.melt', 'slime.respawn'],

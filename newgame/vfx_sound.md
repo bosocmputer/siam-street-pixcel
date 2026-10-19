@@ -95,12 +95,12 @@ VFX ทั้งหมดวาดด้วยโค้ด (`apps/citywalk/src/f
 
 | รหัส | เห็นอะไร | เสียง | สถานะ | ขั้น |
 |---|---|---|---|---|
-| `telegraph_circle` | วงแดง `#FF3B30` ขอบคม สีเติมจากกลางออกขอบ เต็มวง = โดน | `telegraph.warn` | ⬜ | A |
-| `telegraph_line` | แถบแดงยาว (ท่าพุ่ง) เติมจากต้นไปปลาย | `telegraph.warn` | ⬜ | A |
+| `telegraph_circle` | วงแดง `#FF3B30` ขอบคม สีเติมจากกลางออกขอบ เต็มวง = โดน | `telegraph.warn` | ✅ | A |
+| `telegraph_line` | แถบแดงยาว (ท่าพุ่ง) เติมจากต้นไปปลาย | `telegraph.warn` | ✅ | A |
 | `telegraph_cone` | พัดแดง (ท่าพ่น) | `telegraph.warn` | ⬜ | B |
 | `spawn_puddle` | แอ่งน้ำเดือดเป็นฟอง แสงฟ้าวาบ มอนผุดขึ้นจากน้ำ | `monster.spawn` | ⬜ | A |
 | `slime_lunge` / `melt` / `respawn` | กระโจนโจมตี / ละลายเป็นแอ่ง / งอกกลับ | `slime.*` | ✅ | A |
-| `boss_charge` / `boss_slam` | พุ่งชน / กระแทกพื้นเป็นวงร้าว | `boss.*` | ✅ (ยังไม่มีวงเตือนแดง) | A |
+| `boss_charge` / `boss_slam` | พุ่งชน / กระแทกพื้นเป็นวงร้าว | `boss.*` | ✅ (มีวงเตือนแดงแล้ว) | A |
 | `poison_cloud` | หมอกม่วงเขียวค้าง (งูน้ำ) | `poison.hiss` | ⬜ | B |
 | `blind_powder` | ผงพริกส้มแดง ขอบจอเบลอส้ม 2 วิ | `chili.puff` | ⬜ | B |
 | `slippery` | ผิวพื้นเขียวมันวาว (สไลม์ตะไคร่) | — | ⬜ | A |

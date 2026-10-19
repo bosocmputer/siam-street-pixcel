@@ -11,6 +11,7 @@ import {
   seeded,
   stepBrain,
   stepVitals,
+  warningOf,
   CHATTER,
   type BrainWorld,
   type ChatEvent,
@@ -20,6 +21,7 @@ import {
   type SlimeBrain,
   type SlimeMode,
   type Vitals,
+  type Warning,
 } from '@newgame/rpg-core';
 import { SpriteActor } from './sprites/actor';
 import type { SpriteSheet } from './sprites/sheet';
@@ -610,6 +612,16 @@ export class SlimeHerd {
 
   get count(): number {
     return this.slimes.length;
+  }
+
+  /** The red warnings of blows about to land, with which slime gives each. */
+  warnings(): (Warning & { slime: number })[] {
+    const out: (Warning & { slime: number })[] = [];
+    this.slimes.forEach((s, i) => {
+      const w = hittable(s.vitals) ? warningOf(s.brain) : null;
+      if (w) out.push({ ...w, slime: i });
+    });
+    return out;
   }
 
   /** Map positions as a flat list, for the minimap. */

@@ -113,3 +113,22 @@ export function writeFound(found: ReadonlySet<string>): void {
     // found again next time
   }
 }
+
+const ASSIST_KEY = 'citywalk.assist';
+
+/** Combo help (longer to chain, a wider perfect dodge), chosen on this device. */
+export function readAssist(): boolean {
+  try {
+    return localStorage.getItem(ASSIST_KEY) === 'on';
+  } catch {
+    return false;
+  }
+}
+
+export function writeAssist(on: boolean): void {
+  try {
+    localStorage.setItem(ASSIST_KEY, on ? 'on' : 'off');
+  } catch {
+    // the setting just does not stick
+  }
+}

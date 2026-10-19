@@ -69,7 +69,8 @@ export interface MonsterSpec {
   radius: number;
   takes: Record<Element, number>;
   near: { watch: number; lunge: number; forget: number };
-  attack: { damage: number; reach: number; cycle: number; strikeAt: number };
+  /** warn: the least time (seconds) a blow is warned of with a ring on the ground */
+  attack: { damage: number; reach: number; cycle: number; strikeAt: number; warn: number };
   anger: { time: number; leash: number };
   drops: DropSpec[];
 }
@@ -125,7 +126,7 @@ function readSlam(raw: unknown, w: string): SlamSpec | null {
   return spec;
 }
 
-function resolve(id: string, o: Obj, itemIds: readonly string[]): MonsterSpec {
+function resolve(id: string, o: Obj, itemIds: readonly string[], warnSpecial: number): MonsterSpec {
   const w = `monsters.${id}`;
   const part = (key: string) => obj(o[key], `${w}.${key}`);
   const near = part('near'),
@@ -183,6 +184,7 @@ function resolve(id: string, o: Obj, itemIds: readonly string[]): MonsterSpec {
       reach: num(attack, 'reach', `${w}.attack`),
       cycle: num(attack, 'cycle', `${w}.attack`, 0.1),
       strikeAt: num(attack, 'strikeAt', `${w}.attack`),
+      warn: num(attack, 'warn', `${w}.attack`),
     },
     anger: { time: num(anger, 'time', `${w}.anger`), leash: num(anger, 'leash', `${w}.anger`) },
     drops,
@@ -191,6 +193,12 @@ function resolve(id: string, o: Obj, itemIds: readonly string[]): MonsterSpec {
     throw new ConfigError(`${w}.attack.strikeAt must be inside the attack cycle`);
   if (spec.near.lunge > spec.near.watch || spec.near.watch > spec.near.forget)
     throw new ConfigError(`${w}.near: expected lunge ≤ watch ≤ forget`);
+  // a big move must give everyone time to see its warning and get out of the way
+  const { charge, slam } = spec.specials;
+  if (charge && charge.dashStart < warnSpecial)
+    throw new ConfigError(`${w}.specials.charge.dashStart: warned for less than ${warnSpecial} s`);
+  if (slam && slam.strikeAt < warnSpecial)
+    throw new ConfigError(`${w}.specials.slam.strikeAt: warned for less than ${warnSpecial} s`);
   return spec;
 }
 
@@ -201,8 +209,10 @@ export function readMonsters(
 ): {
   hop: { cycle: number; liftOff: number; land: number; distance: number };
   species: Record<string, MonsterSpec>;
+  warnSpecial: number;
 } {
   const root = obj(raw, 'monsters.json');
+  const warnSpecial = num(root, 'warnSpecial', 'monsters');
   const hop = obj(obj(root.body, 'monsters.body').hop, 'monsters.body.hop');
   const w = 'monsters.body.hop';
   const body = {
@@ -217,9 +227,9 @@ export function readMonsters(
   const list = obj(root.species, 'monsters.species');
   const species: Record<string, MonsterSpec> = {};
   for (const id of Object.keys(list))
-    species[id] = resolve(id, merge(base, obj(list[id], `monsters.${id}`)), itemIds);
+    species[id] = resolve(id, merge(base, obj(list[id], `monsters.${id}`)), itemIds, warnSpecial);
   if (Object.keys(species).length === 0) throw new ConfigError('monsters.json: no species');
-  return { hop: body, species };
+  return { hop: body, species, warnSpecial };
 }
 
 const CONFIG = readMonsters(monstersJson);

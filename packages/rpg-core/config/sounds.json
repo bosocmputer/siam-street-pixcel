@@ -5,6 +5,29 @@
   "footsteps": { "walk": 0.5, "run": 0.32, "bike": 0.2 },
   "combo": { "window": 1.2, "step": 0.05, "max": 8 },
   "sounds": {
+    "telegraph.warn": {
+      "volume": 0.6,
+      "priority": 3,
+      "cooldown": 0.15,
+      "spatial": true,
+      "layers": [
+        {
+          "kind": "osc",
+          "wave": "square",
+          "freq": { "from": 520, "to": 780 },
+          "filter": { "type": "lowpass", "from": 2400, "to": 2400 },
+          "env": { "attack": 0.004, "hold": 0.05, "release": 0.06, "peak": 0.5 }
+        },
+        {
+          "kind": "osc",
+          "wave": "square",
+          "freq": { "from": 520, "to": 780 },
+          "filter": { "type": "lowpass", "from": 2400, "to": 2400 },
+          "at": 0.13,
+          "env": { "attack": 0.004, "hold": 0.05, "release": 0.06, "peak": 0.5 }
+        }
+      ]
+    },
     "melee.swing": {
       "volume": 0.5,
       "priority": 1,

@@ -21,6 +21,7 @@ export const TH = {
   dash: 'พุ่ง',
   target: 'เปลี่ยนเป้า',
   settings: 'ตั้งค่า',
+  assist: 'ช่วยคอมโบ',
   combo: 'คอมโบ',
   crit: 'คริ!',
   /** the basic combos' names, shown big when one is made */
@@ -146,6 +147,7 @@ export const TH = {
     'melee.dash': 'พุ่ง (ฟึ่บ)',
     'melee.block': 'ป้องกันได้ (เคร้ง)',
     'melee.perfect': 'หลบเฉียด (วิ้ง!)',
+    'telegraph.warn': 'มอนเตรียมโจมตี (วงแดงขึ้น)',
   } as Record<string, string>,
   soundGroups: {
     ui: 'ปุ่มและแจ้งเตือน',
@@ -157,6 +159,7 @@ export const TH = {
     boss: 'บอส',
     item: 'ของ',
     melee: 'ตีและหลบ',
+    telegraph: 'เตือนก่อนโดนตี',
   } as Record<string, string>,
   lab: {
     link: 'ฟังเสียงทั้งหมด',
