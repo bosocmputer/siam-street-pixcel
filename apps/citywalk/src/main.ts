@@ -269,8 +269,10 @@ async function start(): Promise<void> {
   const collider = new Collider(world, [...towers, ...(placed?.solids ?? [])]);
   const lap = moatLapMetres(world.landmarks);
 
-  // pixel 3D: the whole scene drawn small and shown in big hard-edged pixels
-  const px = art === 'pixel3d' ? SPRITES.scenePixel : 0;
+  // pixel 3D: the whole scene drawn small and shown in big hard-edged pixels (?px= tries another
+  // size, screen pixels to one scene pixel)
+  const askedPx = Number(new URLSearchParams(location.search).get('px'));
+  const px = art === 'pixel3d' ? (askedPx >= 1 && askedPx <= 4 ? askedPx : SPRITES.scenePixel) : 0;
   const renderer = new THREE.WebGLRenderer({ antialias: !px && window.devicePixelRatio < 2 });
   renderer.setPixelRatio(px ? 1 / px : Math.min(window.devicePixelRatio, 1.75));
   if (px) renderer.domElement.style.imageRendering = 'pixelated';
