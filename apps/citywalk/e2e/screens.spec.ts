@@ -136,6 +136,7 @@ test('the text chip makes every word bigger and is remembered', async ({ page })
   await page.getByRole('button', { name: 'รับทราบ' }).click();
   const size = () => page.evaluate(() => getComputedStyle(document.body).fontSize);
   expect(await size()).toBe('16px');
+  await page.getByRole('button', { name: 'ตั้งค่า' }).click();
   await page.getByRole('button', { name: /ตัวอักษร/ }).click();
   expect(await size()).toBe('24px');
   await page.screenshot({ path: `${SHOTS}/screens-large-play.png` });

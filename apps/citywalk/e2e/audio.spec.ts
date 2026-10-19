@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { newGame } from './start';
+import { chip as chipOf, newGame } from './start';
 
 const SHOTS = process.env.SHOTS_DIR ?? 'test-results/shots';
 
@@ -137,7 +137,7 @@ test('walking makes steps, and the sound chip turns everything off and stays off
   await expect.poll(() => heard(page), { timeout: 8000 }).toContain('step.walk');
   await page.keyboard.up('KeyW');
 
-  const chip = page.locator('[data-chip="sound"]');
+  const chip = await chipOf(page, 'sound');
   await expect(chip).toContainText('เปิด');
   await chip.click();
   await expect(chip).toContainText('ปิด');
@@ -155,7 +155,7 @@ test('walking makes steps, and the sound chip turns everything off and stays off
     .click();
   await page.waitForFunction(() => '__walk' in window);
   expect(await js(page, 'window.__walk.sound.muted()')).toBe(true);
-  await expect(page.locator('[data-chip="sound"]')).toContainText('ปิด');
+  await expect(await chipOf(page, 'sound')).toContainText('ปิด');
 });
 
 test('the listening room opens from the first page and plays every sound', async ({ page }) => {

@@ -5,7 +5,9 @@ import {
   CAMERA_MODES,
   DEFAULT_CAMERA,
   ITEMS,
+  MELEE,
   PLAYER,
+  PRESS_ACTIONS,
   SAVE_VERSION,
   SOUNDS,
   SPAWNS,
@@ -17,25 +19,35 @@ import {
   advance,
   advanceSteps,
   countOf,
+  critChance,
+  dashSpeed,
   gainExp,
+  gait,
   hurt,
+  landHit,
   lockYaw,
   maxEnergy,
   maxHp,
   monster,
   newClock,
   newCombo,
+  newFighter,
   newStepClock,
   newStats,
   nextCombo,
   nextScreen,
+  pressDash,
+  pressStrike,
+  releaseGuard,
   rigFor,
   sideMetres,
   seeded,
   skill,
   sound as soundRecipe,
   spend,
+  stepFighter,
   stepStats,
+  takeBlow,
   worldRuns,
   type CameraMode,
   type Attrs,
@@ -46,6 +58,7 @@ import {
   type SaveData,
   type Screen,
   type ScreenEvent,
+  type Swing,
   type Vec3,
 } from '@newgame/rpg-core';
 import { loadAssets, missingClips } from './assets';
@@ -54,7 +67,8 @@ import { openLab } from './audio/soundLab';
 import { renderSound } from './audio/synth';
 import { stats as soundStats } from './audio/analyze';
 import { Collider } from './collide';
-import { Combat } from './combat';
+import { Combat, type HitEvent } from './combat';
+import type { ActKind } from './hero';
 import { heroFromLook } from './lookModel';
 import { Creator } from './ui/creator';
 import { StatsPanel } from './ui/statsPanel';
@@ -70,9 +84,11 @@ import { SlimeHerd, loadSlime, type SlimeTemplate } from './slime';
 import {
   applyTextSize,
   clearSave,
+  readFound,
   readPrefs,
   readSave,
   readTextSize,
+  writeFound,
   writePrefs,
   writeSave,
   writeTextSize,
@@ -356,6 +372,8 @@ async function start(): Promise<void> {
     pitch: CAMERA.pitch.start,
     heading: startYaw,
     mode: 'walk' as MoveMode,
+    /** on a ride (rented later); otherwise walking or running follows the stick */
+    riding: false,
     scale: 1,
     labels: true,
     haze: false,
@@ -372,7 +390,7 @@ async function start(): Promise<void> {
   };
   const applyScale = () => city.scale.setScalar(state.scale);
 
-  const hud = new Hud($('#hud'), world.landmarks, (m) => input.trigger(m), [
+  const hud = new Hud($('#hud'), world.landmarks, [
     {
       id: 'scale',
       label: TH.scale,
@@ -430,8 +448,17 @@ async function start(): Promise<void> {
   ]);
   hud.onTap = () => sound.play('ui.click');
   const combatHud = combat
-    ? new CombatHud(hud.root, SLOTS, (i) => input.trigger(i === 0 ? 'skill1' : 'skill2'))
+    ? new CombatHud(hud.root, SLOTS, (a, down) => {
+        if (down) input.trigger(a);
+        input.hold(a, down);
+      })
     : null;
+  // the strike, dash and guard, and the combo count
+  const fighter = newFighter();
+  /** dice for critical hits */
+  const critDice = seeded((seedParam || 1) + 23);
+  /** combos found on this device; the first time each is made says so */
+  const found = readFound();
   // what monsters say, and the marks over their heads
   const chatter = herd ? new Chatter(hud.root, seeded((seedParam || 1) + 11)) : null;
   const playerHud = new PlayerHud(hud.top);
@@ -456,11 +483,11 @@ async function start(): Promise<void> {
   if (plaza) minimap.addArea(plaza.outline, '#d8b48c');
   hud.root.append(minimap.canvas);
 
-  const setMode = (m: MoveMode, announce = true) => {
-    state.mode = m;
-    walker.bike.visible = m === 'bike';
-    hud.showMode(m);
-    if (announce) hud.say(lapText());
+  /** get on or off a ride (the rental shop will call this; tests do now) */
+  const setRiding = (on: boolean) => {
+    state.riding = on;
+    state.mode = on ? 'bike' : 'walk';
+    walker.bike.visible = on;
   };
 
   // saving: where the walker is and the settings, on this device
@@ -491,6 +518,7 @@ async function start(): Promise<void> {
       state.yaw = d.player.heading;
     }
     Object.assign(state, d.settings);
+    state.riding = d.settings.mode === 'bike';
     // a save made while lying down comes back standing, with a little health
     stats.level = Math.min(d.stats.level, PLAYER.maxLevel);
     stats.attrs = { ...d.attrs };
@@ -646,6 +674,117 @@ async function start(): Promise<void> {
   // a hit stops time for a blink and shakes the camera, so it feels heavy
   let freeze = 0;
   let shake = 0;
+
+  /** which way the player faces as a heading for shots and swings (0 = +z) */
+  const facingHeading = () => Math.atan2(-Math.sin(state.heading), -Math.cos(state.heading));
+  /** turn to the chosen slime if it is close enough to swing at */
+  const faceTarget = () => {
+    if (!combat) return;
+    combat.ensureTarget({ x: state.x, z: state.z, heading: lookHeading() });
+    const aim = combat.facing();
+    if (!aim) return;
+    const dx = aim[0] - state.x,
+      dz = aim[2] - state.z;
+    if (Math.hypot(dx, dz) > MELEE.strike.wave.range) return;
+    state.heading = Math.atan2(-dx, -dz);
+    walker.body.rotation.y = state.heading;
+  };
+  /** the first time a combo is made it is "found"; after that only its name shows */
+  const announceCombo = (c: string) => {
+    const name = TH.combos[c] ?? c;
+    if (found.has(c)) combatHud?.announce(name);
+    else {
+      found.add(c);
+      writeFound(found);
+      combatHud?.announce(TH.found(name));
+      sound.play('player.levelup');
+    }
+  };
+  /** a swing starts: face the target and swish */
+  const swingStarted = (sw: Swing) => {
+    faceTarget();
+    sound.play(sw.step === MELEE.strike.hits.length ? 'melee.heavy' : 'melee.swing');
+  };
+  /** a swing's blow lands: hit what is in reach, or send a wave */
+  const swingLanded = (sw: Swing) => {
+    if (!combat) return;
+    faceTarget();
+    const heading = facingHeading();
+    const strong = sw.combo !== null;
+    fx.slash([state.x, 0, state.z], heading, sw.step, strong);
+    const res = combat.strike(sw, {
+      x: state.x,
+      z: state.z,
+      heading,
+      level: stats.level,
+      power: attrBonus(stats.attrs).power,
+      combo: fighter.combo,
+      roll: critDice,
+      crit: critChance(stats.attrs.dex),
+    });
+    if (res.hits.length > 0 && sw.combo) announceCombo(sw.combo);
+    landed(res.hits);
+  };
+  /** hits by the strike, its waves or a skill: numbers, combo, energy, a heavy feel, drops */
+  const landed = (hits: HitEvent[]) => {
+    for (const h of hits) {
+      const gain = landHit(fighter);
+      if (h.element === null)
+        stats.energy = Math.min(
+          maxEnergy(stats.level, undefined, stats.attrs),
+          stats.energy + gain,
+        );
+      const heavy = h.element === 'fire' || h.combo || h.crit;
+      freeze = Math.max(freeze, heavy ? 0.08 : 0.04);
+      shake = Math.max(shake, heavy ? 0.22 : 0.09);
+      combatHud?.hit(h);
+      // a hit on a weakness rings out; a hit on something that resists falls dull
+      const where = { at: { x: h.at[0], z: h.at[2] } };
+      if (h.takes > 1) sound.play('hit.weak', where);
+      else if (h.takes < 1) sound.play('hit.resist', where);
+      if (!h.defeated) continue;
+      const kind = monster(h.species);
+      // it melts and leaves its drops lying round the puddle
+      const dropped = pickups.drop(kind.drops, { x: h.at[0], z: h.at[2] }, (x, z, dx, dz) =>
+        collider.move(x, z, dx, dz, 0.2),
+      );
+      if (dropped.length > 0) sound.play('item.drop', { at: { x: h.at[0], z: h.at[2] } });
+      if (gainExp(stats, kind.exp) > 0) {
+        sound.play('player.levelup');
+        // at a few levels the system hints which way the player is leaning
+        const hint = ATTR.hintLevels.includes(stats.level)
+          ? ` · ${TH.hint(TH.attrs[leaning(stats.attrs)]!)}`
+          : '';
+        hud.say(TH.levelUp(stats.level) + hint, true);
+        fx.levelUp([state.x, 0, state.z], GROUND);
+        save();
+      }
+    }
+  };
+  /** the strike button */
+  const strike = () => {
+    if (!combat || stats.down > 0 || combat.gathering || state.riding) return;
+    const sw = pressStrike(fighter);
+    if (sw) swingStarted(sw);
+  };
+  /** which way to dash (map x, z, length 1) */
+  let dashDir: [number, number] = [0, 0];
+  /** the dash button: a dash while moving, a guard while standing */
+  const dash = (forward: number, right: number) => {
+    if (stats.down > 0 || state.riding) return;
+    const fx = -Math.sin(state.yaw),
+      fz = -Math.cos(state.yaw);
+    const rx = Math.cos(state.yaw),
+      rz = -Math.sin(state.yaw);
+    const dx = fx * forward + rx * right,
+      dz = fz * forward + rz * right;
+    const len = Math.hypot(dx, dz);
+    const r = pressDash(fighter, len > 0.05);
+    if (r !== 'dash') return;
+    dashDir = [dx / len, dz / len];
+    state.heading = Math.atan2(-dx, -dz);
+    sound.play('melee.dash');
+  };
   /** debug: stop the world (not the walker or camera) so a screenshot catches a moment */
   let held = false;
   /** slimes and shots for one step of game time */
@@ -653,7 +792,24 @@ async function start(): Promise<void> {
     const s = state.scale;
     const blows = herd?.update(dt, { x: state.x, z: state.z, down: stats.down > 0 }) ?? [];
     for (const b of blows) {
-      const result = hurt(stats, b.damage);
+      if (stats.safe > 0 || stats.down > 0) continue;
+      // a dash just in time dodges perfectly; guarding takes some of it
+      const blow = takeBlow(fighter, b.damage);
+      if (blow.result === 'perfect') {
+        fx.perfectDodge([state.x, 0, state.z], GROUND);
+        sound.play('melee.perfect');
+        combatHud?.announce(TH.perfect);
+        continue;
+      }
+      if (blow.result === 'dodged') continue;
+      if (blow.result === 'guarded') {
+        fx.guardBlock([state.x, 0, state.z], GROUND);
+        sound.play('melee.block');
+        if (blow.damage > 0) hurt(stats, blow.damage);
+        shake = Math.max(shake, 0.06);
+        continue;
+      }
+      const result = hurt(stats, blow.damage);
       if (result === 'ignored') continue;
       walker.hurt?.();
       // knocked back a little, away from the slime
@@ -680,32 +836,7 @@ async function start(): Promise<void> {
     combatHud?.age(dt);
     const hits = combat?.update(dt) ?? [];
     if (herd) chatter?.update(dt, herd, state);
-    for (const h of hits) {
-      freeze = Math.max(freeze, h.element === 'fire' ? 0.08 : 0.04);
-      shake = Math.max(shake, h.element === 'fire' ? 0.22 : 0.09);
-      combatHud?.hit(h);
-      // a hit on a weakness rings out; a hit on something that resists falls dull
-      const where = { at: { x: h.at[0], z: h.at[2] } };
-      if (h.takes > 1) sound.play('hit.weak', where);
-      else if (h.takes < 1) sound.play('hit.resist', where);
-      if (!h.defeated) continue;
-      const kind = monster(h.species);
-      // it melts and leaves its drops lying round the puddle
-      const dropped = pickups.drop(kind.drops, { x: h.at[0], z: h.at[2] }, (x, z, dx, dz) =>
-        collider.move(x, z, dx, dz, 0.2),
-      );
-      if (dropped.length > 0) sound.play('item.drop', { at: { x: h.at[0], z: h.at[2] } });
-      if (gainExp(stats, kind.exp) > 0) {
-        sound.play('player.levelup');
-        // at a few levels the system hints which way the player is leaning
-        const hint = ATTR.hintLevels.includes(stats.level)
-          ? ` · ${TH.hint(TH.attrs[leaning(stats.attrs)]!)}`
-          : '';
-        hud.say(TH.levelUp(stats.level) + hint, true);
-        fx.levelUp([state.x, 0, state.z], GROUND);
-        save();
-      }
-    }
+    landed(hits);
     // walk over a drop (or near it) to pick it up
     for (const p of pickups.update(dt, { x: state.x, z: state.z, down: stats.down > 0 })) {
       const put = addItem(bag, p.item, p.count);
@@ -737,13 +868,16 @@ async function start(): Promise<void> {
   const commands = (dt: number) => {
     // off the game (a window open, the intro): drop what was pressed so it does not fire later
     if (screen !== 'play') {
-      for (const a of ['walk', 'run', 'bike', 'skill1', 'skill2', 'target'] as const)
-        input.pressed(a);
+      for (const a of PRESS_ACTIONS) input.pressed(a);
       input.takeTaps();
       input.takeTurn();
       return;
     }
-    for (const m of ['walk', 'run', 'bike'] as const) if (input.pressed(m)) setMode(m);
+    if (input.pressed('dash')) {
+      const { forward, right } = input.read();
+      dash(forward, right);
+    }
+    if (input.pressed('strike')) strike();
     if (input.pressed('skill1')) castSkill(SLOTS[0]!);
     if (input.pressed('skill2')) castSkill(SLOTS[1]!);
     if (input.pressed('target'))
@@ -765,22 +899,55 @@ async function start(): Promise<void> {
     }
   };
 
+  /** what the body shows: a swing, a dash or a guard */
+  const actNow = () => {
+    if (fighter.swing)
+      return {
+        kind: `strike${fighter.swing.step}` as ActKind,
+        t: fighter.swingT / fighter.swing.hit.time,
+      };
+    if (fighter.dash > 0) return { kind: 'dash' as const, t: 1 - fighter.dash / MELEE.dash.time };
+    if (fighter.guarding) return { kind: 'guard' as const, t: 0 };
+    return null;
+  };
   const combo = newCombo();
   const stepClock = newStepClock();
   /** one fixed step of the game: walking, then the world */
   const simStep = (dt: number): number => {
     // lying down after running out of health: no walking until back up
-    const { forward, right } = stats.down > 0 ? { forward: 0, right: 0 } : input.read();
-    step(dt, forward, right);
-    // footsteps keep the beat of walking, running or riding
-    for (let n = advanceSteps(stepClock, dt, forward !== 0 || right !== 0, state.mode); n > 0; n--)
-      sound.play(`step.${state.mode}`);
+    const still = { forward: 0, right: 0, push: 0, sprint: false };
+    const { forward, right, push, sprint } = stats.down > 0 ? still : input.read();
+    const moving = forward !== 0 || right !== 0;
+    // the stick pushed a little walks, pushed to the edge (or Shift held) runs
+    if (!state.riding) state.mode = gait(push, sprint);
+    // a guard lasts while the button is held and the player stands still
+    if (fighter.guarding && (moving || !input.isDown('dash') || stats.down > 0))
+      releaseGuard(fighter);
+    const s = state.scale;
+    if (fighter.dash > 0 && !held) {
+      // a dash goes straight, faster than running
+      const d = (dashSpeed() * dt) / s;
+      [state.x, state.z] = collider.move(state.x, state.z, dashDir[0] * d, dashDir[1] * d, RADIUS);
+      fx.dashDust([state.x, 0, state.z], GROUND, [dashDir[0], 0, dashDir[1]]);
+    } else if (!fighter.swing && !fighter.guarding) {
+      step(dt, forward, right);
+      // footsteps keep the beat of walking, running or riding
+      for (let n = advanceSteps(stepClock, dt, moving, state.mode); n > 0; n--)
+        sound.play(`step.${state.mode}`);
+    }
+    // the strike's clocks wait while a test holds the world still (it steps them itself)
+    const f = held ? null : stepFighter(fighter, dt);
+    if (f && f.drain > 0 && !spend(stats, f.drain)) releaseGuard(fighter);
+    if (f?.started) swingStarted(f.started);
+    if (f?.landed) swingLanded(f.landed);
     if (combat?.gathering) {
       // keep facing the target while the ball is gathered
       const [fx, fz] = throwDir();
       state.heading = Math.atan2(-fx, -fz);
     }
-    const worldDt = held ? 0 : freeze > 0 ? dt * 0.08 : dt;
+    // a perfect dodge slows the world for a moment
+    const slow = fighter.slow > 0 ? MELEE.perfect.slowRate : 1;
+    const worldDt = held ? 0 : freeze > 0 ? dt * 0.08 : dt * slow;
     freeze = Math.max(0, freeze - dt);
     fight(worldDt);
     return worldDt;
@@ -831,6 +998,7 @@ async function start(): Promise<void> {
         speed,
         casting: combat?.gathering ?? false,
         down: stats.down > 0,
+        act: actNow(),
       });
       // fall over while down, stand up again after
       const lie = stats.down > 0 ? 1.45 : 0;
@@ -860,7 +1028,7 @@ async function start(): Promise<void> {
       hud.landmarks(state, state.scale, state.labels, camera, covered, screen === 'play');
       minimap.draw(state.x, state.z, state.heading, state.labels, herd?.dots());
       sound.hear(state.x, state.z, state.yaw);
-      if (combat && herd) combatHud?.draw(combat, herd, screenOf, stats.energy);
+      if (combat && herd) combatHud?.draw(combat, herd, screenOf, stats.energy, fighter);
       if (herd) chatter?.draw(herd, screenOf);
       playerHud.draw(stats);
     } catch (err) {
@@ -892,10 +1060,9 @@ async function start(): Promise<void> {
   });
   window.addEventListener('pagehide', () => save());
 
-  setMode('walk', false);
   if (saved) {
     restore(saved);
-    setMode(state.mode, false);
+    setRiding(state.riding);
   }
   walker.body.rotation.y = state.heading;
   go('loaded');
@@ -993,6 +1160,34 @@ async function start(): Promise<void> {
         }
       },
       cast: (id: string) => castSkill(id),
+      /** press strike / dash (moving or standing) as the buttons do */
+      strike: () => strike(),
+      dash: (forward = 1, right = 0) => dash(forward, right),
+      fighter: () => ({
+        chain: fighter.chain,
+        swinging: fighter.swing?.step ?? 0,
+        combo: fighter.combo,
+        best: fighter.best,
+        guarding: fighter.guarding,
+        dash: fighter.dash,
+        counter: fighter.counter,
+        slow: fighter.slow,
+      }),
+      /** run the strike's clocks and the fight for a number of seconds, in 1/60 s steps */
+      simulateStrike: (seconds: number) => {
+        for (let t = 0; t < seconds; t += 1 / 60) {
+          const f = stepFighter(fighter, 1 / 60);
+          if (f.started) swingStarted(f.started);
+          if (f.landed) swingLanded(f.landed);
+          fight(1 / 60);
+          effects(1 / 60);
+        }
+      },
+      /** a monster's blow reaching the player now, as the fight would take it */
+      blow: (damage: number) => takeBlow(fighter, damage).result,
+      announced: () => combatHud?.announced ?? '',
+      found: () => [...found],
+      setRiding: (on: boolean) => setRiding(on),
       inventory: () => ({ ...bag }),
       grant: (id: string, n: number) => addItem(bag, id, n),
       sound: {
@@ -1059,7 +1254,12 @@ async function start(): Promise<void> {
       setStats: (patch: Partial<PlayerStats>) => Object.assign(stats, patch),
       combat: () =>
         combat
-          ? { target: combat.target, cooldowns: { ...combat.cooldowns }, inFlight: combat.inFlight }
+          ? {
+              target: combat.target,
+              cooldowns: { ...combat.cooldowns },
+              inFlight: combat.inFlight,
+              waves: combat.wavesInFlight,
+            }
           : null,
       setTarget: (i: number | null) => combat && (combat.target = i),
       /** where slime i is on the screen, in CSS pixels */

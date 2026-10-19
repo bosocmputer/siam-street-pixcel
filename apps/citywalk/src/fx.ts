@@ -1235,6 +1235,111 @@ export class Fx {
     }
   }
 
+  /**
+   * A weapon swing: bright sparks laid along an arc in front of the player at `heading` (0 = +z),
+   * sweeping across; the heavy third hit and a counter are bigger and orange.
+   */
+  slash(p: Vec3, heading: number, step: number, strong: boolean): void {
+    const n = strong ? 26 : 16;
+    const reach = strong ? 1.9 : 1.5;
+    // the swing goes one way, then back, then over the top
+    const sweep = step % 2 === 0 ? -1 : 1;
+    for (let i = 0; i < n; i++) {
+      const t = i / (n - 1);
+      const a = heading + sweep * (t - 0.5) * 2.2;
+      const r = reach * (0.75 + 0.25 * Math.sin(t * Math.PI));
+      const y = step === 3 ? 1.9 - t * 1.4 : 1.0 + (t - 0.5) * 0.3;
+      this.bright.emit({
+        pos: [p[0] + Math.sin(a) * r, y, p[2] + Math.cos(a) * r],
+        vel: [Math.sin(a) * 1.2, 0, Math.cos(a) * 1.2],
+        life: 0.12 + t * 0.1,
+        size: [strong ? 0.26 : 0.18, 0.04],
+        color: strong ? [FIRE.yellow, FIRE.orange] : [0xffffff, 0xc8e4ff],
+        alpha: [1, 0],
+        drag: 6,
+      });
+    }
+  }
+
+  /** A strike lands on a monster: a spray of sparks pushed away from the player. */
+  strikeHit(p: Vec3, dir: Vec3, strong: boolean): void {
+    for (let i = 0; i < (strong ? 30 : 16); i++) {
+      const d = anyway();
+      const s = rand(2, strong ? 6 : 4);
+      this.bright.emit({
+        pos: p,
+        vel: [(d[0] + dir[0]) * s, Math.abs(d[1]) * 3, (d[2] + dir[2]) * s],
+        life: rand(0.18, 0.35),
+        size: [strong ? 0.16 : 0.12, 0.02],
+        color: strong ? [0xffffff, FIRE.orange] : [0xffffff, FIRE.yellow],
+        alpha: [1, 0],
+        drag: 4,
+      });
+    }
+  }
+
+  /** Dust kicked up behind a dash. */
+  dashDust(p: Vec3, ground: number, dir: Vec3): void {
+    for (let i = 0; i < 6; i++)
+      this.solid.emit({
+        pos: [p[0] + rand(-0.2, 0.2), ground + 0.1, p[2] + rand(-0.2, 0.2)],
+        vel: [-dir[0] * rand(1, 2.5) + rand(-0.5, 0.5), rand(0.3, 1), -dir[2] * rand(1, 2.5)],
+        life: rand(0.25, 0.45),
+        size: [rand(0.18, 0.3), 0.45],
+        color: [0xd9cbb2, 0xb8a98f],
+        alpha: [0.7, 0],
+        drag: 4,
+      });
+  }
+
+  /** A strike's wave as it flies: a pale crescent across its path. */
+  waveTrail(p: Vec3, dir: Vec3): void {
+    const sx = -dir[2],
+      sz = dir[0];
+    for (let i = -3; i <= 3; i++) {
+      const back = (i * i) / 18;
+      this.bright.emit({
+        pos: [p[0] + sx * i * 0.16 - dir[0] * back, p[1], p[2] + sz * i * 0.16 - dir[2] * back],
+        life: 0.1,
+        size: [0.2, 0.08],
+        color: [0xffffff, 0x9fe0ff],
+        alpha: [0.9, 0],
+      });
+    }
+  }
+
+  /** A blow meets the guard: a ring of light in front of the player and a few sparks. */
+  guardBlock(p: Vec3, ground: number): void {
+    this.ring([p[0], ground + 0.1, p[2]], 0x9fe0ff, 0.4, 1.3, 0.25, 0, 0.9, THREE.AdditiveBlending);
+    for (let i = 0; i < 10; i++) {
+      const d = anyway();
+      this.bright.emit({
+        pos: [p[0], 1.1, p[2]],
+        vel: [d[0] * 2.5, Math.abs(d[1]) * 2, d[2] * 2.5],
+        life: rand(0.15, 0.3),
+        size: [0.1, 0.02],
+        color: [0xffffff, 0x9fe0ff],
+        alpha: [1, 0],
+        drag: 4,
+      });
+    }
+  }
+
+  /** A perfect dodge: a white ring bursts out round the player. */
+  perfectDodge(p: Vec3, ground: number): void {
+    this.ring([p[0], ground + 0.12, p[2]], 0xffffff, 0.3, 3.2, 0.4, 0, 1, THREE.AdditiveBlending);
+    this.ring(
+      [p[0], ground + 0.12, p[2]],
+      FIRE.yellow,
+      0.2,
+      2.4,
+      0.35,
+      0.06,
+      0.8,
+      THREE.AdditiveBlending,
+    );
+  }
+
   /** A small sparkle where a drop is picked up, in the item's colour. */
   glint(p: Vec3, color: number): void {
     for (let i = 0; i < 12; i++)

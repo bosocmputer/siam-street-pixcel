@@ -45,8 +45,13 @@ export function makeSpriteHero(sheet: SpriteSheet): Walker {
         if (a.fps > 0) actor.play(anim, mo.speed / HERO_GAIT[anim].speed);
         else actor.hold(anim, frameOfDistance(a.frames, walked, HERO_GAIT[anim].cycle));
       };
+      const act = mo.act;
       if (mo.down) actor.play(actor.has('down') ? 'down' : 'hurt');
-      else if (mo.mode === 'bike') actor.play(actor.has('ride') ? 'ride' : 'idle');
+      else if (act && actor.has(act.kind)) {
+        // a strike or dash shows the frame for how far through it is
+        const n = m.anims[act.kind]!.frames;
+        actor.hold(act.kind, Math.min(n - 1, Math.floor(act.t * n)));
+      } else if (mo.mode === 'bike') actor.play(actor.has('ride') ? 'ride' : 'idle');
       else if (mo.casting && actor.has('cast')) actor.play('cast');
       else if (hurt > 0 && actor.has('hurt')) actor.play('hurt');
       else if (mo.speed > 5 && actor.has('run')) gait('run');

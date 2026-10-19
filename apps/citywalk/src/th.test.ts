@@ -3,6 +3,7 @@ import {
   APPEARANCE,
   ATTRS,
   CAMERA_MODES,
+  COMBOS,
   ELEMENTS,
   ITEMS,
   JOB_IDS,
@@ -25,6 +26,7 @@ describe('Thai names cover the game data', () => {
   it('monsters', () => same(TH.monsters, Object.keys(MONSTERS)));
   it('items', () => same(TH.items, Object.keys(ITEMS)));
   it('skills', () => same(TH.skills, Object.keys(SKILLS)));
+  it('combos', () => same(TH.combos, [...COMBOS]));
   it('elements', () => same(TH.elements, ELEMENTS));
   it('camera views', () => same(TH.cameraModes, CAMERA_MODES));
   it('sounds', () => same(TH.sounds, Object.keys(SOUNDS)));

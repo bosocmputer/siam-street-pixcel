@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { newGame } from './start';
+import { chip as chipOf, newGame } from './start';
 
 const SHOTS = process.env.SHOTS_DIR ?? 'test-results/shots';
 type Pt = [number, number] | null;
@@ -53,7 +53,7 @@ test('the camera chip switches views, and standing still the camera swings round
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await open(page);
-  const chip = page.locator('[data-chip="camera"]');
+  const chip = await chipOf(page, 'camera');
   await expect(chip).toContainText('ไหล่'); // shoulder is the default view
   await chip.click();
   await expect(chip).toContainText('หลัง');

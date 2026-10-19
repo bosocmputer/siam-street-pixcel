@@ -1,5 +1,5 @@
 {
-  "about": "Pixel sprites: characters and monsters are pictures in the 3D city. ppm is pixels per metre, the same for every sprite so the pixel grid matches across the game. elevation is how far down (radians) the pictures look at the subject. dirs: directions drawn (5 = front, front-side, side, back-side, back; the other three are mirrored). colors: the most colours one sheet may use. outline: how dark the 1-pixel edge is next to the colour it borders (0 = black, 1 = same colour). supersample: how much bigger each frame is drawn before it is shrunk to pixels; maxRender: the most pixels a drawn frame may be across, so a big monster is drawn less oversized. fxPixel: skill effects and drops are drawn as pixels this many screen pixels across. hero: the frame size, where the feet stand in it (anchor, pixels from the left and top), proportions: how much each joint is scaled [x, y, z] for chibi proportions (a name without _L/_R means both sides; y runs along a limb), and the animations: frames, fps (0 = the frames follow the distance walked, so the feet do not slide), loop. monster: frames per second of the model's clips and the most frames one clip may use.",
+  "about": "Pixel sprites: characters and monsters are pictures in the 3D city. ppm is pixels per metre, the same for every sprite so the pixel grid matches across the game. elevation is how far down (radians) the pictures look at the subject. dirs: directions drawn (5 = front, front-side, side, back-side, back; the other three are mirrored). colors: the most colours one sheet may use. outline: how dark the 1-pixel edge is next to the colour it borders (0 = black, 1 = same colour). supersample: how much bigger each frame is drawn before it is shrunk to pixels; maxRender: the most pixels a drawn frame may be across, so a big monster is drawn less oversized. fxPixel: skill effects and drops are drawn as pixels this many screen pixels across. hero: the frame size, where the feet stand in it (anchor, pixels from the left and top), proportions: how much each joint is scaled [x, y, z] for chibi proportions (a name without _L/_R means both sides; y runs along a limb), and the animations: frames, fps (0 = the frames follow the distance walked, so the feet do not slide), loop. strike1-3, dash and guard show the frame for how far through the move the player is. monster: frames per second of the model's clips and the most frames one clip may use.",
   "ppm": 44,
   "elevation": 0.38,
   "dirs": 5,
@@ -46,6 +46,31 @@
         "frames": 2,
         "fps": 4,
         "loop": true
+      },
+      "strike1": {
+        "frames": 4,
+        "fps": 13,
+        "loop": false
+      },
+      "strike2": {
+        "frames": 4,
+        "fps": 13,
+        "loop": false
+      },
+      "strike3": {
+        "frames": 5,
+        "fps": 10,
+        "loop": false
+      },
+      "dash": {
+        "frames": 2,
+        "fps": 8,
+        "loop": false
+      },
+      "guard": {
+        "frames": 1,
+        "fps": 1,
+        "loop": false
       }
     },
     "proportions": {

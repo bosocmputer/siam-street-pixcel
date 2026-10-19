@@ -3,7 +3,7 @@
 
 import * as THREE from 'three';
 import { APPEARANCE, SPRITES, type AnimSpec, type Look } from '@newgame/rpg-core';
-import { makeHero, type Motion } from '../hero';
+import { ACTS, makeHero, type ActKind, type Motion } from '../hero';
 import { buildLook, styleFor } from '../lookModel';
 import { bake, cartoon, type Baked, type Mark } from './bake';
 
@@ -76,6 +76,13 @@ export function bakeHero(
             w.bike.visible = true;
             run({ mode: 'bike', speed: 16 }, i === 0 ? 0.1 : 0.2, i === 0 ? 30 : 1);
             break;
+          default:
+            if ((ACTS as readonly string[]).includes(anim)) {
+              // a strike, dash or guard: frame i shows the middle of its share of the move
+              if (i === 0) run({}, 0.1, 30);
+              const kind = anim as ActKind;
+              run({ act: { kind, t: kind === 'guard' ? 0 : (i + 0.5) / n } }, 0.02, 12);
+            }
         }
       },
     },

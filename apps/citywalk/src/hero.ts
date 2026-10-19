@@ -94,6 +94,100 @@ export interface Motion {
   /** a ball is being gathered in the right hand */
   casting: boolean;
   down: boolean;
+  /** a strike, dash or guard under way, and how far through it is (0..1) */
+  act?: Act | null;
+}
+
+export const ACTS = ['strike1', 'strike2', 'strike3', 'dash', 'guard'] as const;
+export type ActKind = (typeof ACTS)[number];
+export interface Act {
+  kind: ActKind;
+  t: number;
+}
+
+type Turn = [number, number, number];
+const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
+/** 0 until `from`, then up to 1 over `span`, easing out */
+const swingK = (t: number, from: number, span: number) => {
+  const k = Math.min(1, Math.max(0, (t - from) / span));
+  return 1 - (1 - k) * (1 - k);
+};
+
+/**
+ * Where the arms and body go for a strike, dash or guard, and how much of it to show (`w`, easing
+ * in at the start and out at the end). Joints not named keep their walking pose.
+ */
+export function actPose(a: Act): { w: number; joints: Partial<Record<JointName, Turn>> } {
+  const t = Math.min(1, Math.max(0, a.t));
+  const fade = Math.max(0, Math.min(1, t / 0.12, (1 - t) / 0.22));
+  switch (a.kind) {
+    case 'strike1': {
+      // a flat slash from the right across the body
+      const k = swingK(t, 0.3, 0.25);
+      return {
+        w: fade,
+        joints: {
+          UpperArm_R: [-1.45, 0, lerp(-1.25, 0.7, k)],
+          LowerArm_R: [-0.25, 0, 0],
+          UpperArm_L: [-0.5, 0, 0.35],
+          Spine: [0.08, lerp(0.5, -0.65, k), 0],
+        },
+      };
+    }
+    case 'strike2': {
+      // and back again, backhand
+      const k = swingK(t, 0.3, 0.25);
+      return {
+        w: fade,
+        joints: {
+          UpperArm_R: [-1.3, 0, lerp(0.75, -1.2, k)],
+          LowerArm_R: [-0.45, 0, 0],
+          UpperArm_L: [-0.4, 0, 0.3],
+          Spine: [0.08, lerp(-0.6, 0.55, k), 0],
+        },
+      };
+    }
+    case 'strike3': {
+      // both hands high over the head, then down hard
+      const k = swingK(t, 0.32, 0.18);
+      return {
+        w: fade,
+        joints: {
+          UpperArm_R: [lerp(-2.85, -0.45, k), 0, -0.2],
+          UpperArm_L: [lerp(-2.85, -0.45, k), 0, 0.2],
+          LowerArm_R: [lerp(-0.5, -0.1, k), 0, 0],
+          LowerArm_L: [lerp(-0.5, -0.1, k), 0, 0],
+          Spine: [lerp(-0.25, 0.5, k), 0, 0],
+          Neck: [lerp(-0.1, -0.25, k), 0, 0],
+        },
+      };
+    }
+    case 'dash':
+      // low and forward, arms swept back
+      return {
+        w: Math.sin(Math.PI * t),
+        joints: {
+          Spine: [0.55, 0, 0],
+          Neck: [-0.35, 0, 0],
+          UpperArm_R: [0.95, 0, -0.25],
+          UpperArm_L: [0.95, 0, 0.25],
+          LowerArm_R: [-0.45, 0, 0],
+          LowerArm_L: [-0.45, 0, 0],
+        },
+      };
+    case 'guard':
+      // forearms crossed in front of the face
+      return {
+        w: 1,
+        joints: {
+          UpperArm_R: [-1.25, 0, 0.55],
+          UpperArm_L: [-1.25, 0, -0.55],
+          LowerArm_R: [-1.75, 0, 0],
+          LowerArm_L: [-1.75, 0, 0],
+          Spine: [0.18, 0, 0],
+        },
+      };
+  }
 }
 
 /**
@@ -239,6 +333,7 @@ export function makeHero(t: HeroTemplate, opts: HeroOptions = {}): Walker {
     cast = 0,
     ride = 0,
     flinch = 0,
+    guard = 0,
     stride = 0,
     running = 0,
     phase = 0;
@@ -263,6 +358,17 @@ export function makeHero(t: HeroTemplate, opts: HeroOptions = {}): Walker {
     },
     animate: (dt, m) => {
       time += dt;
+      // a guard eases up and down; strikes and dashes carry their own easing
+      guard = Math.min(1, Math.max(0, guard + (m.act?.kind === 'guard' ? dt : -dt) * 10));
+      const act =
+        m.act && !m.down ? actPose(m.act) : guard > 0 ? actPose({ kind: 'guard', t: 0 }) : null;
+      const w = m.act && m.act.kind !== 'guard' ? (act?.w ?? 0) : guard;
+      /** a joint's walking pose, moved towards the strike's or guard's */
+      const put = (name: JointName, x = 0, y = 0, z = 0) => {
+        const o = act?.joints[name];
+        if (o) [x, y, z] = [lerp(x, o[0], w), lerp(y, o[1], w), lerp(z, o[2], w)];
+        pose(name, x, y, z);
+      };
       const ease = (v: number, to: number, rate: number) => v + (to - v) * Math.min(1, dt * rate);
       const onFoot = m.mode !== 'bike' && !m.down;
       cast = ease(cast, m.casting && !m.down ? 1 : 0, 12);
@@ -295,12 +401,12 @@ export function makeHero(t: HeroTemplate, opts: HeroOptions = {}): Walker {
       };
       const L = leg(1),
         R = leg(-1);
-      pose('UpperLeg_L', mix(L.thighX, -1.4), 0, mix(0, 0.12));
-      pose('UpperLeg_R', mix(R.thighX, -1.4), 0, mix(0, -0.12));
-      pose('LowerLeg_L', mix(L.kneeX, 1.45));
-      pose('LowerLeg_R', mix(R.kneeX, 1.45));
-      pose('Foot_L', mix(L.footX, 0.1));
-      pose('Foot_R', mix(R.footX, 0.1));
+      put('UpperLeg_L', mix(L.thighX, -1.4), 0, mix(0, 0.12));
+      put('UpperLeg_R', mix(R.thighX, -1.4), 0, mix(0, -0.12));
+      put('LowerLeg_L', mix(L.kneeX, 1.45));
+      put('LowerLeg_R', mix(R.kneeX, 1.45));
+      put('Foot_L', mix(L.footX, 0.1));
+      put('Foot_R', mix(R.footX, 0.1));
 
       // arms swing against the legs, elbows bent more when running; the right one comes up to
       // gather a ball
@@ -311,29 +417,29 @@ export function makeHero(t: HeroTemplate, opts: HeroOptions = {}): Walker {
       const breathe = Math.sin(time * 2.2) * 0.02 * (1 - stride);
       const upL = mix(sw * armA, -0.95);
       const upR = mix(-sw * armA, -0.95);
-      pose('UpperArm_L', upL, 0, mix(0.07 + breathe + 0.05 * r, 0.15));
-      pose(
+      put('UpperArm_L', upL, 0, mix(0.07 + breathe + 0.05 * r, 0.15));
+      put(
         'UpperArm_R',
         upR + (-1.35 - upR) * cast,
         0,
         mix(-0.07 - breathe - 0.05 * r, -0.15) - 0.2 * cast,
       );
-      pose('LowerArm_L', -mix(elbow(sw), 0.35));
-      pose('LowerArm_R', -mix(elbow(-sw), 0.35) - 0.25 * cast);
+      put('LowerArm_L', -mix(elbow(sw), 0.35));
+      put('LowerArm_R', -mix(elbow(-sw), 0.35) - 0.25 * cast);
 
       // the body: hips turn with the stepping leg and dip towards it, the shoulders turn against
       // them, the head keeps looking ahead; lean into a run or onto the bike; flinch when hit
       const hipTurn = Math.sin(p) * stride * (0.14 + 0.06 * r);
-      pose('Hips', 0, mix(hipTurn, 0), mix(Math.cos(p) * 0.045 * stride, 0));
-      pose(
+      put('Hips', 0, mix(hipTurn, 0), mix(Math.cos(p) * 0.045 * stride, 0));
+      put(
         'Spine',
         mix(-0.05 * stride - 0.32 * r * stride, -0.25) + 0.25 * flinch,
         mix(-hipTurn * 1.6, 0) - 0.25 * cast,
       );
-      pose('Chest', breathe + 0.15 * flinch + 0.03 * Math.sin(2 * p) * stride, 0);
+      put('Chest', breathe + 0.15 * flinch + 0.03 * Math.sin(2 * p) * stride, 0);
       // the head comes back up so a leaning runner still looks ahead
-      pose('Neck', mix(0.2 * r * stride, 0.1), hipTurn * 0.5 + 0.15 * cast);
-      pose('Head', -0.1 * flinch);
+      put('Neck', mix(0.2 * r * stride, 0.1), hipTurn * 0.5 + 0.15 * cast);
+      put('Head', -0.1 * flinch);
 
       // drop the body so the lower foot stands on the ground (a swinging leg otherwise lifts
       // both feet and the body floats); a runner leaves the ground briefly between steps

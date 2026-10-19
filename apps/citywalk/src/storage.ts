@@ -93,3 +93,23 @@ export function writeTextSize(t: TextSize): void {
 export function applyTextSize(t: TextSize): void {
   document.documentElement.dataset.text = t;
 }
+
+const COMBOS_KEY = 'citywalk.combos';
+
+/** The combos found so far on this device (the first time shows "combo found"). */
+export function readFound(): Set<string> {
+  try {
+    const v = JSON.parse(localStorage.getItem(COMBOS_KEY) ?? '[]') as unknown;
+    return new Set(Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []);
+  } catch {
+    return new Set();
+  }
+}
+
+export function writeFound(found: ReadonlySet<string>): void {
+  try {
+    localStorage.setItem(COMBOS_KEY, JSON.stringify([...found]));
+  } catch {
+    // found again next time
+  }
+}

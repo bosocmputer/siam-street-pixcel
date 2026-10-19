@@ -5,6 +5,118 @@
   "footsteps": { "walk": 0.5, "run": 0.32, "bike": 0.2 },
   "combo": { "window": 1.2, "step": 0.05, "max": 8 },
   "sounds": {
+    "melee.swing": {
+      "volume": 0.5,
+      "priority": 1,
+      "cooldown": 0.05,
+      "layers": [
+        {
+          "kind": "noise",
+          "color": "white",
+          "filter": { "type": "bandpass", "from": 900, "to": 2600, "q": 1.6 },
+          "env": { "attack": 0.03, "release": 0.1, "peak": 0.9 }
+        }
+      ]
+    },
+    "melee.heavy": {
+      "volume": 0.7,
+      "priority": 2,
+      "cooldown": 0.05,
+      "layers": [
+        {
+          "kind": "noise",
+          "color": "pink",
+          "filter": { "type": "bandpass", "from": 500, "to": 1800, "q": 1.2 },
+          "env": { "attack": 0.05, "release": 0.16, "peak": 1 }
+        },
+        {
+          "kind": "osc",
+          "wave": "sine",
+          "freq": { "from": 140, "to": 70 },
+          "env": { "attack": 0.04, "hold": 0.03, "release": 0.12, "peak": 0.5 }
+        }
+      ]
+    },
+    "melee.hit": {
+      "volume": 0.9,
+      "priority": 2,
+      "cooldown": 0.03,
+      "spatial": true,
+      "space": 0.1,
+      "layers": [
+        {
+          "kind": "noise",
+          "color": "white",
+          "filter": { "type": "bandpass", "from": 2400, "to": 700, "q": 2.5 },
+          "env": { "attack": 0.002, "release": 0.07, "peak": 1 }
+        },
+        {
+          "kind": "osc",
+          "wave": "square",
+          "freq": { "from": 330, "to": 110 },
+          "filter": { "type": "lowpass", "from": 1400, "to": 500 },
+          "env": { "attack": 0.002, "release": 0.08, "peak": 0.45 }
+        }
+      ]
+    },
+    "melee.dash": {
+      "volume": 0.55,
+      "priority": 1,
+      "cooldown": 0.1,
+      "layers": [
+        {
+          "kind": "noise",
+          "color": "pink",
+          "filter": { "type": "lowpass", "from": 2200, "to": 500, "q": 0.8 },
+          "env": { "attack": 0.01, "release": 0.2, "peak": 0.9 }
+        }
+      ]
+    },
+    "melee.block": {
+      "volume": 0.8,
+      "priority": 2,
+      "cooldown": 0.08,
+      "layers": [
+        {
+          "kind": "osc",
+          "wave": "triangle",
+          "freq": { "from": 1250, "to": 1180 },
+          "env": { "attack": 0.002, "release": 0.25, "peak": 0.6 }
+        },
+        {
+          "kind": "osc",
+          "wave": "triangle",
+          "freq": { "from": 1870, "to": 1800 },
+          "env": { "attack": 0.002, "release": 0.18, "peak": 0.35 }
+        },
+        {
+          "kind": "noise",
+          "color": "white",
+          "filter": { "type": "highpass", "from": 3000, "to": 2000 },
+          "env": { "attack": 0.001, "release": 0.04, "peak": 0.5 }
+        }
+      ]
+    },
+    "melee.perfect": {
+      "volume": 0.75,
+      "priority": 3,
+      "cooldown": 0.2,
+      "layers": [
+        {
+          "kind": "osc",
+          "wave": "sine",
+          "freq": { "from": 880, "to": 1760 },
+          "env": { "attack": 0.005, "release": 0.35, "peak": 0.7 }
+        },
+        {
+          "kind": "osc",
+          "wave": "triangle",
+          "freq": { "from": 1320, "to": 2640 },
+          "at": 0.06,
+          "env": { "attack": 0.005, "release": 0.3, "peak": 0.4 }
+        }
+      ]
+    },
     "ui.click": {
       "volume": 0.38,
       "priority": 1,

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { newGame } from './start';
+import { chip, newGame } from './start';
 
 type State = {
   x: number;
@@ -30,9 +30,9 @@ test('the walk is saved on this device and carries on after a reload', async ({ 
   await page.evaluate('window.__walk.setStats({ level: 3, exp: 7 })');
   await page.evaluate('window.__walk.grant("gel_fire", 7)');
   await page.evaluate('window.__walk.setCamera("back")');
-  await page.getByRole('button', { name: 'วิ่ง' }).click();
-  await page.locator('[data-chip="haze"]').click();
-  await expect.poll(async () => (await state(page)).mode).toBe('run');
+  await page.evaluate('window.__walk.setRiding(true)');
+  await (await chip(page, 'haze')).click();
+  await expect.poll(async () => (await state(page)).mode).toBe('bike');
   const moved = await state(page);
   expect(Math.hypot(moved.x - start.x, moved.z - start.z)).toBeGreaterThan(10);
   expect(await page.evaluate('window.__walk.save()')).toBe(true);
@@ -44,14 +44,14 @@ test('the walk is saved on this device and carries on after a reload', async ({ 
   const back = await state(page);
   expect(back.x).toBeCloseTo(moved.x, 3);
   expect(back.z).toBeCloseTo(moved.z, 3);
-  expect(back.mode).toBe('run');
+  expect(back.mode).toBe('bike');
   expect(back.haze).toBe(true);
   const kept = (await page.evaluate('window.__walk.stats()')) as { level: number; exp: number };
   expect([kept.level, kept.exp]).toEqual([3, 7]);
   expect(await page.evaluate('window.__walk.inventory()')).toEqual({ gel_fire: 7 });
   expect(back.camera).toBe('back');
   await expect(page.locator('.player')).toContainText('Lv 3');
-  await expect(page.locator('[data-chip="haze"]')).toContainText('เปิด');
+  await expect(await chip(page, 'haze')).toContainText('เปิด');
 
   // or start again at the gate
   await page.reload();

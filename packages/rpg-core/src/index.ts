@@ -8,6 +8,7 @@ export * from './config';
 export * from './drops';
 export * from './items';
 export * from './look';
+export * from './melee';
 export * from './monsters';
 export * from './rig';
 export * from './rng';

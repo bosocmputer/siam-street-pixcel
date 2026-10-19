@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { DEFAULT_PREFS, readPrefs, writePrefs } from './storage';
+import { DEFAULT_PREFS, readFound, readPrefs, writeFound, writePrefs } from './storage';
 
 /** A tiny stand-in for the browser's storage. */
 function fakeStorage(initial: Record<string, string> = {}, broken = false) {
@@ -54,5 +54,22 @@ describe('sound settings on this device', () => {
     install(fakeStorage({}, true));
     expect(readPrefs()).toEqual(DEFAULT_PREFS);
     expect(() => writePrefs({ muted: true, volume: 0.2 })).not.toThrow();
+  });
+});
+
+describe('combos found on this device', () => {
+  it('are remembered, and anything damaged or blocked counts as none found', () => {
+    expect(readFound().size).toBe(0);
+    const s = fakeStorage();
+    install(s);
+    writeFound(new Set(['finisher', 'counter']));
+    expect([...readFound()].sort()).toEqual(['counter', 'finisher']);
+    install(fakeStorage({ 'citywalk.combos': '{"a":1}' }));
+    expect(readFound().size).toBe(0);
+    install(fakeStorage({ 'citywalk.combos': '["dashStrike", 3]' }));
+    expect([...readFound()]).toEqual(['dashStrike']);
+    install(fakeStorage({}, true));
+    expect(readFound().size).toBe(0);
+    expect(() => writeFound(new Set(['x']))).not.toThrow();
   });
 });

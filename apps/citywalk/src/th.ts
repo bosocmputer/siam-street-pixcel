@@ -5,9 +5,9 @@ export const TH = {
   title: 'เดินเมืองเก่าเชียงใหม่',
   intro: 'แผนที่ทดสอบ: ในคูเมืองและรอบนอก ย่อจากข้อมูลจริง ลองเดินแล้วดูว่าจำได้ไหม',
   howDesktop:
-    'คอม: W A S D หรือปุ่มลูกศรเพื่อเดิน · ลากเมาส์เพื่อหมุนกล้อง · 1 2 3 เปลี่ยนการเดิน · คลิกสไลม์หรือกด Tab เพื่อเล็ง · Q กระสุนไฟ · E กระสุนน้ำ',
+    'คอม: W A S D เดิน · Shift ค้างวิ่ง · ลากเมาส์หมุนกล้อง · J ตี · Space พุ่ง (ยืนนิ่ง = ป้องกัน) · Q ไฟ · E น้ำ · Tab เปลี่ยนเป้า',
   howTouch:
-    'มือถือ: ลากวงกลมมุมซ้ายล่าง (หรือที่ไหนก็ได้ครึ่งซ้ายของจอ) เพื่อเดิน · ลากครึ่งขวาเพื่อหมุนกล้อง · แตะสไลม์เพื่อเล็ง แล้วกดปุ่มไฟหรือน้ำ',
+    'มือถือ: ลากครึ่งซ้ายของจอเพื่อเดิน ดันสุดวงเพื่อวิ่ง · ลากครึ่งขวาหมุนกล้อง · แตะสไลม์เพื่อเล็ง · ปุ่มใหญ่ตี ปุ่มข้างพุ่ง',
   start: 'เริ่มเดิน',
   resume: 'เดินต่อจากเดิม',
   restart: 'เริ่มใหม่ที่ประตูท่าแพ',
@@ -16,7 +16,21 @@ export const TH = {
   loadingStep: (done: number, total: number) => `กำลังโหลดแผนที่… ${done}/${total}`,
   drawing: 'กำลังวาดตัวละคร…',
   loadFailed: 'โหลดแผนที่ไม่สำเร็จ ลองรีเฟรชหน้านี้',
-  modes: { walk: 'เดิน', run: 'วิ่ง', bike: 'มอไซค์' },
+  /** the strike button and what goes with it */
+  strike: 'ตี',
+  dash: 'พุ่ง',
+  target: 'เปลี่ยนเป้า',
+  settings: 'ตั้งค่า',
+  combo: 'คอมโบ',
+  crit: 'คริ!',
+  /** the basic combos' names, shown big when one is made */
+  combos: { finisher: 'ทุบปิดท้าย', dashStrike: 'พุ่งตี', counter: 'ตีสวน' } as Record<
+    string,
+    string
+  >,
+  found: (name: string) => `ค้นพบคอมโบ: ${name}`,
+  perfect: 'หลบเฉียด!',
+  guarded: 'กันได้',
   scale: 'ขนาด',
   labels: 'ป้าย',
   haze: 'หมอก',
@@ -126,6 +140,12 @@ export const TH = {
     'boss.slam': 'บอส: กระแทกพื้น (ตูม! ซ่า)',
     'item.drop': 'ของเด้งออกมา',
     'item.pickup': 'เก็บของ',
+    'melee.swing': 'ตี: เหวี่ยง (วืด)',
+    'melee.heavy': 'ตี: จังหวะที่ 3 (วู้บ!)',
+    'melee.hit': 'ตี: โดนมอน (ปั้ก!)',
+    'melee.dash': 'พุ่ง (ฟึ่บ)',
+    'melee.block': 'ป้องกันได้ (เคร้ง)',
+    'melee.perfect': 'หลบเฉียด (วิ้ง!)',
   } as Record<string, string>,
   soundGroups: {
     ui: 'ปุ่มและแจ้งเตือน',
@@ -136,6 +156,7 @@ export const TH = {
     player: 'ตัวเรา',
     boss: 'บอส',
     item: 'ของ',
+    melee: 'ตีและหลบ',
   } as Record<string, string>,
   lab: {
     link: 'ฟังเสียงทั้งหมด',

@@ -116,7 +116,6 @@ canvas.px,
 }
 .near,
 .chip,
-.mode,
 .toast,
 .player,
 .stick-hint,
@@ -129,13 +128,22 @@ canvas.px,
 .near {
   padding: 2px 8px;
 }
+/* the settings chips open in a column under the gear button */
 .chips {
-  display: flex;
-  flex-wrap: wrap;
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 208px);
+  right: calc(env(safe-area-inset-right, 0px) + 12px);
+  max-height: calc(100% - 420px - env(safe-area-inset-top, 0px));
+  min-height: 88px;
+  overflow-y: auto;
+  touch-action: pan-y;
+  display: grid;
   gap: 8px;
+  justify-items: end;
+  padding: 4px;
+  pointer-events: auto;
 }
-.chip,
-.mode {
+.chip {
   border: 0;
   border-radius: 0;
   cursor: pointer;
@@ -149,27 +157,10 @@ canvas.px,
   font-weight: normal;
   color: var(--px-gold);
 }
-.chip:active,
-.mode:active {
+.chip:active {
   transform: translateY(2px);
 }
-.modes {
-  position: absolute;
-  right: calc(env(safe-area-inset-right, 0px) + 10px);
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
-  display: grid;
-  gap: 10px;
-}
-.mode {
-  min-width: 84px;
-  min-height: 44px;
-}
-.mode[aria-pressed='true'] {
-  background: var(--px-orange);
-  color: var(--px-ink);
-}
 .chip:focus-visible,
-.mode:focus-visible,
 #intro-go:focus-visible {
   outline: 2px solid var(--px-yellow);
   outline-offset: 4px;
@@ -191,7 +182,7 @@ canvas.px,
 .toast {
   position: absolute;
   left: 50%;
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 184px);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 240px);
   transform: translateX(-50%);
   max-width: min(90vw, 420px);
   text-align: center;
@@ -354,18 +345,11 @@ canvas.px,
 }
 /* skill buttons: square tiles with the element drawn in pixels; the dark part drains as the
    skill gets ready again */
-.skills {
-  position: absolute;
-  right: calc(env(safe-area-inset-right, 0px) + 108px);
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
-  display: grid;
-  gap: 12px;
-}
 .skill {
   --cd: 0;
-  position: relative;
-  width: 68px;
-  height: 68px;
+  position: absolute;
+  width: 60px;
+  height: 60px;
   border: 0;
   border-radius: 0;
   padding: 0;
@@ -388,7 +372,7 @@ canvas.px,
 .skill-pic .px-ico {
   width: 32px;
   height: 32px;
-  margin-top: -14px;
+  margin-top: -12px;
 }
 .skill-orb {
   position: absolute;
@@ -1594,4 +1578,294 @@ canvas.px,
 :root[data-text='large'] .pbar-track {
   grid-column: 1 / -1;
   grid-row: 2;
+}
+
+/* ---------- the fighting buttons round the right thumb (layout A on the HUD mockup) ---------- */
+#hud {
+  --r: env(safe-area-inset-right, 0px);
+  --b: env(safe-area-inset-bottom, 0px);
+  --t: env(safe-area-inset-top, 0px);
+}
+.fight,
+.gear {
+  position: absolute;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  color: var(--px-text);
+  background: var(--panel);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  box-shadow:
+    var(--px-frame-thin),
+    inset 0 -4px 0 0 rgba(0, 0, 0, 0.35),
+    inset 0 2px 0 0 rgba(255, 255, 255, 0.2);
+}
+.fight:active,
+.gear:active {
+  transform: translateY(2px);
+  box-shadow:
+    var(--px-frame-thin),
+    inset 0 2px 0 0 rgba(0, 0, 0, 0.35);
+}
+.fight:focus-visible,
+.gear:focus-visible {
+  outline: 2px solid var(--px-yellow);
+  outline-offset: 4px;
+}
+.fight .px-ico {
+  width: 32px;
+  height: 32px;
+  margin-top: -12px;
+}
+.fight-name {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 3px;
+  text-align: center;
+  font-size: 16px;
+  line-height: 16px;
+  text-shadow:
+    -1px 0 var(--px-ink),
+    1px 0 var(--px-ink),
+    0 -1px var(--px-ink),
+    0 1px var(--px-ink);
+}
+.strike {
+  width: 84px;
+  height: 84px;
+  right: calc(var(--r) + 18px);
+  bottom: calc(var(--b) + 54px);
+  background: var(--px-orange);
+  color: var(--px-ink);
+  box-shadow:
+    var(--px-frame-thin),
+    inset 0 -5px 0 0 var(--px-rust),
+    inset 0 3px 0 0 var(--px-gold);
+}
+.strike .px-ico {
+  width: 40px;
+  height: 40px;
+}
+.strike .fight-name {
+  color: var(--px-text);
+}
+/* after a perfect dodge the next strike is a counter: the button glows */
+.strike[data-counter='true'] {
+  box-shadow:
+    var(--px-frame-thin),
+    inset 0 -5px 0 0 var(--px-rust),
+    inset 0 3px 0 0 var(--px-gold),
+    0 0 0 6px rgba(254, 231, 97, 0.6);
+}
+.dash {
+  --cd: 0;
+  width: 60px;
+  height: 60px;
+  right: calc(var(--r) + 116px);
+  bottom: calc(var(--b) + 30px);
+  background: var(--px-panel-2);
+  overflow: hidden;
+}
+.dash .px-ico,
+.dash .fight-name {
+  position: relative;
+  z-index: 2;
+}
+.dash .fight-name {
+  position: absolute;
+}
+.dash[data-guard='true'] {
+  background: var(--px-navy);
+}
+.aim {
+  width: 44px;
+  height: 44px;
+  right: calc(var(--r) + 190px);
+  bottom: calc(var(--b) + 150px);
+}
+.aim .px-ico {
+  width: 24px;
+  height: 24px;
+  margin: 0;
+}
+.skill-1 {
+  right: calc(var(--r) + 120px);
+  bottom: calc(var(--b) + 112px);
+}
+.skill-2 {
+  right: calc(var(--r) + 40px);
+  bottom: calc(var(--b) + 160px);
+}
+.gear {
+  width: 44px;
+  height: 44px;
+  top: calc(var(--t) + 156px);
+  right: calc(var(--r) + 12px);
+}
+.gear .px-ico {
+  width: 24px;
+  height: 24px;
+}
+.gear[aria-expanded='true'] {
+  background: var(--px-orange);
+  color: var(--px-ink);
+}
+/* the hits of the chain under the strike button */
+.chain {
+  position: absolute;
+  right: calc(var(--r) + 39px);
+  bottom: calc(var(--b) + 32px);
+  display: flex;
+  gap: 6px;
+}
+.chain i {
+  width: 10px;
+  height: 10px;
+  background: var(--px-ink);
+  box-shadow: 0 0 0 2px var(--px-ink);
+}
+.chain i.on {
+  background: var(--px-yellow);
+}
+.chain i.fin {
+  background: var(--px-orange);
+}
+/* the combo count and the gauge it fills */
+.combo {
+  position: absolute;
+  right: calc(var(--r) + 18px);
+  top: calc(var(--t) + 252px);
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.15s steps(2);
+}
+.combo.show {
+  opacity: 1;
+}
+.combo b {
+  font-size: 32px;
+  line-height: 32px;
+  font-weight: normal;
+  color: var(--px-yellow);
+  text-shadow:
+    -2px 0 var(--px-ink),
+    2px 0 var(--px-ink),
+    0 -2px var(--px-ink),
+    0 2px var(--px-ink),
+    2px 2px var(--px-ink);
+}
+.combo span {
+  text-shadow:
+    -1px 0 var(--px-ink),
+    1px 0 var(--px-ink),
+    0 -1px var(--px-ink),
+    0 1px var(--px-ink);
+}
+.gauge {
+  width: 96px;
+  height: 8px;
+  background: var(--px-ink);
+  box-shadow: 0 0 0 2px var(--px-ink);
+}
+.gauge i {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--px-orange);
+}
+/* a combo's name, big in the middle */
+.banner {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--t) + 200px);
+  transform: translateX(-50%);
+  padding: 6px 14px;
+  background: var(--px-yellow);
+  color: var(--px-ink);
+  white-space: nowrap;
+  box-shadow:
+    var(--px-frame-thin),
+    0 6px 0 0 rgba(24, 20, 37, 0.35);
+  opacity: 0;
+  pointer-events: none;
+}
+.banner.show {
+  animation: banner 0.9s steps(6) forwards;
+}
+@keyframes banner {
+  0% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1.3);
+  }
+  15% {
+    transform: translateX(-50%) scale(1);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.dmg-strike {
+  color: var(--px-text);
+}
+.dmg-crit {
+  color: var(--px-yellow);
+}
+/* a phone on its side: the buttons sit a little lower, the gear beside the map */
+@media (orientation: landscape) {
+  .strike {
+    right: calc(var(--r) + 22px);
+    bottom: calc(var(--b) + 44px);
+  }
+  .chain {
+    right: calc(var(--r) + 43px);
+    bottom: calc(var(--b) + 22px);
+  }
+  .dash {
+    right: calc(var(--r) + 122px);
+    bottom: calc(var(--b) + 24px);
+  }
+  .skill-1 {
+    right: calc(var(--r) + 124px);
+    bottom: calc(var(--b) + 104px);
+  }
+  .skill-2 {
+    right: calc(var(--r) + 44px);
+    bottom: calc(var(--b) + 150px);
+  }
+  .aim {
+    right: calc(var(--r) + 196px);
+    bottom: calc(var(--b) + 140px);
+  }
+  .gear {
+    top: calc(var(--t) + 12px);
+    right: calc(var(--r) + 156px);
+  }
+  .chips {
+    top: calc(var(--t) + 64px);
+    right: calc(var(--r) + 156px);
+    max-height: calc(100% - 80px - var(--t));
+  }
+  .combo {
+    right: calc(var(--r) + 156px);
+    top: calc(var(--t) + 64px);
+  }
+  .banner {
+    top: calc(var(--t) + 120px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .banner.show {
+    animation-duration: 0.01s;
+  }
 }

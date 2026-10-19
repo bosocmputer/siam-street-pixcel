@@ -1,17 +1,18 @@
 {
-  "about": "Keyboard keys (KeyboardEvent.code) for each action. hold = active while held, press = once per press.",
+  "about": "Keyboard keys (KeyboardEvent.code) for each action. hold = active while held, press = once per press (dash is also watched while held: standing still it guards for as long as it is held). sprint held makes walking a run. runAt: the stick pushed at least this far (0..1) runs instead of walks.",
   "hold": {
     "forward": ["KeyW", "ArrowUp"],
     "back": ["KeyS", "ArrowDown"],
     "left": ["KeyA", "ArrowLeft"],
-    "right": ["KeyD", "ArrowRight"]
+    "right": ["KeyD", "ArrowRight"],
+    "sprint": ["ShiftLeft", "ShiftRight"]
   },
   "press": {
+    "strike": ["KeyJ"],
+    "dash": ["Space", "KeyK"],
     "skill1": ["KeyQ"],
     "skill2": ["KeyE"],
-    "target": ["Tab"],
-    "walk": ["Digit1"],
-    "run": ["Digit2"],
-    "bike": ["Digit3"]
-  }
+    "target": ["Tab"]
+  },
+  "runAt": 0.8
 }

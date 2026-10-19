@@ -1,7 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
-import { newGame } from './start';
+import { chip, newGame } from './start';
 
 interface Walk {
+  setRiding: (on: boolean) => void;
   state: () => { x: number; z: number; scale: number; mode: string; labels: boolean };
   teleport: (x: number, z: number) => void;
   setYaw: (y: number) => void;
@@ -52,9 +53,9 @@ for (const [name, size] of [
     await page.waitForTimeout(400);
     await page.screenshot({ path: `${SHOTS}/${name}-inside.png` });
 
-    await page.locator('[data-chip="scale"]').click();
-    await page.locator('[data-chip="scale"]').click();
-    await page.getByRole('button', { name: 'มอไซค์' }).click();
+    await (await chip(page, 'scale')).click();
+    await (await chip(page, 'scale')).click();
+    await walk(page, (w) => w.setRiding(true));
     await walk(page, (w) => w.simulate(1, 0, 3));
     await page.waitForTimeout(400);
     await page.screenshot({ path: `${SHOTS}/${name}-scale3-bike.png` });
@@ -98,7 +99,7 @@ test('the moat stops you away from the bridges', async ({ page }) => {
 
 test('the chips change scale, labels and haze', async ({ page }) => {
   await open(page);
-  const scale = page.locator('[data-chip="scale"]');
+  const scale = await chip(page, 'scale');
   await expect(scale).toContainText('1:1');
   await scale.click();
   await expect(scale).toContainText('1:2');
@@ -110,11 +111,10 @@ test('the chips change scale, labels and haze', async ({ page }) => {
 
   await page.locator('[data-chip="haze"]').click();
   await expect(page.locator('[data-chip="haze"]')).toContainText('เปิด');
-  await page.getByRole('button', { name: 'มอไซค์' }).click();
-  await expect(page.getByRole('button', { name: 'มอไซค์' })).toHaveAttribute(
-    'aria-pressed',
-    'true',
-  );
+  // the gear closes the chips again; the walk/run/bike buttons are gone (the stick decides)
+  await page.getByRole('button', { name: 'ตั้งค่า' }).click();
+  await expect(page.locator('[data-chip="haze"]')).toBeHidden();
+  await expect(page.getByRole('button', { name: 'มอไซค์' })).toHaveCount(0);
 });
 
 test('the square is paved and slimes hop around it, turning to the walker', async ({ page }) => {

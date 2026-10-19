@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BINDINGS, moveFrom, readBindings, type HoldAction } from '../src/actions';
+import { BINDINGS, gait, moveFrom, readBindings, type HoldAction } from '../src/actions';
 import { advance, newClock } from '../src/clock';
 import { ConfigError } from '../src/config';
 import { RIG, checkRig, readRig, type ModelFacts } from '../src/rig';
@@ -46,22 +46,40 @@ describe('controls', () => {
   it('maps keys from config to actions', () => {
     expect(BINDINGS.hold.get('KeyW')).toBe('forward');
     expect(BINDINGS.hold.get('ArrowLeft')).toBe('left');
+    expect(BINDINGS.hold.get('ShiftLeft')).toBe('sprint');
+    expect(BINDINGS.press.get('KeyJ')).toBe('strike');
+    expect(BINDINGS.press.get('Space')).toBe('dash');
     expect(BINDINGS.press.get('KeyQ')).toBe('skill1');
     expect(BINDINGS.press.get('Tab')).toBe('target');
   });
 
-  it('refuses a key used twice or an action with no key', () => {
-    const base = { hold: { forward: ['KeyW'], back: ['KeyS'], left: ['KeyA'], right: ['KeyD'] } };
-    const press = {
-      skill1: ['KeyQ'],
-      skill2: ['KeyE'],
-      target: ['Tab'],
-      walk: ['Digit1'],
-      run: ['Digit2'],
+  it('refuses a key used twice, an action with no key, or a bad run point', () => {
+    const base = {
+      hold: {
+        forward: ['KeyW'],
+        back: ['KeyS'],
+        left: ['KeyA'],
+        right: ['KeyD'],
+        sprint: ['ShiftLeft'],
+      },
+      runAt: 0.8,
     };
-    expect(() => readBindings({ ...base, press: { ...press, bike: ['KeyW'] } })).toThrow(/twice/);
-    expect(() => readBindings({ ...base, press: { ...press, bike: [] } })).toThrow(/at least one/);
+    const press = { strike: ['KeyJ'], dash: ['Space'], skill1: ['KeyQ'], skill2: ['KeyE'] };
+    expect(() => readBindings({ ...base, press: { ...press, target: ['KeyW'] } })).toThrow(/twice/);
+    expect(() => readBindings({ ...base, press: { ...press, target: [] } })).toThrow(
+      /at least one/,
+    );
     expect(() => readBindings({ ...base, press })).toThrow(ConfigError);
+    const ok = { ...press, target: ['Tab'] };
+    expect(readBindings({ ...base, press: ok }).runAt).toBe(0.8);
+    expect(() => readBindings({ ...base, runAt: 1.5, press: ok })).toThrow(/at most 1/);
+  });
+
+  it('walks with the stick pushed a little and runs when pushed far or sprint is held', () => {
+    expect(gait(0.3, false)).toBe('walk');
+    expect(gait(BINDINGS.runAt, false)).toBe('run');
+    expect(gait(0.3, true)).toBe('run');
+    expect(gait(0.5, false, 0.4)).toBe('run');
   });
 
   it('turns held keys into a walking direction no longer than 1', () => {

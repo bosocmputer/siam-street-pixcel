@@ -54,7 +54,7 @@ async function checkPoses(page: Page, shot: string) {
   expect(Math.max(...gaps) - Math.min(...gaps)).toBeGreaterThan(0.08);
 
   // riding sits the body down
-  await page.getByRole('button', { name: 'มอไซค์' }).click();
+  await js(page, 'window.__walk.setRiding(true)');
   await page.waitForTimeout(700);
   expect((await joint(page, 'Hips'))![1]).toBeLessThan(0.9);
   await page.screenshot({ path: `${SHOTS}/${shot}-bike.png` });

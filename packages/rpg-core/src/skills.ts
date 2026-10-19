@@ -95,8 +95,16 @@ export const HIT_RADIUS = CONFIG.hitRadius;
 
 export type Vec3 = [number, number, number];
 
-export interface Shot {
-  skill: SkillSpec;
+/** what a flying shot needs to know: a skill, or a strike's wave */
+export interface Flight {
+  speed: number;
+  range: number;
+  side: number;
+  lift: number;
+}
+
+export interface Shot<S extends Flight = SkillSpec> {
+  skill: S;
   pos: Vec3;
   /** current direction of travel, length 1 */
   dir: Vec3;
@@ -114,13 +122,13 @@ const norm = (v: Vec3): Vec3 => {
  * Start a shot from `from`. With an aim point it leaves the hand swinging out to one side and up,
  * then curls in; without one it flies straight along `heading` (radians, 0 = +z).
  */
-export function launch(
-  s: SkillSpec,
+export function launch<S extends Flight>(
+  s: S,
   from: Vec3,
   heading: number,
   aim: Vec3 | null,
   target: number | null,
-): Shot {
+): Shot<S> {
   let fwd: Vec3 = [Math.sin(heading), 0, Math.cos(heading)];
   if (aim) fwd = norm([aim[0] - from[0], aim[1] - from[1], aim[2] - from[2]]);
   if (!aim) return { skill: s, pos: [...from], dir: fwd, target: null, travelled: 0 };
@@ -134,7 +142,7 @@ export function launch(
  * Move a shot for dt seconds, turning it towards `aim` (if any). It turns harder the closer it
  * gets, so a chased target is always reached.
  */
-export function stepShot(shot: Shot, dt: number, aim: Vec3 | null): void {
+export function stepShot(shot: Shot<Flight>, dt: number, aim: Vec3 | null): void {
   const s = shot.skill;
   if (aim) {
     const to: Vec3 = [aim[0] - shot.pos[0], aim[1] - shot.pos[1], aim[2] - shot.pos[2]];
@@ -159,7 +167,7 @@ export function stepShot(shot: Shot, dt: number, aim: Vec3 | null): void {
 }
 
 /** A shot that has flown its full range with nothing to hit. */
-export function spent(shot: Shot): boolean {
+export function spent(shot: Shot<Flight>): boolean {
   return shot.travelled > shot.skill.range;
 }
 

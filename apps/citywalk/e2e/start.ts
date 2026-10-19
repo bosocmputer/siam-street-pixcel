@@ -12,3 +12,10 @@ export async function newGame(page: Page, o: { tap?: boolean; name?: string } = 
   await press(page.getByRole('button', { name: 'ตื่นขึ้น' }));
   await press(page.getByRole('button', { name: 'รับทราบ' }));
 }
+
+/** Press a settings chip: the gear opens the chips first if they are closed. */
+export async function chip(page: Page, id: string): Promise<Locator> {
+  const c = page.locator(`[data-chip="${id}"]`);
+  if (!(await c.isVisible())) await page.getByRole('button', { name: 'ตั้งค่า' }).click();
+  return c;
+}

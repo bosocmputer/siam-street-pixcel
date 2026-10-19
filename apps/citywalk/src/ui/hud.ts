@@ -1,13 +1,11 @@
-// The always-on screen parts: title, nearest place, setting chips, movement buttons, messages,
+// The always-on screen parts: title, nearest place, the settings button and its chips, messages,
 // map credit, and name tags floating over the gates and corners.
 
 import * as THREE from 'three';
-import type { MoveMode } from '@newgame/rpg-core';
 import { TH } from '../th';
 import type { Landmark } from '../types';
 import { el } from './dom';
-
-export const MODES: MoveMode[] = ['walk', 'run', 'bike'];
+import { pxIcon } from './pixelIcons';
 
 export interface Chip {
   id: string;
@@ -19,10 +17,10 @@ export interface Chip {
 export class Hud {
   readonly top = el('div', 'top');
   private near = el('div', 'near');
+  /** the settings chips, shown under the gear button */
   private chips = el('div', 'chips');
-  private modes = el('div', 'modes');
+  readonly gear = el('button', 'gear');
   private toast = el('div', 'toast');
-  private modeButtons: HTMLButtonElement[] = [];
   private chipPaints: (() => void)[] = [];
   private tags: { m: Landmark; t: HTMLElement }[];
   private visited = new Set<string>();
@@ -35,28 +33,25 @@ export class Hud {
   constructor(
     readonly root: HTMLElement,
     landmarks: Landmark[],
-    onMode: (m: MoveMode) => void,
     chips: Chip[],
   ) {
     const credit = el('a', 'credit', TH.credit);
     credit.href = 'https://www.openstreetmap.org/copyright';
     credit.target = '_blank';
     credit.rel = 'noopener';
-    this.top.append(el('div', 'title', TH.title), this.near, this.chips);
-    root.append(this.top, this.modes, this.toast, credit);
-
-    this.modeButtons = MODES.map((m) => {
-      const b = el('button', 'mode', TH.modes[m]);
-      b.type = 'button';
-      b.dataset.mode = m;
-      b.addEventListener('click', () => {
-        onMode(m);
-        this.onTap?.();
-        b.blur(); // keep the keyboard for walking
-      });
-      this.modes.append(b);
-      return b;
+    this.top.append(el('div', 'title', TH.title), this.near);
+    this.gear.type = 'button';
+    this.gear.innerHTML = pxIcon('gear');
+    this.gear.setAttribute('aria-label', TH.settings);
+    this.gear.setAttribute('aria-expanded', 'false');
+    this.chips.hidden = true;
+    this.gear.addEventListener('click', () => {
+      this.showSettings(this.chips.hidden);
+      this.onTap?.();
+      this.gear.blur();
     });
+    root.append(this.top, this.gear, this.chips, this.toast, credit);
+
     for (const c of chips) {
       const b = el('button', 'chip');
       b.type = 'button';
@@ -84,8 +79,10 @@ export class Hud {
     for (const p of this.chipPaints) p();
   }
 
-  showMode(m: MoveMode): void {
-    for (const b of this.modeButtons) b.setAttribute('aria-pressed', String(b.dataset.mode === m));
+  /** Open or close the settings chips under the gear. */
+  showSettings(open: boolean): void {
+    this.chips.hidden = !open;
+    this.gear.setAttribute('aria-expanded', String(open));
   }
 
   /**
