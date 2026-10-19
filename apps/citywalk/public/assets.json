@@ -1,5 +1,5 @@
 {
-  "about": "Every file the game loads at start. A model that fails to load is skipped and the game uses its stand-in. clips: animation names the game needs from that file. A character model from another program can be listed with the id \"hero\" (see newgame/prompts/character_import.md); without one, the player's body is built from the look chosen on the character screen.",
+  "about": "Every file the game loads at start. A model that fails to load is skipped and the game uses its stand-in. clips: animation names the game needs from that file. A character model from another program can be listed with the id \"hero\" (see newgame/prompts/character_import.md); without one, the player's body is built from the look chosen on the character screen. opening: the three opening pictures in order (newgame/prompts/opening_stills.md); without them they are drawn in code.",
   "world": "world.json",
   "models": [
     {
@@ -23,5 +23,6 @@
         "Boss_Ground_Slam"
       ]
     }
-  ]
+  ],
+  "opening": ["opening/opening_1.png", "opening/opening_2.png", "opening/opening_3.png"]
 }

@@ -7,7 +7,10 @@ import { expect, type Locator, type Page } from '@playwright/test';
 export async function newGame(page: Page, o: { tap?: boolean; name?: string } = {}): Promise<void> {
   const press = (l: Locator) => (o.tap ? l.tap() : l.click());
   await press(page.getByRole('button', { name: 'เริ่มเดิน' }));
-  await press(page.getByRole('button', { name: 'ข้าม ›' }));
+  // the opening plays through on its own after a few seconds; skip it if it is still up
+  const skip = page.getByRole('button', { name: 'ข้าม ›' });
+  await skip.waitFor({ timeout: 5000 }).catch(() => undefined);
+  if (await skip.isVisible()) await press(skip).catch(() => undefined);
   await press(page.getByRole('button', { name: 'ถัดไป' }));
   await page.getByLabel('ตั้งชื่อ').fill(o.name ?? 'ทดสอบ');
   // a tap on a slow software-drawn page is now and then lost; tap again until the system speaks

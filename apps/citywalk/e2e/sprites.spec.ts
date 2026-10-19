@@ -172,13 +172,24 @@ test('sprites drawn once are kept, so the next start does not draw them again', 
         ),
       { timeout: 30_000 },
     )
-    .toBe(6);
+    // the player, five kinds of monster and Pa Saeng
+    .toBe(7);
   await page.reload();
   await page.getByRole('button', { name: 'เดินต่อจากเดิม' }).click({ timeout: 120_000 });
   await page.waitForFunction(() => '__walk' in window);
-  const kept = (await art(page)).cached.sort();
-  expect(kept).toEqual(
-    ['boss_tide_regent', 'hero', 'slime_fire', 'slime_giant', 'slime_mini', 'slime_water'].sort(),
-  );
+  // Pa Saeng is drawn a moment after the walk starts; she comes from the store too
+  await expect
+    .poll(async () => (await art(page)).cached.sort(), { timeout: 30_000 })
+    .toEqual(
+      [
+        'boss_tide_regent',
+        'hero',
+        'npc_pa_saeng',
+        'slime_fire',
+        'slime_giant',
+        'slime_mini',
+        'slime_water',
+      ].sort(),
+    );
   expect((await art(page)).heroSprite).toBe(true);
 });

@@ -2183,7 +2183,8 @@ body.talking .stick {
   inset: 0;
   z-index: 30;
   display: grid;
-  grid-template-rows: minmax(0, 1fr) auto auto;
+  grid-template-rows: minmax(0, auto) auto auto;
+  align-content: center;
   justify-items: center;
   padding: calc(env(safe-area-inset-top, 0px) + 56px) 16px
     calc(env(safe-area-inset-bottom, 0px) + 24px);
@@ -2193,17 +2194,38 @@ body.talking .stick {
 .op-pic {
   width: 100%;
   max-width: 640px;
+  max-height: 62vh;
   min-height: 0;
   display: grid;
   place-items: center;
 }
-.op-pic canvas,
-.op-pic img {
+.op-pic canvas {
   width: auto;
   height: 100%;
   max-width: 100%;
-  object-fit: contain;
   image-rendering: pixelated;
+}
+/* a wide picture fills a phone held upright by trimming its sides a little (they keep the middle
+   clear, newgame/prompts/opening_stills.md); on its side the whole picture shows */
+.op-pic img {
+  width: 100%;
+  height: auto;
+  max-height: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  image-rendering: pixelated;
+}
+@media (orientation: landscape) {
+  .op-pic {
+    height: 62vh;
+  }
+  .op-pic img {
+    width: auto;
+    height: 100%;
+    max-width: 100%;
+    aspect-ratio: auto;
+    object-fit: contain;
+  }
 }
 .op-line {
   padding: 16px 8px 6px;

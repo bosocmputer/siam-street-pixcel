@@ -97,6 +97,8 @@ export class Opening {
     this.skip.textContent = skipLabel;
     for (let i = 0; i < lines.length; i++) this.dots.append(el('i', ''));
     this.root.append(this.pic, this.line, this.dots, this.skip);
+    // fetched now, so each shows the moment it is due
+    for (const f of files) new Image().src = f;
     this.root.addEventListener('click', (e) =>
       e.target === this.skip ? this.end() : this.show(this.n + 1),
     );
