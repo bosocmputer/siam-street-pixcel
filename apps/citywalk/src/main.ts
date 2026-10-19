@@ -123,6 +123,7 @@ import { loadSheet, type SpriteSheet } from './sprites/sheet';
 import { cachedSheet, fromCache, signature } from './sprites/cache';
 import { makeSpriteHero } from './sprites/spriteHero';
 import { PixelPass } from './sprites/pixelPass';
+import { cartoon } from './sprites/bake';
 import './style.css';
 
 /** screen speed in metres per second, whatever the city scale */
@@ -267,8 +268,11 @@ async function start(): Promise<void> {
   const collider = new Collider(world, [...towers, ...(placed?.solids ?? [])]);
   const lap = moatLapMetres(world.landmarks);
 
-  const renderer = new THREE.WebGLRenderer({ antialias: window.devicePixelRatio < 2 });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
+  // trial: ?art=3d&px=3 draws the whole 3D scene at one pixel for every `px` on screen
+  const px = art === '3d' ? Number(new URLSearchParams(location.search).get('px') ?? 0) : 0;
+  const renderer = new THREE.WebGLRenderer({ antialias: !px && window.devicePixelRatio < 2 });
+  renderer.setPixelRatio(px ? 1 / px : Math.min(window.devicePixelRatio, 1.75));
+  if (px) renderer.domElement.style.imageRendering = 'pixelated';
   renderer.setSize(window.innerWidth, window.innerHeight);
   const canvas = renderer.domElement;
   // skill effects and drops as pixels, like the characters
@@ -307,6 +311,7 @@ async function start(): Promise<void> {
       1,
       sheets,
     );
+    if (px) cartoon(herd.object);
     city.add(herd.object);
   }
   // skill effects and shots live in the city too, so they shrink with it
@@ -370,6 +375,11 @@ async function start(): Promise<void> {
     if (heroTemplate) return makeHero(heroTemplate);
     if (drawn) return makeSpriteHero(drawn);
     try {
+      if (px) {
+        const w = makeHero(heroFromLook(l), { proportions: SPRITES.hero.proportions });
+        cartoon(w.body);
+        return w;
+      }
       return makeHero(heroFromLook(l));
     } catch (err) {
       console.error('the character could not be built:', err);
