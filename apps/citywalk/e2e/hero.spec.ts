@@ -22,20 +22,23 @@ async function open(page: Page) {
 async function checkPoses(page: Page, shot: string) {
   const head = (await joint(page, 'Head'))!;
   expect(head).not.toBeNull();
-  // standing 1.7 m tall on the square, the free arm hanging down, the pipe held low at the hip
+  // standing 1.7 m tall on the square, the free arm hanging down, the pipe on the right shoulder
+  // (the fist up by the chest, below the head)
   expect(head[1]).toBeGreaterThan(1.45);
   expect(head[1]).toBeLessThan(1.65);
   expect((await joint(page, 'Hand_L'))![1]).toBeLessThan(1.05);
-  expect((await joint(page, 'Hand_R'))![1]).toBeLessThan(1.15);
+  const fist = (await joint(page, 'Hand_R'))![1];
+  expect(fist).toBeGreaterThan(1.15);
+  expect(fist).toBeLessThan(head[1]);
   await page.screenshot({ path: `${SHOTS}/${shot}-stand.png` });
 
-  // gathering a ball raises the left hand; the right keeps the pipe low
+  // gathering a ball raises the left hand; the right keeps the pipe on the shoulder
   await js(page, 'window.__walk.pause(true)');
   await js(page, "window.__walk.setTarget(0); window.__walk.cast('fireball')");
   await js(page, 'window.__walk.simulateFight(0.3)');
   await page.waitForTimeout(500);
   expect((await joint(page, 'Hand_L'))![1]).toBeGreaterThan(1.2);
-  expect((await joint(page, 'Hand_R'))![1]).toBeLessThan(1.15);
+  expect((await joint(page, 'Hand_R'))![1]).toBeLessThan(head[1]);
   await page.screenshot({ path: `${SHOTS}/${shot}-cast.png` });
   await js(page, 'window.__walk.simulateFight(2)');
   await js(page, 'window.__walk.pause(false)');

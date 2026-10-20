@@ -45,29 +45,33 @@ export class Tips {
   private slow = el('div', 'tip-slow');
   /** which hint is up: 'stick', a button's name, or null */
   showing: string | null = null;
+  /** which half of the stick hint is up: walking first, then turning the camera */
+  part: 'walk' | 'look' | null = null;
 
   constructor() {
     this.root.hidden = true;
   }
 
-  /** How to walk and turn: on a touch screen with hands on the stick and the right side. */
-  stick(touch: boolean, t: Record<string, string | string[]>): void {
+  /** How to walk, then how to turn, one at a time: on a touch screen with a hand on the stick,
+   * then on the right side. */
+  stick(touch: boolean, t: Record<string, string | string[]>, part: 'walk' | 'look'): void {
     this.clear();
     this.showing = 'stick';
+    this.part = part;
     this.root.className = 'tips tips-stick';
-    if (touch) {
+    if (touch && part === 'walk') {
       const walk = words(t.walk as string[]);
       walk.append(el('br', ''), ...Array.from(words(t.run as string[]).childNodes));
       walk.classList.add('tip-walk');
+      this.root.append(el('div', 'tip-dim'), walk, hand('tip-drag'));
+    } else if (touch) {
       const look = words(t.look as string[]);
       look.classList.add('tip-look');
-      this.root.append(el('div', 'tip-dim'), walk, hand('tip-drag'), look, hand('tip-swipe'));
+      this.root.append(look, hand('tip-swipe'));
     } else {
-      const keys = words(t.keys as string[]);
-      keys.classList.add('tip-keys');
-      const mouse = words(t.mouse as string[]);
-      mouse.classList.add('tip-mouse');
-      this.root.append(keys, mouse);
+      const w = words(t[part === 'walk' ? 'keys' : 'mouse'] as string[]);
+      w.classList.add(part === 'walk' ? 'tip-keys' : 'tip-mouse');
+      this.root.append(w);
     }
     this.root.hidden = false;
   }
@@ -120,5 +124,6 @@ export class Tips {
     this.target = null;
     this.label = null;
     this.showing = null;
+    this.part = null;
   }
 }

@@ -1135,7 +1135,7 @@ async function start(): Promise<void> {
     }
   };
 
-  /** the stick hint waits for a few steps and one turn of the camera */
+  /** the stick hint waits for a few steps, then for one turn of the camera (done already counts) */
   let turnedOnce = false;
   let walkedFrom: [number, number] | null = null;
   const touchScreen = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
@@ -1148,13 +1148,14 @@ async function start(): Promise<void> {
       return;
     }
     if (!seen('stick')) {
-      if (tips.showing !== 'stick') {
-        tips.stick(touchScreen, TH.tips);
-        walkedFrom = [state.x, state.z];
-        turnedOnce = false;
+      walkedFrom ??= [state.x, state.z];
+      const moved = Math.hypot(state.x - walkedFrom[0], state.z - walkedFrom[1]);
+      if (moved >= 3 && turnedOnce) {
+        tipDone('stick');
+        return;
       }
-      const moved = walkedFrom ? Math.hypot(state.x - walkedFrom[0], state.z - walkedFrom[1]) : 0;
-      if (moved >= 3 && turnedOnce) tipDone('stick');
+      const part = moved >= 3 ? 'look' : 'walk';
+      if (tips.showing !== 'stick' || tips.part !== part) tips.stick(touchScreen, TH.tips, part);
       return;
     }
     // the first fight: a spotlight on the strike button until a strike lands
@@ -1356,7 +1357,6 @@ async function start(): Promise<void> {
       // the new body (drawn now, or kept from before) is ready before the walk starts
       await setLook(l);
       go('start');
-      hud.say(lapText());
       save();
     },
     defaultLook('m'),
@@ -1377,7 +1377,6 @@ async function start(): Promise<void> {
     sound.unlock();
     if (saved) {
       go('start');
-      hud.say(lapText());
     } else void create();
   });
   newButton.addEventListener('click', () => {

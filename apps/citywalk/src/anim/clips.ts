@@ -128,14 +128,20 @@ export const upperBody = (joint: string) => !/Leg|Foot|Hips|Root/.test(joint);
 
 // ---------- the poses ----------
 
-/** standing easy with the pipe held low in the right hand */
+/** the pipe rested on the right shoulder, pointing up and back: how it is carried when not
+ * swinging (held low and ahead it read as a blind man's cane) */
+const CARRY = {
+  UpperArm_R: [-14, 0, -16],
+  LowerArm_R: [-128, 0, 0],
+  Hand_R: [0, 0, 0],
+  Pipe: [-148, -10, 0],
+} satisfies Record<string, Turn>;
+
+/** standing easy with the pipe on the shoulder */
 const READY = {
   Spine: [4, 0, 0],
   Neck: [-3, 0, 0],
-  UpperArm_R: [-14, 0, -10],
-  LowerArm_R: [-48, 0, 0],
-  Hand_R: [10, 0, 0],
-  Pipe: [38, -14, 0],
+  ...CARRY,
   UpperArm_L: [4, 0, 9],
   LowerArm_L: [-16, 0, 0],
   UpperLeg_L: [-4, 0, 3],
@@ -160,7 +166,7 @@ export const IDLE: Clip = {
     { t: 0, pose: READY },
     {
       t: 0.5,
-      pose: { ...READY, Chest: [-3, 0, 0], UpperArm_L: [6, 0, 11], UpperArm_R: [-16, 0, -12] },
+      pose: { ...READY, Chest: [-3, 0, 0], UpperArm_L: [6, 0, 11], UpperArm_R: [-16, 0, -17] },
     },
   ],
 };
@@ -218,8 +224,8 @@ const WALK_LEGS = gait([
   },
 ]);
 
-// from the Flow reference walk (newgame/prompts/motion_reference.md ref_01): the pipe hand stays
-// by the hip, elbow soft; the pipe points ahead, tipping down as the hand swings forward
+// the free arm swings as in the Flow reference walk (newgame/prompts/motion_reference.md ref_01);
+// the pipe stays on the shoulder, rocking a little with the step
 const WALK_ARMS: Clip = {
   loop: true,
   keys: [
@@ -228,10 +234,7 @@ const WALK_ARMS: Clip = {
       pose: {
         UpperArm_L: [18, 0, 6],
         LowerArm_L: [-12, 0, 0],
-        UpperArm_R: [-12, 0, -7],
-        LowerArm_R: [-26, 0, 0],
-        Hand_R: [10, 0, 0],
-        Pipe: [34, -6, 0],
+        ...CARRY,
       },
     },
     {
@@ -239,10 +242,9 @@ const WALK_ARMS: Clip = {
       pose: {
         UpperArm_L: [-20, 0, 6],
         LowerArm_L: [-30, 0, 0],
-        UpperArm_R: [12, 0, -7],
-        LowerArm_R: [-18, 0, 0],
-        Hand_R: [10, 0, 0],
-        Pipe: [4, -6, 0],
+        ...CARRY,
+        UpperArm_R: [-18, 0, -16],
+        Pipe: [-145, -10, 0],
       },
     },
   ],
@@ -310,10 +312,8 @@ const RUN_ARMS: Clip = {
       pose: {
         UpperArm_L: [36, 0, 10],
         LowerArm_L: [-80, 0, 0],
-        UpperArm_R: [-42, 0, -12],
-        LowerArm_R: [-92, 0, 0],
-        Hand_R: [30, 0, 0],
-        Pipe: [-12, -12, 0],
+        ...CARRY,
+        UpperArm_R: [-8, 0, -16],
       },
     },
     {
@@ -321,10 +321,9 @@ const RUN_ARMS: Clip = {
       pose: {
         UpperArm_L: [-38, 0, 10],
         LowerArm_L: [-96, 0, 0],
-        UpperArm_R: [26, 0, -12],
-        LowerArm_R: [-70, 0, 0],
-        Hand_R: [20, 0, 0],
-        Pipe: [62, -20, 0],
+        ...CARRY,
+        UpperArm_R: [-22, 0, -16],
+        Pipe: [-142, -10, 0],
       },
     },
   ],

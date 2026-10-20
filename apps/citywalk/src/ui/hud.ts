@@ -24,6 +24,8 @@ export class Hud {
   private chipPaints: (() => void)[] = [];
   private tags: { m: Landmark; t: HTMLElement }[];
   private visited = new Set<string>();
+  /** the first frame of play: places the player starts at are known, not arrived at */
+  private started = false;
   private toastTimer = 0;
   private holdUntil = 0;
   /** called when a button on this panel is pressed (for a click sound) */
@@ -146,9 +148,10 @@ export class Hud {
         t.style.transform = `translate(-50%, -100%) translate(${Math.round(sx)}px, ${Math.round(ty)}px)`;
       if (playing && d < 25 && !this.visited.has(m.name)) {
         this.visited.add(m.name);
-        if (labels) this.say(TH.arrived(m.name));
+        if (labels && this.started) this.say(TH.arrived(m.name));
       } else if (d > 70) this.visited.delete(m.name);
     }
+    if (playing) this.started = true;
     this.near.hidden = !labels || !best;
     if (best) this.near.textContent = TH.near(best.name, Math.round(bestD / 10) * 10);
   }

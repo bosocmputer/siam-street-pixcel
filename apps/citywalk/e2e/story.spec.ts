@@ -63,9 +63,10 @@ test('the first minute: hint, guide line to Pa Saeng, her words, the strike spot
   expect(s.skills).toBe(false);
   expect(s.quest.id).toBe('wake');
   expect(s.bar).toContain('ไปหาเสียงร้อง');
-  // the stick hint, until a few steps and a turn of the camera
+  // the stick hint, one at a time: walking first, then turning the camera
   expect(s.tip).toBe('stick');
   await expect(page.locator('.tip-walk')).toBeVisible();
+  await expect(page.locator('.tip-look')).toBeHidden();
   // the guide line runs to Pa Saeng, with the distance over her
   expect(s.guide).toBeGreaterThan(5);
   await expect(page.locator('.goal')).toBeVisible();
@@ -73,6 +74,8 @@ test('the first minute: hint, guide line to Pa Saeng, her words, the strike spot
 
   // walk and turn: the hint is done for good
   await js(page, 'window.__walk.simulate(1, 0, 1)');
+  await expect(page.locator('.tip-look')).toBeVisible();
+  await expect(page.locator('.tip-walk')).toBeHidden();
   const cdp = await page.context().newCDPSession(page);
   const touch = (type: 'touchStart' | 'touchMove' | 'touchEnd', x: number, y: number) =>
     cdp.send('Input.dispatchTouchEvent', {
