@@ -426,6 +426,16 @@ canvas.px,
   white-space: nowrap;
   padding: 0 6px;
 }
+/* a monster's level next to the player's: grey far below, red well above */
+.hpname[data-tier='low'] {
+  color: var(--px-dim);
+}
+.hpname[data-tier='high'] {
+  color: var(--px-orange);
+}
+.hpname[data-tier='top'] {
+  color: var(--px-red);
+}
 .hpbar {
   width: 64px;
   height: 8px;

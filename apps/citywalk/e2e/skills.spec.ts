@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { newGame } from './start';
+import { newGame, walkUpTo } from './start';
 
 const SHOTS = process.env.SHOTS_DIR ?? 'test-results/shots';
 
@@ -43,6 +43,8 @@ test.describe('skills on a phone', () => {
     await expect(page.getByRole('button', { name: 'กระสุนน้ำ' })).toBeVisible();
 
     // tap on a slime on the screen to choose it
+    await walkUpTo(page, 1, 10);
+    await page.waitForTimeout(300);
     const at = await js<[number, number] | null>(page, 'window.__walk.slimeOnScreen(1)');
     expect(at).not.toBeNull();
     await page.touchscreen.tap(at![0], at![1]);
@@ -115,6 +117,7 @@ test('a beaten slime melts away and grows back at home', async ({ page }) => {
   test.setTimeout(90_000);
   await page.setViewportSize({ width: 1280, height: 800 });
   await open(page);
+  await walkUpTo(page, 0, 8);
   await js(page, 'window.__walk.setTarget(0)');
   for (let i = 0; i < 3; i++) {
     await js(page, "window.__walk.cast('fireball')");

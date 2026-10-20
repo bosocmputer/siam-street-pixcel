@@ -4,7 +4,15 @@ import { newGame } from './start';
 const SHOTS = process.env.SHOTS_DIR ?? 'test-results/shots';
 
 type Stats = { level: number; exp: number; hp: number; energy: number; down: number };
-type Slime = { x: number; z: number; hp: number; alive: boolean; angry: boolean; life: string };
+type Slime = {
+  x: number;
+  z: number;
+  level: number;
+  hp: number;
+  alive: boolean;
+  angry: boolean;
+  life: string;
+};
 
 const js = <T>(page: Page, code: string) => page.evaluate(code) as Promise<T>;
 const stats = (page: Page) => js<Stats>(page, 'window.__walk.stats()');
@@ -47,6 +55,7 @@ test('the player panel shows level, health and energy, and skills use energy', a
   await expect(page.locator('.player')).toContainText('Lv 1');
   await expect(page.locator('.pbar-hp')).toContainText('100/100');
   await expect(page.locator('.pbar-energy')).toContainText('100/100');
+  await standNear(page, 1, 8);
   await shoot(page, 1, 'fireball');
   expect((await stats(page)).energy).toBeLessThan(100);
 
@@ -70,6 +79,7 @@ test('a slime that is hit gets angry and fights back; calm ones only threaten', 
   expect((await stats(page)).hp).toBe(100);
 
   // hit one: it turns angry and its blows land
+  await standNear(page, 1, 6);
   await shoot(page, 1, 'waterball');
   expect((await slimes(page))[1]!.angry).toBe(true);
   await standNear(page, 1, 1.2);
@@ -112,9 +122,42 @@ test('running out of health means lying down, then getting up at the gate with n
   await expect(page.locator('.toast')).toContainText('ฟื้นแล้ว');
 });
 
+test('going down far from the start: up again at the nearest gate; slimes leave a resting player alone', async ({
+  page,
+}) => {
+  await open(page);
+  // down in the north of the old city: the Chang Phueak Gate rest point is nearest
+  await js(page, 'window.__walk.teleport(80, -680)');
+  await js(page, 'window.__walk.setStats({ hp: 0, down: 0.2, safe: 0 })');
+  await js(page, 'window.__walk.simulateFight(0.5)');
+  const at = await js<{ x: number; z: number }>(page, 'window.__walk.state()');
+  expect(Math.hypot(at.x - 71.8, at.z + 743.2)).toBeLessThan(1);
+  expect((await stats(page)).down).toBe(0);
+
+  // an angry slime that follows the player into a rest point gives up there
+  const list = await slimes(page);
+  const i = list.findIndex((s) => s.level === 1);
+  await standNear(page, i, 1.5);
+  await shoot(page, i, 'waterball');
+  expect((await slimes(page))[i]!.angry).toBe(true);
+  await js(page, 'window.__walk.setStats({ hp: 100, safe: 0 })');
+  // just inside the rest point's circle, on the slime's side, well within its reach from home
+  const rest = await js<{ x: number; z: number; radius: number }>(page, 'window.__walk.rest()');
+  const s = (await slimes(page))[i]!;
+  const l = Math.hypot(s.x - rest.x, s.z - rest.z);
+  const k = (rest.radius - 2) / l;
+  await js(
+    page,
+    `window.__walk.teleport(${rest.x + (s.x - rest.x) * k}, ${rest.z + (s.z - rest.z) * k})`,
+  );
+  await js(page, 'window.__walk.simulateFight(4)');
+  expect((await stats(page)).hp).toBe(100);
+});
+
 test('beating slimes gives experience and a new level', async ({ page }) => {
   await open(page);
   await js(page, 'window.__walk.setStats({ exp: 30 })'); // 10 short of level 2
+  await standNear(page, 0, 8);
   for (let n = 0; n < 3; n++) await shoot(page, 0, 'fireball', 1.7);
   expect((await slimes(page))[0]!.alive).toBe(false);
   const s = await stats(page);

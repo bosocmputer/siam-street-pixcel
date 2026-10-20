@@ -231,6 +231,8 @@ export class SlimeHerd {
     world: Omit<BrainWorld, 'rng'>,
     seed = 1,
     sheets: Record<string, SpriteSheet> = {},
+    /** slimes further than this from the player (metres) wait unseen */
+    private activeRange = Infinity,
   ) {
     this.object.name = 'Slimes';
     const rng = seeded(seed);
@@ -325,6 +327,11 @@ export class SlimeHerd {
     for (const [i, s] of this.slimes.entries()) {
       const v = s.vitals;
       const changed = stepVitals(v, dt);
+      // far from the player a slime waits where it is, unseen, so a whole city of them costs
+      // little; one that is angry keeps going until it calms down
+      const near =
+        s.brain.anger > 0 ||
+        Math.hypot(s.brain.x - player.x, s.brain.z - player.z) <= this.activeRange;
       if (changed === 'growing') {
         // back at home, growing out of the ground
         const [hx, hz] = s.brain.home;
@@ -335,6 +342,8 @@ export class SlimeHerd {
         this.tell(s, 'respawn');
       }
       if (changed === 'gone') s.root.visible = false;
+      s.root.visible = near && v.life !== 'gone';
+      if (!near) continue;
       if (v.life === 'alive') {
         stepBrain(s.brain, dt, player, this.world);
         if (s.brain.struck)
@@ -635,6 +644,7 @@ export class SlimeHerd {
     z: number;
     mode: SlimeMode;
     species: string;
+    level: number;
     hp: number;
     life: Vitals['life'];
     alive: boolean;
@@ -645,6 +655,7 @@ export class SlimeHerd {
       z: s.brain.z,
       mode: s.brain.mode,
       species: s.spec.id,
+      level: s.spec.level,
       hp: s.vitals.hp,
       life: s.vitals.life,
       alive: hittable(s.vitals),

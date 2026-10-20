@@ -33,3 +33,18 @@ export async function chip(page: Page, id: string): Promise<Locator> {
 export async function skipOpening(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'ข้าม ›' }).click();
 }
+
+/**
+ * Stand `d` metres from slime i, on the side of where the walker is now, facing it. The start is a
+ * rest point with no monsters near it, so tests that fight walk up to one first.
+ */
+export async function walkUpTo(page: Page, i: number, d: number): Promise<void> {
+  await page.evaluate(`(() => {
+    const w = window.__walk;
+    const s = w.slimes()[${i}], me = w.state();
+    const l = Math.hypot(me.x - s.x, me.z - s.z) || 1;
+    const x = s.x + ((me.x - s.x) / l) * ${d}, z = s.z + ((me.z - s.z) / l) * ${d};
+    w.teleport(x, z);
+    w.setYaw(Math.atan2(-(s.x - x), -(s.z - z)));
+  })()`);
+}

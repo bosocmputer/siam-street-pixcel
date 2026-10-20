@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { chip as chipOf, newGame } from './start';
+import { chip as chipOf, newGame, walkUpTo } from './start';
 
 const SHOTS = process.env.SHOTS_DIR ?? 'test-results/shots';
 
@@ -115,6 +115,7 @@ test('getting hurt, lying down and levelling up sound off', async ({ page }) => 
 test('levelling up rings out', async ({ page }) => {
   await open(page);
   await js(page, 'window.__walk.setStats({ exp: 30 })'); // 10 short of level 2
+  await walkUpTo(page, 0, 8);
   await clear(page);
   let rang = false;
   for (let n = 0; n < 3; n++) {

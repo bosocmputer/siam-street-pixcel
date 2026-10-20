@@ -93,6 +93,9 @@ export interface HitEvent {
   defeated: boolean;
   /** where it landed, map metres */
   at: Vec3;
+  /** the slime's level, and the experience it is worth at that level */
+  level: number;
+  exp: number;
   /** a strike's critical hit */
   crit?: boolean;
   /** the heavy third hit, a dash strike or a counter */
@@ -392,6 +395,8 @@ export class Combat {
       element,
       slime,
       species: this.herd.species(slime).id,
+      level: this.herd.species(slime).level,
+      exp: this.herd.species(slime).exp,
       damage,
       takes: element ? this.herd.takes(slime, element) : 1,
       height: this.herd.heightOf(slime),

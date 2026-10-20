@@ -126,8 +126,8 @@ test('the square is paved and slimes hop around it, turning to the walker', asyn
   // the square runs between the two ends of the moat, about 190 m along the wall
   expect(info.plaza.area).toBeGreaterThan(3000);
   expect(info.plaza.span[1] - info.plaza.span[0]).toBeGreaterThan(150);
-  // six slimes and a boss, the slimes lightened from the 8,600 triangles of the model file
-  expect(info.slimes).toHaveLength(7);
+  // slimes across the city, lightened from the 8,600 triangles of the model file
+  expect(info.slimes.length).toBeGreaterThan(40);
   expect(info.tris).toBeLessThan(6000);
 
   await page.evaluate('window.__walk.simulateSlimes(12)');

@@ -169,6 +169,7 @@ export class CombatHud {
     toScreen: ToScreen,
     energy: number,
     fighter: Fighter,
+    playerLevel = 1,
   ): void {
     for (const [id, b] of this.buttons) {
       const spec = skill(id);
@@ -201,11 +202,17 @@ export class CombatHud {
       this.box.style.transform = `translate(-50%, -100%) translate(${Math.round(at[0])}px, ${Math.round(at[1])}px)`;
       this.fill.style.width = `${(100 * herd.hpRatio(t)).toFixed(1)}%`;
       const spec = herd.species(t);
-      if (spec.id !== this.shownName) {
-        this.shownName = spec.id;
+      const gap = spec.level - playerLevel;
+      // how hard it is next to the player: far below, about even, above, well above
+      const tier = gap <= -3 ? 'low' : gap <= 2 ? 'even' : gap <= 4 ? 'high' : 'top';
+      const key = `${spec.id}:${spec.level}:${tier}`;
+      if (key !== this.shownName) {
+        this.shownName = key;
         const weak = (['fire', 'water'] as const).find((e) => spec.takes[e] > 1);
         this.name.textContent =
-          (TH.monsters[spec.id] ?? spec.id) + (weak ? ` · ${TH.weakTo(TH.elements[weak]!)}` : '');
+          `${TH.level(spec.level)} ${TH.monsters[spec.id] ?? spec.id}` +
+          (weak ? ` · ${TH.weakTo(TH.elements[weak]!)}` : '');
+        this.name.dataset.tier = tier;
       }
     }
     for (let i = this.numbers.length - 1; i >= 0; i--) {

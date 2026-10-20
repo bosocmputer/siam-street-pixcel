@@ -4,7 +4,7 @@ import monstersJson from '../config/monsters.json';
 import spawnsJson from '../config/spawns.json';
 import { ConfigError } from '../src/config';
 import { ITEMS } from '../src/items';
-import { HOP, MONSTERS, monster, readMonsters } from '../src/monsters';
+import { HOP, LEVELS, MONSTERS, expFrom, monster, monsterAt, readMonsters } from '../src/monsters';
 import { readSpawns, SPAWNS } from '../src/spawns';
 import { newVitals, damage, stepVitals } from '../src/slimeBrain';
 
@@ -138,26 +138,111 @@ function plainAttack() {
 }
 
 describe('spawns', () => {
-  it('puts a mix of kinds on the plaza, all known', () => {
-    const plaza = SPAWNS.plaza!;
-    expect(plaza).toHaveLength(7);
-    expect(new Set(plaza.map((s) => s.species)).size).toBe(5);
-    expect(plaza.filter((s) => s.species === 'boss_tide_regent')).toHaveLength(1);
-    for (const s of plaza) expect(MONSTERS[s.species]).toBeDefined();
-    // the first two are the plain slimes near the start
-    expect(plaza[0]!.species).toBe('slime_water');
+  it('starts on the square at level 1 and climbs away from it to the moat and its boss', () => {
+    const z = SPAWNS.zones;
+    const plaza = z.plaza!;
+    expect(plaza.frame).toBe('gate');
+    expect(plaza.spawns[0]!.species).toBe('slime_water');
+    expect(plaza.spawns[0]!.level).toBe(1);
+    // nothing within reach of the start [0, 20]
+    for (const s of plaza.spawns)
+      expect(Math.hypot(s.at[0], s.at[1] - 20)).toBeGreaterThan(SPAWNS.restRadius);
+    const top = (id: string) => Math.max(...z[id]!.spawns.map((s) => s.level));
+    expect(top('plaza')).toBeLessThanOrEqual(3);
+    expect(top('ratchadamnoen')).toBeLessThan(top('moat'));
+    const boss = Object.values(z).flatMap((zone) =>
+      zone.spawns.filter((s) => s.species === 'boss_tide_regent'),
+    );
+    expect(boss).toHaveLength(1);
+    expect(boss[0]!.level).toBe(12);
+    for (const zone of Object.values(z))
+      for (const s of zone.spawns) expect(MONSTERS[s.species]).toBeDefined();
+    expect(SPAWNS.rest[0]!.id).toBe('tha_phae');
+    expect(SPAWNS.rest.length).toBe(5);
   });
 
   it('refuses mistakes', () => {
     const ids = Object.keys(MONSTERS);
-    expect(() => readSpawns({ plaza: [{ species: 'dragon', at: [0, 0] }] }, ids)).toThrow(
+    const book = (zones: unknown, rest: unknown = [{ id: 'a', frame: 'map', at: [0, 0] }]) => ({
+      zones,
+      rest,
+      restRadius: 20,
+      templeClear: 40,
+      activeRange: 90,
+    });
+    const one = (s: object) => book({ z: { frame: 'map', spawns: [s] } });
+    expect(() => readSpawns(one({ species: 'dragon', at: [0, 0], level: 1 }), ids)).toThrow(
       /no monster called "dragon"/,
     );
-    expect(() => readSpawns({ plaza: [{ species: 'slime_water', at: [0] }] }, ids)).toThrow(
+    expect(() => readSpawns(one({ species: 'slime_water', at: [0], level: 1 }), ids)).toThrow(
       /at: expected \[x, z\]/,
     );
-    expect(() => readSpawns({ plaza: [] }, ids)).toThrow(/expected a list/);
-    expect(() => readSpawns({ about: 'x' }, ids)).toThrow(/no zones/);
-    expect(readSpawns(spawnsJson, ids).plaza).toHaveLength(7);
+    expect(() => readSpawns(one({ species: 'slime_water', at: [0, 0], level: 1.5 }), ids)).toThrow(
+      /whole number/,
+    );
+    expect(() => readSpawns(one({ species: 'slime_water', at: [0, 0], level: 0 }), ids)).toThrow(
+      ConfigError,
+    );
+    expect(() => readSpawns(book({ z: { frame: 'sky', spawns: [] } }), ids)).toThrow(/list/);
+    expect(() =>
+      readSpawns(
+        book({ z: { frame: 'sky', spawns: [{ species: 'slime_water', at: [0, 0], level: 1 }] } }),
+        ids,
+      ),
+    ).toThrow(/"gate" or "map"/);
+    expect(() => readSpawns(book({}), ids)).toThrow(/no zones/);
+    expect(() =>
+      readSpawns(
+        book(
+          { z: { frame: 'map', spawns: [{ species: 'slime_water', at: [0, 0], level: 1 }] } },
+          [],
+        ),
+        ids,
+      ),
+    ).toThrow(/rest points/);
+    expect(() =>
+      readSpawns(
+        book({ z: { frame: 'map', spawns: [{ species: 'slime_water', at: [0, 0], level: 1 }] } }, [
+          { frame: 'map', at: [0, 0] },
+        ]),
+        ids,
+      ),
+    ).toThrow(/id/);
+    expect(readSpawns(spawnsJson, ids).zones.plaza!.spawns).toHaveLength(6);
+  });
+});
+
+describe('monster levels', () => {
+  const water = monster('slime_water');
+  it('grows hp, blows and experience with the level', () => {
+    expect(monsterAt(water, 1)).toEqual({ ...water, level: 1 });
+    const ten = monsterAt(water, 10);
+    expect(ten.level).toBe(10);
+    expect(ten.hp).toBe(Math.round(water.hp * (1 + LEVELS.hp * 9)));
+    expect(ten.attack.damage).toBe(Math.round(water.attack.damage * (1 + LEVELS.damage * 9)));
+    expect(ten.exp).toBeGreaterThan(water.exp);
+    expect(ten.attack.reach).toBe(water.attack.reach);
+    // a boss's special moves grow too
+    const boss = monster('boss_tide_regent');
+    const big = monsterAt(boss, 12);
+    expect(big.specials.slam!.damage).toBeGreaterThan(boss.specials.slam!.damage);
+    expect(big.specials.charge!.damage).toBeGreaterThan(boss.specials.charge!.damage);
+    expect(monsterAt(water, 12).specials.charge).toBeNull();
+  });
+
+  it('gives less experience to a player far above the monster', () => {
+    expect(expFrom(100, 5, 5)).toBe(100);
+    expect(expFrom(100, 5, 7)).toBe(100);
+    expect(expFrom(100, 5, 8)).toBe(80);
+    expect(expFrom(100, 1, 30)).toBe(10);
+    // a stronger monster gives it all
+    expect(expFrom(100, 10, 3)).toBe(100);
+    expect(expFrom(3, 1, 30)).toBe(1);
+  });
+
+  it('refuses broken level rules', () => {
+    const raw = structuredClone(monstersJson) as unknown as { levels: { gap: { min: number } } };
+    raw.levels.gap.min = 2;
+    expect(() => readMonsters(raw)).toThrow(/gap.min/);
   });
 });

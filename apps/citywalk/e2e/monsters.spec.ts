@@ -6,6 +6,7 @@ const SHOTS = process.env.SHOTS_DIR ?? 'test-results/shots';
 type Slime = {
   x: number;
   z: number;
+  level: number;
   hp: number;
   alive: boolean;
   species: string;
@@ -29,13 +30,23 @@ async function open(page: Page) {
   await js(page, 'window.__walk.pause(true)');
 }
 
-/** Stand `d` metres from slime i, on the side of where the walker is now, looking at it. */
+/** Stand `d` metres from slime i, on the side of where the walker is now (or the nearest side
+ * with no wall in between), looking at it. */
 async function standNear(page: Page, i: number, d: number) {
   await page.evaluate(`(() => {
     const w = window.__walk;
     const s = w.slimes()[${i}], me = w.state();
-    const l = Math.hypot(me.x - s.x, me.z - s.z) || 1;
-    const x = s.x + ((me.x - s.x) / l) * ${d}, z = s.z + ((me.z - s.z) / l) * ${d};
+    const base = Math.atan2(me.x - s.x, me.z - s.z);
+    const open = (x, z) => {
+      for (let t = 0; t <= 0.9; t += 0.05) if (w.blocked(x + (s.x - x) * t, z + (s.z - z) * t)) return false;
+      return true;
+    };
+    let x = s.x + Math.sin(base) * ${d}, z = s.z + Math.cos(base) * ${d};
+    for (let k = 0; k < 24; k++) {
+      const a = base + Math.ceil(k / 2) * (k % 2 ? 1 : -1) * (Math.PI / 12);
+      const cx = s.x + Math.sin(a) * ${d}, cz = s.z + Math.cos(a) * ${d};
+      if (open(cx, cz)) { x = cx; z = cz; break; }
+    }
     w.teleport(x, z);
     w.setYaw(Math.atan2(-(s.x - x), -(s.z - z)));
   })()`);
@@ -55,29 +66,37 @@ async function shoot(page: Page, i: number, id: string, after = 0.1) {
 /** Beat slime i with fire shots, keeping the player strong enough to stand it. */
 async function beat(page: Page, i: number) {
   await js(page, 'window.__walk.setStats({ level: 10 })');
-  for (let n = 0; n < 14 && (await slimes(page))[i]!.alive; n++) {
+  for (let n = 0; n < 24 && (await slimes(page))[i]!.alive; n++) {
     await js(page, 'window.__walk.setStats({ hp: 200, energy: 200, safe: 5 })');
+    // it chases whoever hits it; keep away so what it drops stays on the ground
+    await standNear(page, i, 12);
     await shoot(page, i, 'fireball', 1.7);
   }
   expect((await slimes(page))[i]!.alive).toBe(false);
 }
 
-test('the plaza has four kinds of slime and a boss, different in size and colour', async ({
+test('slimes live across the city, stronger away from the start; kinds differ in size and colour', async ({
   page,
 }) => {
   await open(page);
   const list = await slimes(page);
-  expect(list).toHaveLength(7);
+  expect(list.length).toBeGreaterThan(40);
   expect(list[0]!.species).toBe('slime_water');
   expect(new Set(list.map((s) => s.species)).size).toBe(5);
-  expect(list.map((s) => s.hp)).toEqual([100, 100, 80, 300, 40, 80, 500]);
+  // the square: level 1 and 2, a level-2 slime has more hp than the same kind at level 1
+  expect(list.slice(0, 6).map((s) => s.level)).toEqual([1, 1, 1, 1, 2, 2]);
+  expect(list.slice(0, 6).map((s) => s.hp)).toEqual([100, 100, 80, 40, 135, 108]);
+  expect(Math.max(...list.map((s) => s.level))).toBe(12);
 
-  // a picture of the fire slime and the giant, to see the colours and sizes
-  await standNear(page, 3, 9);
-  await js(page, 'window.__walk.setTarget(3)');
+  // a picture of the fire slime and the giant, to see the colours and sizes; the giant's name
+  // carries its level, red for a new player far below it
+  const g = list.findIndex((s) => s.species === 'slime_giant');
+  await standNear(page, g, 9);
+  await js(page, `window.__walk.setTarget(${g})`);
   await page.waitForTimeout(900);
   await page.screenshot({ path: `${SHOTS}/kinds-giant.png` });
-  await expect(page.locator('.hpname')).toContainText('สไลม์ยักษ์');
+  await expect(page.locator('.hpname')).toContainText(`Lv ${list[g]!.level} สไลม์ยักษ์`);
+  await expect(page.locator('.hpname')).toHaveAttribute('data-tier', 'top');
   await standNear(page, 2, 6);
   await js(page, 'window.__walk.setTarget(2)');
   await page.waitForTimeout(900);
@@ -107,14 +126,15 @@ test('a beaten slime drops things that are picked up by walking close, and the b
   page,
 }) => {
   await open(page);
-  await standNear(page, 3, 12); // the giant: always drops 2-4 water gel
-  await beat(page, 3);
+  const g = (await slimes(page)).findIndex((s) => s.species === 'slime_giant');
+  await standNear(page, g, 12); // the giant: always drops 2-4 water gel
+  await beat(page, g);
   const dropped = await pickups(page);
   const water = dropped.find((p) => p.item === 'gel_water')!;
   expect(water.count).toBeGreaterThanOrEqual(2);
   expect(water.count).toBeLessThanOrEqual(4);
   // they lie round where the giant fell
-  const giant = (await slimes(page))[3]!;
+  const giant = (await slimes(page))[g]!;
   for (const p of dropped) expect(Math.hypot(p.x - giant.x, p.z - giant.z)).toBeLessThan(1.5);
   await page.waitForTimeout(150);
   await page.screenshot({ path: `${SHOTS}/drops-ground.png` });
@@ -134,8 +154,9 @@ test('drops that nobody picks up are gone after a while, and far away ones are l
   page,
 }) => {
   await open(page);
-  await standNear(page, 3, 12);
-  await beat(page, 3);
+  const g = (await slimes(page)).findIndex((s) => s.species === 'slime_giant');
+  await standNear(page, g, 12);
+  await beat(page, g);
   expect((await pickups(page)).length).toBeGreaterThan(0);
   // walk well away and wait
   await js(page, 'window.__walk.teleport(window.__walk.state().x + 40, window.__walk.state().z)');

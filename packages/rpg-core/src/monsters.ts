@@ -49,6 +49,8 @@ export interface SlamSpec {
 
 export interface MonsterSpec {
   id: string;
+  /** 1 as listed; monsterAt() makes the same species at another level */
+  level: number;
   /** which model it is drawn with (an id in public/assets.json) */
   model: string;
   /** voice pitch, 1 = by its size; below 1 is deeper */
@@ -73,6 +75,16 @@ export interface MonsterSpec {
   attack: { damage: number; reach: number; cycle: number; strikeAt: number; warn: number };
   anger: { time: number; leash: number };
   drops: DropSpec[];
+}
+
+/** How a monster's numbers grow with its level (config/monsters.json `levels`). */
+export interface LevelRules {
+  /** share more hp, damage and experience for each level above 1 */
+  hp: number;
+  damage: number;
+  exp: number;
+  /** experience falls off when the player is far above the monster */
+  gap: { free: number; per: number; min: number };
 }
 
 type Obj = Record<string, unknown>;
@@ -152,6 +164,7 @@ function resolve(id: string, o: Obj, itemIds: readonly string[], warnSpecial: nu
     throw new ConfigError(`${w}.model: expected the id of a model`);
   const spec: MonsterSpec = {
     id,
+    level: 1,
     model: o.model,
     pitch: num(o, 'pitch', w, 0.1),
     knock: num(o, 'knock', w),
@@ -210,9 +223,23 @@ export function readMonsters(
   hop: { cycle: number; liftOff: number; land: number; distance: number };
   species: Record<string, MonsterSpec>;
   warnSpecial: number;
+  levels: LevelRules;
 } {
   const root = obj(raw, 'monsters.json');
   const warnSpecial = num(root, 'warnSpecial', 'monsters');
+  const lv = obj(root.levels, 'monsters.levels');
+  const gap = obj(lv.gap, 'monsters.levels.gap');
+  const levels: LevelRules = {
+    hp: num(lv, 'hp', 'monsters.levels'),
+    damage: num(lv, 'damage', 'monsters.levels'),
+    exp: num(lv, 'exp', 'monsters.levels'),
+    gap: {
+      free: num(gap, 'free', 'monsters.levels.gap'),
+      per: num(gap, 'per', 'monsters.levels.gap'),
+      min: num(gap, 'min', 'monsters.levels.gap'),
+    },
+  };
+  if (levels.gap.min > 1) throw new ConfigError('monsters.levels.gap.min: a share, 0..1');
   const hop = obj(obj(root.body, 'monsters.body').hop, 'monsters.body.hop');
   const w = 'monsters.body.hop';
   const body = {
@@ -229,7 +256,7 @@ export function readMonsters(
   for (const id of Object.keys(list))
     species[id] = resolve(id, merge(base, obj(list[id], `monsters.${id}`)), itemIds, warnSpecial);
   if (Object.keys(species).length === 0) throw new ConfigError('monsters.json: no species');
-  return { hop: body, species, warnSpecial };
+  return { hop: body, species, warnSpecial, levels };
 }
 
 const CONFIG = readMonsters(monstersJson);
@@ -237,6 +264,8 @@ const CONFIG = readMonsters(monstersJson);
 /** Timing of the slime model's Jumping clip: it leaves the ground at liftOff and lands at land. */
 export const HOP = CONFIG.hop;
 export const MONSTERS: Readonly<Record<string, MonsterSpec>> = CONFIG.species;
+/** How a monster's numbers grow with its level, and how experience falls off for a stronger player. */
+export const LEVELS: LevelRules = CONFIG.levels;
 /** The plain slime, which a brain uses when no species is given. */
 export const DEFAULT_SPECIES = 'slime_water';
 
@@ -245,4 +274,43 @@ export function monster(id: string): MonsterSpec {
   const m = MONSTERS[id];
   if (!m) throw new ConfigError(`unknown monster: ${id}`);
   return m;
+}
+
+/** A species at a level: more hp, harder blows and more experience for each level above 1. */
+export function monsterAt(
+  spec: MonsterSpec,
+  level: number,
+  rules: LevelRules = LEVELS,
+): MonsterSpec {
+  const up = Math.max(0, Math.round(level) - 1);
+  if (up === 0) return { ...spec, level: 1 };
+  const k = (share: number) => 1 + share * up;
+  const hit = (n: number) => Math.round(n * k(rules.damage));
+  const { charge, slam } = spec.specials;
+  return {
+    ...spec,
+    level: up + 1,
+    hp: Math.round(spec.hp * k(rules.hp)),
+    exp: Math.round(spec.exp * k(rules.exp)),
+    attack: { ...spec.attack, damage: hit(spec.attack.damage) },
+    specials: {
+      charge: charge && { ...charge, damage: hit(charge.damage) },
+      slam: slam && { ...slam, damage: hit(slam.damage) },
+    },
+  };
+}
+
+/**
+ * Experience a player of `playerLevel` gets for beating a monster worth `exp` at `monsterLevel`:
+ * all of it up to gap.free levels above the monster, then gap.per less per level, at least gap.min.
+ */
+export function expFrom(
+  exp: number,
+  monsterLevel: number,
+  playerLevel: number,
+  rules: LevelRules = LEVELS,
+): number {
+  const over = playerLevel - monsterLevel - rules.gap.free;
+  const share = over <= 0 ? 1 : Math.max(rules.gap.min, 1 - rules.gap.per * over);
+  return Math.max(1, Math.round(exp * share));
 }

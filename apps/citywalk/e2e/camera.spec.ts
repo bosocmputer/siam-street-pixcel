@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { chip as chipOf, newGame } from './start';
+import { chip as chipOf, newGame, walkUpTo } from './start';
 
 const SHOTS = process.env.SHOTS_DIR ?? 'test-results/shots';
 type Pt = [number, number] | null;
@@ -25,6 +25,7 @@ for (const [name, size] of [
     const w = size.width;
 
     // the same spot and the same aim, in the two views
+    await walkUpTo(page, 1, 10);
     await js(page, 'window.__walk.setTarget(1)');
     await js(page, 'window.__walk.setCamera("back")');
     await page.waitForTimeout(900);
@@ -62,6 +63,7 @@ test('the camera chip switches views, and standing still the camera swings round
   await expect(chip).toContainText('ไหล่');
 
   // choose a slime well off to the side, then stand still: the camera turns towards it by itself
+  await walkUpTo(page, 0, 10);
   await js(
     page,
     `(() => {

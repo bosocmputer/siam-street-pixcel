@@ -32,6 +32,8 @@ import {
   maxEnergy,
   maxHp,
   monster,
+  monsterAt,
+  expFrom,
   newClock,
   newCombo,
   newFighter,
@@ -85,6 +87,7 @@ import { StatsPanel } from './ui/statsPanel';
 import { Fx } from './fx';
 import { frameToMap, gateFrame, loadModel, placeModel, type PlacedModel } from './gateModel';
 import { pointInPolygon } from './geo';
+import { monsterGround, nearestRest } from './zones';
 import { Input } from './input';
 import { loadItemModels } from './itemModels';
 import { Minimap } from './minimap';
@@ -235,7 +238,8 @@ async function start(): Promise<void> {
       } catch (err) {
         console.error(`sprite sheet ${id} skipped:`, err);
       }
-    for (const id of new Set((SPAWNS.plaza ?? []).map((sp) => sp.species))) {
+    const kinds = Object.values(SPAWNS.zones).flatMap((z) => z.spawns.map((sp) => sp.species));
+    for (const id of new Set(kinds)) {
       const spec = monster(id);
       const t = templates[spec.model];
       if (sheets[id] || !t) continue;
@@ -297,22 +301,33 @@ async function start(): Promise<void> {
   const plaza = gateAt ? buildPlaza(world, gateAt) : null;
   if (plaza) city.add(plaza.object);
 
-  // slimes wander on the square; they stay on it and bump into walls like the walker does
+  // where players get up again and are left alone (map metres), from config/spawns.json
+  const restAt: [number, number][] = SPAWNS.rest.flatMap((r) =>
+    r.frame === 'map' ? [r.at] : gateAt ? [frameToMap(gateAt, r.at[0], r.at[1])] : [],
+  );
+  const inRest = (x: number, z: number) =>
+    restAt.length > 0 && nearestRest(restAt, x, z, SPAWNS.restRadius).inside;
+
+  // slimes live in zones across the city, their level rising away from the start; they keep
+  // clear of temples and rest points and bump into walls like the walker does
   let herd: SlimeHerd | null = null;
   if (slimeTemplate && plaza && gateAt) {
-    const homes = SPAWNS.plaza!.map((sp) => {
-      const [x, z] = frameToMap(gateAt, sp.at[0], sp.at[1]);
-      return { spec: monster(sp.species), x, z };
-    });
+    const homes = Object.values(SPAWNS.zones).flatMap((zone) =>
+      zone.spawns.map((sp) => {
+        const [x, z] = zone.frame === 'gate' ? frameToMap(gateAt, sp.at[0], sp.at[1]) : sp.at;
+        return { spec: monsterAt(monster(sp.species), sp.level), x, z };
+      }),
+    );
     herd = new SlimeHerd(
       templates,
       homes,
       {
         move: (x, z, dx, dz, r) => collider.move(x, z, dx, dz, r),
-        allowed: (x, z) => pointInPolygon(x, z, plaza.outline),
+        allowed: monsterGround(world.temples, restAt, SPAWNS.templeClear, SPAWNS.restRadius),
       },
       1,
       sheets,
+      SPAWNS.activeRange,
     );
     if (px) cartoon(herd.object);
     city.add(herd.object);
@@ -906,12 +921,14 @@ async function start(): Promise<void> {
       else if (h.takes < 1) sound.play('hit.resist', where);
       if (!h.defeated) continue;
       const kind = monster(h.species);
+      // a monster far below the player is worth less (monsters.json levels.gap)
+      const exp = expFrom(h.exp, h.level, stats.level);
       // it melts and leaves its drops lying round the puddle
       const dropped = pickups.drop(kind.drops, { x: h.at[0], z: h.at[2] }, (x, z, dx, dz) =>
         collider.move(x, z, dx, dz, 0.2),
       );
       if (dropped.length > 0) sound.play('item.drop', { at: { x: h.at[0], z: h.at[2] } });
-      if (gainExp(stats, kind.exp) > 0) levelledUp();
+      if (gainExp(stats, exp) > 0) levelledUp();
       story.event({ kind: 'defeat', species: h.species });
     }
   };
@@ -955,7 +972,13 @@ async function start(): Promise<void> {
   /** slimes and shots for one step of game time */
   const fight = (dt: number) => {
     const s = state.scale;
-    const blows = herd?.update(dt, { x: state.x, z: state.z, down: stats.down > 0 }) ?? [];
+    // slimes leave a player alone who is down, or resting at a rest point
+    const blows =
+      herd?.update(dt, {
+        x: state.x,
+        z: state.z,
+        down: stats.down > 0 || inRest(state.x, state.z),
+      }) ?? [];
     /** slimes whose blow hurt the player this step (their warning was not dodged) */
     const hitBy = new Set<number>();
     for (const b of blows) {
@@ -998,9 +1021,14 @@ async function start(): Promise<void> {
       }
     }
     if (stepStats(stats, dt) === 'up') {
-      // back on their feet at the rest point in front of the gate, nothing lost
-      Object.assign(state, { x: startX, z: startZ, yaw: startYaw, heading: startYaw });
-      walker.body.rotation.y = startYaw;
+      // back on their feet at the nearest rest point, nothing lost: in front of Tha Phae Gate as
+      // at the start, or inside another gate facing into the city
+      const rest: [number, number] =
+        restAt.length > 0 ? nearestRest(restAt, state.x, state.z, 0).at : [startX, startZ];
+      const home = Math.hypot(rest[0] - startX, rest[1] - startZ) < 1;
+      const yaw = home ? startYaw : Math.atan2(rest[0], rest[1]);
+      Object.assign(state, { x: rest[0], z: rest[1], yaw, heading: yaw });
+      walker.body.rotation.y = yaw;
       sound.play('player.up');
       hud.say(TH.up, true);
     }
@@ -1274,7 +1302,8 @@ async function start(): Promise<void> {
       hud.landmarks(state, state.scale, state.labels, camera, covered, screen === 'play');
       minimap.draw(state.x, state.z, state.heading, state.labels, herd?.dots());
       sound.hear(state.x, state.z, state.yaw);
-      if (combat && herd) combatHud?.draw(combat, herd, screenOf, stats.energy, fighter);
+      if (combat && herd)
+        combatHud?.draw(combat, herd, screenOf, stats.energy, fighter, stats.level);
       if (herd) chatter?.draw(herd, screenOf);
       playerHud.draw(stats);
       if (screen === 'play') {
@@ -1390,6 +1419,8 @@ async function start(): Promise<void> {
       teleport: (x: number, z: number) => {
         state.x = x;
         state.z = z;
+        // the body (and the hand a spell leaves from) moves at once, even with the world held
+        walker.body.position.set(x * state.scale, walker.lift, z * state.scale);
       },
       setYaw: (y: number) => (state.yaw = y),
       /** walk with a fixed input for a number of seconds, in 1/30 s steps */
@@ -1565,6 +1596,11 @@ async function start(): Promise<void> {
       slimeTriangles: slimeTemplate?.triangles ?? 0,
       plaza: plaza ? { area: Math.round(plaza.area), span: plaza.span } : null,
       /** is this spot (in the gate's frame: x along the wall, z out onto the square) on the paved square? */
+      /** the rest point nearest the player, and how far its safe circle reaches */
+      rest: () => {
+        const [x, z] = nearestRest(restAt, state.x, state.z, 0).at;
+        return { x, z, radius: SPAWNS.restRadius };
+      },
       onPlaza: (fx: number, fz: number) => {
         if (!plaza || !gateAt) return false;
         const [x, z] = frameToMap(gateAt, fx, fz);

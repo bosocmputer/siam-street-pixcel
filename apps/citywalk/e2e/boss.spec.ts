@@ -18,6 +18,8 @@ type Stats = { level: number; exp: number; hp: number; energy: number; down: num
 const js = <T>(page: Page, code: string) => page.evaluate(code) as Promise<T>;
 const slimes = (page: Page) => js<Slime[]>(page, 'window.__walk.slimes()');
 const stats = (page: Page) => js<Stats>(page, 'window.__walk.stats()');
+/** the boss's hp at level 12 (config/monsters.json levels) */
+const BOSS_HP = Math.round(500 * (1 + 0.35 * 11));
 const bossIndex = async (page: Page) =>
   (await slimes(page)).findIndex((s) => s.species === 'boss_tide_regent');
 
@@ -31,15 +33,25 @@ async function open(page: Page) {
   await js(page, 'window.__walk.pause(true)');
 }
 
-/** Stand `d` metres from the boss on the side we are on, facing it, and target it. */
+/** Stand `d` metres from the boss on the side we are on (or the nearest side with no wall in
+ * between), facing it, and target it. */
 async function standAt(page: Page, d: number) {
   await page.evaluate(`(() => {
     const w = window.__walk;
     const i = w.slimes().findIndex((s) => s.species === 'boss_tide_regent');
     w.setTarget(i);
     const b = w.slimes()[i], me = w.state();
-    const l = Math.hypot(me.x - b.x, me.z - b.z) || 1;
-    const px = b.x + ((me.x - b.x) / l) * ${d}, pz = b.z + ((me.z - b.z) / l) * ${d};
+    const base = Math.atan2(me.x - b.x, me.z - b.z);
+    const open = (x, z) => {
+      for (let t = 0; t <= 0.85; t += 0.05) if (w.blocked(x + (b.x - x) * t, z + (b.z - z) * t)) return false;
+      return true;
+    };
+    let px = b.x + Math.sin(base) * ${d}, pz = b.z + Math.cos(base) * ${d};
+    for (let k = 0; k < 24; k++) {
+      const a = base + Math.ceil(k / 2) * (k % 2 ? 1 : -1) * (Math.PI / 12);
+      const cx = b.x + Math.sin(a) * ${d}, cz = b.z + Math.cos(a) * ${d};
+      if (open(cx, cz)) { px = cx; pz = cz; break; }
+    }
     w.teleport(px, pz);
     w.setYaw(Math.atan2((b.z - pz) / ${d}, -(b.x - px) / ${d}));
   })()`);
@@ -62,18 +74,17 @@ const untilMode = (page: Page, mode: string, limit = 25) =>
     })()`,
   );
 
-test('the boss stands on the square, big, with its own numbers', async ({ page }) => {
+test('the boss waits at the Si Phum corner of the moat, level 12, big, with its own numbers', async ({
+  page,
+}) => {
   await open(page);
   const list = await slimes(page);
-  expect(list).toHaveLength(7);
   const i = await bossIndex(page);
   expect(i).toBeGreaterThanOrEqual(0);
-  expect(list[i]!.hp).toBe(500);
-  const on = await js<boolean>(
-    page,
-    'window.__walk.onPlaza(-15, 34) && window.__walk.onPlaza(-21, 34) && window.__walk.onPlaza(-9, 34)',
-  );
-  expect(on).toBe(true);
+  // 500 at level 1, 35% more for each level above
+  expect(list[i]!.hp).toBe(BOSS_HP);
+  // far from the start, at the north-east corner of the moat (gdd.md zone 2)
+  expect(Math.hypot(list[i]!.x - 813, list[i]!.z + 744)).toBeLessThan(100);
   await standAt(page, 14);
   await run(page, 1.5);
   await page.waitForTimeout(400);
@@ -84,7 +95,7 @@ test('the boss stands on the square, big, with its own numbers', async ({ page }
     `(() => { const w = window.__walk; for (let n = 0; n < 200 && w.combat().inFlight > 0; n++) w.simulateFight(1 / 30); w.simulateFight(0.5); })()`,
   );
   const after = (await slimes(page))[i]!;
-  expect(after.hp).toBe(500 - 60); // 40 × 1.5
+  expect(after.hp).toBe(BOSS_HP - 60); // 40 × 1.5
   expect(after.angry).toBe(true);
 });
 
@@ -133,11 +144,14 @@ test('beating the boss gives a lot of experience and its drops, and it grows bac
 }) => {
   await open(page);
   const i = await bossIndex(page);
+  // a player at level 10, still below the boss: its experience counts in full
+  await js(page, 'window.__walk.setStats({ level: 10, exp: 0 })');
   await standAt(page, 12);
-  // fireballs at 60 each (nine are enough if all land; the boss moves, so one may miss) until it
-  // falls; keep the energy up so the fight is about the boss, not the gauge
-  for (let n = 0; n < 12 && (await slimes(page))[i]!.hp > 0; n++) {
-    await js(page, 'window.__walk.setStats({ energy: 100, hp: 100, safe: 0 })');
+  // fireballs at about 103 each (40 × 1.5, 8% more a level) until it falls; keep the energy up
+  // so the fight is about the boss, not the gauge
+  for (let n = 0; n < 40 && (await slimes(page))[i]!.hp > 0; n++) {
+    // kept standing: going down would carry the player off to a rest point
+    await js(page, 'window.__walk.setStats({ energy: 100, hp: 100, safe: 5 })');
     await js(page, 'window.__walk.setTarget(' + i + "); window.__walk.cast('fireball')");
     await page.evaluate(
       `(() => { const w = window.__walk; for (let k = 0; k < 200 && w.combat().inFlight > 0; k++) w.simulateFight(1 / 30); w.simulateFight(1.7); })()`,
@@ -147,8 +161,9 @@ test('beating the boss gives a lot of experience and its drops, and it grows bac
   const b = (await slimes(page))[i]!;
   expect(b.hp).toBe(0);
   expect(['melting', 'gone']).toContain(b.life);
-  // 200 experience is several levels' worth at the start
-  expect((await stats(page)).level).toBeGreaterThanOrEqual(3);
+  // 200 at level 1, 30% more for each level above: 860
+  const st = await stats(page);
+  expect(st.level > 10 || st.exp >= 800).toBe(true);
   const drops = await js<{ item: string; count: number }[]>(page, 'window.__walk.pickups()');
   const of = (item: string) =>
     drops.filter((d) => d.item === item).reduce((n, d) => n + d.count, 0);
@@ -161,5 +176,5 @@ test('beating the boss gives a lot of experience and its drops, and it grows bac
   await run(page, 30);
   const back = (await slimes(page))[i]!;
   expect(back.life).toBe('alive');
-  expect(back.hp).toBe(500);
+  expect(back.hp).toBe(BOSS_HP);
 });

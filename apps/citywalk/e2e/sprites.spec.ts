@@ -104,10 +104,11 @@ test('the player and every monster are pixel sprites that move, fight and face t
   // the boss, big and close
   await page.evaluate(`(() => {
     const w = window.__walk;
-    const s = w.slimes()[6];
+    const i = w.slimes().findIndex((s) => s.species === 'boss_tide_regent');
+    const s = w.slimes()[i];
     w.teleport(s.x + 4, s.z + 12);
     w.setYaw(Math.atan2(4, 12));
-    w.setTarget(6);
+    w.setTarget(i);
   })()`);
   await js(page, 'window.__walk.simulateFight(0.3)');
   await page.waitForTimeout(400);
